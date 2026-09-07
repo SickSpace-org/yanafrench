@@ -38,6 +38,7 @@ export function EnrollModal({
   const [email, setEmail] = useState("");
   const [currentLevel, setCurrentLevel] = useState<CurrentLevel | "">("");
   const [notes, setNotes] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
   const courseBatches = useMemo(
     () => batches.filter((b) => b.course === course && canSelect(b)),
@@ -59,6 +60,7 @@ export function EnrollModal({
     e.preventDefault();
     if (!batch || !name.trim() || !phone.trim() || !email.trim()) return;
     onSubmit(batch, { name: name.trim(), phone: phone.trim(), email: email.trim(), currentLevel, notes: notes.trim() });
+    setSubmitted(true);
   }
 
   return (
@@ -83,9 +85,20 @@ export function EnrollModal({
         >
           <button type="button" className={styles.close} onClick={onClose} aria-label="Close">×</button>
 
+          {submitted ? (
+            <div className={styles.success}>
+              <div className={styles.batchTag}>Submitted</div>
+              <h3>Thanks, {name.split(" ")[0]}!</h3>
+              <p className={styles.batchMeta}>
+                Your enrollment inquiry for the {batch?.course} batch is in. Yana will personally confirm availability and reach out on {phone} or {email} soon.
+              </p>
+              <button type="button" className={styles.submit} onClick={onClose}>Done</button>
+            </div>
+          ) : (
+          <>
           <div className={styles.batchTag}>Enroll now</div>
           <h3>Tell Yana about yourself.</h3>
-          <p className={styles.batchMeta}>A website form doesn&apos;t reserve a seat — Yana confirms availability personally on WhatsApp.</p>
+          <p className={styles.batchMeta}>A website form doesn&apos;t reserve a seat — Yana confirms availability personally.</p>
 
           <form className={styles.form} onSubmit={handleSubmit}>
             <div className={styles.fieldRow}>
@@ -152,10 +165,11 @@ export function EnrollModal({
             </label>
 
             <button type="submit" className={styles.submit} disabled={!batch}>
-              {batch?.status === "waitlist" ? "Join waitlist on WhatsApp" : "Continue on WhatsApp"}
-              <span aria-hidden="true">↗</span>
+              Submit
             </button>
           </form>
+          </>
+          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>

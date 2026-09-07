@@ -126,6 +126,16 @@
   line-height: 1.5;
 }
 
+.success {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.success .batchMeta { margin-bottom: 1.6rem; }
+
+.success .submit { align-self: stretch; }
+
 .disclaimer {
   margin: .2rem 0 0;
   color: var(--text-muted);

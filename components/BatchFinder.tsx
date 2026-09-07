@@ -15,24 +15,8 @@ const COURSES: { code: BatchCourse; title: string; note: string }[] = [
   { code: "DELF", title: "DELF", note: "A1–B2 language certification" },
 ];
 
-function formatDate(value?: string | null) {
-  if (!value) return null;
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(date);
-}
-
 function canSelect(batch: Batch) {
   return batch.status !== "full" && batch.seats_remaining > 0;
-}
-
-function whatsappMessage(batch: Batch, details: EnrollDetails) {
-  const dayNames = batch.days.map((day) => DAY_LABELS[day] || day).join(", ");
-  const time = `${formatTime(batch.start_time)}–${formatTime(batch.end_time)} IST`;
-  const start = formatDate(batch.start_date);
-  const ask = batch.status === "waitlist" ? "join the waitlist for" : "enroll in";
-
-  return `Hi Yana! I'm ${details.name} and I found The Français Hub website. I'd like to ${ask} the ${batch.course} batch I selected.\n\nBatch: ${batch.name}${batch.level ? `\nLevel: ${batch.level}` : ""}\nDays: ${dayNames}\nTime: ${time}${start ? `\nStarts: ${start}` : ""}\nPhone: ${details.phone}\nEmail: ${details.email}${details.currentLevel ? `\nCurrent level: ${details.currentLevel}` : ""}${details.notes ? `\nNotes: ${details.notes}` : ""}\n\nCould you please confirm the next step?`;
 }
 
 export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
@@ -72,8 +56,6 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
       createdAt: new Date().toISOString(),
     };
     addLead(lead);
-    setEnrollingBatch(null);
-    window.open(whatsappUrl(whatsappMessage(batch, details)), "_blank", "noreferrer");
   }
 
   return (
@@ -88,7 +70,7 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
             <h2>Choose the rhythm<br/><em>that fits your week.</em></h2>
           </div>
           <div className={styles.introCopy}>
-            <p>Select your course, explore Yana&apos;s current batch availability and continue on WhatsApp when you find the right fit.</p>
+            <p>Select your course, explore Yana&apos;s current batch availability and submit an enrollment enquiry when you find the right fit.</p>
             <div className={styles.liveLine}><span/> Live availability · India Standard Time</div>
           </div>
         </div>
@@ -211,7 +193,7 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
                   className="button button--accent"
                   onClick={() => setEnrollingBatch(selected)}
                 >
-                  {selected.status === "waitlist" ? "Join waitlist on WhatsApp" : "Continue on WhatsApp"}
+                  {selected.status === "waitlist" ? "Join waitlist" : "Enroll now"}
                   <span aria-hidden="true">↗</span>
                 </button>
               </div>
