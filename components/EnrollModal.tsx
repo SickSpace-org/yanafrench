@@ -108,6 +108,20 @@ export function EnrollModal({
         name: "The Français Hub",
         description: `${target.course} enrollment · ${target.name}`,
         prefill: { name, email, contact: phone },
+        // Explicitly opt every method category in — Razorpay's default
+        // checkout otherwise sometimes narrows to just Card on a fresh test
+        // account. UPI is what actually surfaces Google Pay / PhonePe /
+        // Paytm as tappable options on a mobile browser (via UPI intent);
+        // on desktop, UPI renders as a QR code / "enter UPI ID" instead of
+        // named app icons — that's Razorpay's own behavior, not something
+        // this config can change.
+        method: {
+          upi: true,
+          card: true,
+          netbanking: true,
+          wallet: true,
+          paylater: true,
+        },
         theme: { color: "#1F3A5F" },
         handler: async (response: RazorpaySuccessResponse) => {
           try {
