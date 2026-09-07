@@ -184,6 +184,13 @@ h1 em,h2 em { font-weight: 400; font-style: italic; }
   padding: 1.1rem var(--pad) 0;
   pointer-events: none;
 }
+
+/* The enroll form's payment step opens a Razorpay overlay that a fixed,
+   high-z-index nav would otherwise sit on top of, blocking its close
+   control (see components/EnrollModal.tsx). */
+body.enroll-modal-open .nav {
+  display: none;
+}
 .nav__inner {
   pointer-events: auto;
   max-width: var(--max);

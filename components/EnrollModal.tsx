@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { formatTime, statusText, type Batch, type BatchCourse } from "@/lib/batchData";
 import { CURRENT_LEVELS, type CurrentLevel } from "@/lib/leadData";
 import { loadRazorpayScript } from "@/lib/loadRazorpayScript";
@@ -56,6 +56,16 @@ export function EnrollModal({
   const [phase, setPhase] = useState<Phase>("form");
   const [error, setError] = useState<string | null>(null);
   const pendingRef = useRef<{ batch: Batch; leadId: string } | null>(null);
+
+  // The site nav is a fixed, high-z-index pill that otherwise sits on top
+  // of this modal (and, worse, on top of Razorpay's own checkout overlay
+  // once payment opens — the whole point of hiding it), blocking the close
+  // controls of whichever is on top. Hidden for as long as this modal is
+  // mounted, regardless of phase.
+  useEffect(() => {
+    document.body.classList.add("enroll-modal-open");
+    return () => document.body.classList.remove("enroll-modal-open");
+  }, []);
 
   const courseBatches = useMemo(
     () => batches.filter((b) => b.course === course && canSelect(b)),
