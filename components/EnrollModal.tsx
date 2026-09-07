@@ -18,6 +18,16 @@ function canSelect(batch: Batch) {
   return (batch.status !== "full" && batch.seats_remaining > 0) || batch.status === "waitlist";
 }
 
+// Digits only, plus a single optional leading "+" for any country code
+// (not just India) and spaces for readability while typing — strips
+// letters and other symbols as they're typed rather than only validating
+// after the fact.
+function sanitizePhone(value: string) {
+  const hasLeadingPlus = value.trimStart().startsWith("+");
+  const digitsAndSpaces = value.replace(/[^\d\s]/g, "");
+  return hasLeadingPlus ? `+${digitsAndSpaces.trimStart()}` : digitsAndSpaces;
+}
+
 export type EnrollDetails = {
   name: string;
   phone: string;
@@ -272,7 +282,16 @@ export function EnrollModal({
                 <div className={styles.fieldRow}>
                   <label>
                     <span>Phone number</span>
-                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 9XXXXXXXXX" required />
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(sanitizePhone(e.target.value))}
+                      placeholder="e.g. +1 4155552671"
+                      pattern="^\+?[\d\s]{7,15}$"
+                      title="Numbers only, with an optional country code (e.g. +1, +44, +91)"
+                      required
+                    />
                   </label>
                   <label>
                     <span>Email</span>
