@@ -1,10 +1,13 @@
 // An enrollment inquiry captured from the public site's "Find your batch"
-// flow — name/phone/email plus which course + batch they picked — before
-// they're handed off to WhatsApp. Persisted on the shared portal state (see
-// lib/portalState.ts) so Yana can see every inquiry from the admin panel
+// form — everything Yana needs to follow up on a prospect before they're
+// handed off to WhatsApp. Persisted on the shared portal state (see
+// lib/portalState.ts) so she can see every inquiry from the admin panel
 // even if the visitor never actually messages her.
 
 import type { BatchCourse } from "./batchData";
+
+export const CURRENT_LEVELS = ["New to French", "A1", "A2", "B1", "B2", "C1"] as const;
+export type CurrentLevel = (typeof CURRENT_LEVELS)[number];
 
 export type Lead = {
   id: string;
@@ -14,5 +17,11 @@ export type Lead = {
   course: BatchCourse;
   batchId: string;
   batchName: string;
+  // Self-reported, so Yana can gauge fit before the first message — optional
+  // since a total beginner may not know how to answer.
+  currentLevel?: CurrentLevel | null;
+  // Anything else the visitor wants Yana to know upfront (goals, target exam
+  // date, scheduling constraints, etc).
+  notes?: string | null;
   createdAt: string; // ISO timestamp
 };

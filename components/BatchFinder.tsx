@@ -6,7 +6,7 @@ import { whatsappUrl } from "@/lib/site";
 import { usePortalState } from "@/lib/usePortalState";
 import { DAYS, DAY_LABELS, formatTime, statusText, type Batch, type BatchCourse } from "@/lib/batchData";
 import type { Lead } from "@/lib/leadData";
-import { EnrollModal } from "./EnrollModal";
+import { EnrollModal, type EnrollDetails } from "./EnrollModal";
 import styles from "./BatchFinder.module.css";
 
 const COURSES: { code: BatchCourse; title: string; note: string }[] = [
@@ -26,16 +26,13 @@ function canSelect(batch: Batch) {
   return batch.status !== "full" && batch.seats_remaining > 0;
 }
 
-function whatsappMessage(batch: Batch) {
+function whatsappMessage(batch: Batch, details: EnrollDetails) {
   const dayNames = batch.days.map((day) => DAY_LABELS[day] || day).join(", ");
   const time = `${formatTime(batch.start_time)}–${formatTime(batch.end_time)} IST`;
   const start = formatDate(batch.start_date);
+  const ask = batch.status === "waitlist" ? "join the waitlist for" : "enroll in";
 
-  if (batch.status === "waitlist") {
-    return `Hi Yana! I found The Français Hub website and I'd like to join the waitlist for the ${batch.course} batch I selected.\n\nBatch: ${batch.name}${batch.level ? `\nLevel: ${batch.level}` : ""}\nDays: ${dayNames}\nTime: ${time}${start ? `\nStarts: ${start}` : ""}\n\nCould you please let me know the next step?`;
-  }
-
-  return `Hi Yana! I found The Français Hub website and I'm interested in the ${batch.course} batch I selected.\n\nBatch: ${batch.name}${batch.level ? `\nLevel: ${batch.level}` : ""}\nDays: ${dayNames}\nTime: ${time}${start ? `\nStarts: ${start}` : ""}\n\nCould you please confirm if a seat is still available?`;
+  return `Hi Yana! I'm ${details.name} and I found The Français Hub website. I'd like to ${ask} the ${batch.course} batch I selected.\n\nBatch: ${batch.name}${batch.level ? `\nLevel: ${batch.level}` : ""}\nDays: ${dayNames}\nTime: ${time}${start ? `\nStarts: ${start}` : ""}\nPhone: ${details.phone}\nEmail: ${details.email}${details.currentLevel ? `\nCurrent level: ${details.currentLevel}` : ""}${details.notes ? `\nNotes: ${details.notes}` : ""}\n\nCould you please confirm the next step?`;
 }
 
 export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
@@ -61,12 +58,14 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
     setSelectedId(null);
   }
 
-  function handleEnrollSubmit(details: { name: string; phone: string; email: string }) {
-    const batch = enrollingBatch;
-    if (!batch) return;
+  function handleEnrollSubmit(batch: Batch, details: EnrollDetails) {
     const lead: Lead = {
       id: `lead-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      ...details,
+      name: details.name,
+      phone: details.phone,
+      email: details.email,
+      currentLevel: details.currentLevel || null,
+      notes: details.notes || null,
       course: batch.course,
       batchId: batch.id,
       batchName: batch.name,
@@ -74,7 +73,7 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
     };
     addLead(lead);
     setEnrollingBatch(null);
-    window.open(whatsappUrl(whatsappMessage(batch)), "_blank", "noreferrer");
+    window.open(whatsappUrl(whatsappMessage(batch, details)), "_blank", "noreferrer");
   }
 
   return (
@@ -223,7 +222,8 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
 
       {enrollingBatch && (
         <EnrollModal
-          batch={enrollingBatch}
+          batches={batches}
+          initialBatch={enrollingBatch}
           onClose={() => setEnrollingBatch(null)}
           onSubmit={handleEnrollSubmit}
         />

@@ -25,6 +25,8 @@ export function AdminLeadsPanel({ leads, onRemove }: { leads: Lead[]; onRemove: 
             <th>Name</th>
             <th>Contact</th>
             <th>Course &amp; batch</th>
+            <th>Level</th>
+            <th>Notes</th>
             <th>Submitted</th>
             <th />
           </tr>
@@ -41,6 +43,8 @@ export function AdminLeadsPanel({ leads, onRemove }: { leads: Lead[]; onRemove: 
                 <span className={styles.course}>{lead.course}</span>
                 <div>{lead.batchName}</div>
               </td>
+              <td>{lead.currentLevel || <span className={styles.muted}>—</span>}</td>
+              <td className={styles.notes}>{lead.notes || <span className={styles.muted}>—</span>}</td>
               <td className={styles.time}>{formatWhen(lead.createdAt)}</td>
               <td>
                 <button type="button" className={styles.remove} onClick={() => onRemove(lead.id)}>Remove</button>

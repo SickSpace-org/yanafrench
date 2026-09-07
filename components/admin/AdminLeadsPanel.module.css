@@ -47,6 +47,10 @@
 
 .time { color: var(--text-muted); white-space: nowrap; }
 
+.notes { max-width: 240px; color: var(--ink); }
+
+.muted { color: var(--text-faint); }
+
 .remove {
   border: 0;
   background: transparent;
