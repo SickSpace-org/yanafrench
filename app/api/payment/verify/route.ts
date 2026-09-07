@@ -3,6 +3,30 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { paymentFromRow, type PaymentRow } from "@/lib/paymentData";
 import type { Student } from "@/lib/studentData";
 import { studentToRow } from "@/lib/studentData";
+import { writeJson } from "@/lib/r2";
+import { applyPortalAction, PORTAL_STATE_KEY } from "@/lib/portalState";
+import { readPortalState } from "@/lib/portalStateServer";
+
+// Batches still live on R2 (see lib/portalState.ts) — a paid seat is taken
+// the moment a payment is verified, decrementing seats_remaining and
+// flipping status to "full" once it hits zero so the enroll button
+// disappears (see canSelect() in components/BatchFinder.tsx).
+async function decrementBatchSeat(batchId: string) {
+  const state = await readPortalState();
+  const batch = state.batches.find((b) => b.id === batchId);
+  if (!batch || batch.seats_remaining <= 0) return;
+
+  const nextSeats = batch.seats_remaining - 1;
+  const next = applyPortalAction(state, {
+    type: "updateBatch",
+    id: batchId,
+    patch: {
+      seats_remaining: nextSeats,
+      status: nextSeats <= 0 && batch.status !== "waitlist" ? "full" : batch.status,
+    },
+  });
+  await writeJson(PORTAL_STATE_KEY, next);
+}
 
 // Verifies a completed Razorpay checkout server-side (the client-side
 // "handler" callback firing is not proof of payment — Razorpay's own docs
@@ -96,6 +120,7 @@ export async function POST(req: Request) {
     if (!existing) {
       const { error } = await supabase.from("students").insert(studentToRow(student));
       if (error) console.error("Failed to insert student", error);
+      else await decrementBatchSeat(payment.batchId);
     }
   }
 
