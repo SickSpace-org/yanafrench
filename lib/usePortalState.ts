@@ -123,5 +123,6 @@ export function usePortalState() {
     leads: raw.leads,
     addLead: (lead: Lead) => send({ type: "addLead", lead }),
     removeLead: (id: string) => send({ type: "removeLead", id }),
+    updateLead: (id: string, patch: Partial<Lead>) => send({ type: "updateLead", id, patch }),
   };
 }

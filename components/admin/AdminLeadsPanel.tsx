@@ -9,6 +9,12 @@ function formatWhen(iso: string) {
   return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(date);
 }
 
+const PAYMENT_LABELS: Record<string, string> = {
+  paid: "Paid (test) ₹1",
+  pending: "Awaiting payment",
+  failed: "Payment failed",
+};
+
 // Enrollment inquiries submitted from the public site's batch-picker form
 // (see components/EnrollModal.tsx) — every visitor who filled the form and
 // continued to WhatsApp, newest first.
@@ -27,6 +33,7 @@ export function AdminLeadsPanel({ leads, onRemove }: { leads: Lead[]; onRemove: 
             <th>Course &amp; batch</th>
             <th>Level</th>
             <th>Notes</th>
+            <th>Payment</th>
             <th>Submitted</th>
             <th />
           </tr>
@@ -45,6 +52,11 @@ export function AdminLeadsPanel({ leads, onRemove }: { leads: Lead[]; onRemove: 
               </td>
               <td>{lead.currentLevel || <span className={styles.muted}>—</span>}</td>
               <td className={styles.notes}>{lead.notes || <span className={styles.muted}>—</span>}</td>
+              <td>
+                <span className={`${styles.payment} ${styles[`payment_${lead.paymentStatus || "pending"}`] || ""}`}>
+                  {PAYMENT_LABELS[lead.paymentStatus || "pending"]}
+                </span>
+              </td>
               <td className={styles.time}>{formatWhen(lead.createdAt)}</td>
               <td>
                 <button type="button" className={styles.remove} onClick={() => onRemove(lead.id)}>Remove</button>

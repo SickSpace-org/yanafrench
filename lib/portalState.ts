@@ -98,7 +98,8 @@ export type PortalStateAction =
   | { type: "updateBatch"; id: string; patch: Partial<Batch> }
   | { type: "setCurrentBatch"; id: string }
   | { type: "addLead"; lead: Lead }
-  | { type: "removeLead"; id: string };
+  | { type: "removeLead"; id: string }
+  | { type: "updateLead"; id: string; patch: Partial<Lead> };
 
 // Pure reducer shared by the API route (authoritative, persisted write) and
 // the client hook (optimistic local update, applied instantly so the UI
@@ -161,6 +162,8 @@ export function applyPortalAction(state: PortalState, action: PortalStateAction)
       return { ...state, leads: [action.lead, ...state.leads] };
     case "removeLead":
       return { ...state, leads: state.leads.filter((l) => l.id !== action.id) };
+    case "updateLead":
+      return { ...state, leads: state.leads.map((l) => (l.id === action.id ? { ...l, ...action.patch } : l)) };
     default:
       return state;
   }

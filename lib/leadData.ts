@@ -24,4 +24,13 @@ export type Lead = {
   // date, scheduling constraints, etc).
   notes?: string | null;
   createdAt: string; // ISO timestamp
+
+  // Razorpay test-mode payment tracking (see app/api/payment/*) — a lead is
+  // written as soon as the form is submitted, then patched to "paid" once
+  // /api/payment/verify confirms the signature server-side. "failed" covers
+  // both a declined payment and the visitor dismissing the checkout modal.
+  paymentStatus?: "paid" | "pending" | "failed" | null;
+  paymentAmount?: number | null; // in paise
+  razorpayOrderId?: string | null;
+  razorpayPaymentId?: string | null;
 };

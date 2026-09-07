@@ -51,6 +51,20 @@
 
 .muted { color: var(--text-faint); }
 
+.payment {
+  display: inline-block;
+  padding: .2rem .55rem;
+  border-radius: 999px;
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+.payment_paid { background: rgba(63,138,99,.12); color: var(--status-available); }
+.payment_pending { background: rgba(182,58,58,.1); color: var(--bordeaux); }
+.payment_failed { background: rgba(23,25,28,.08); color: var(--text-faint); }
+
 .remove {
   border: 0;
   background: transparent;

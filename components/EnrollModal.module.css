@@ -136,6 +136,8 @@
 
 .success .submit { align-self: stretch; }
 
+.success .fieldRow { width: 100%; }
+
 .disclaimer {
   margin: .2rem 0 0;
   color: var(--text-muted);
@@ -168,6 +170,27 @@
 .submit:disabled {
   opacity: .5;
   cursor: not-allowed;
+}
+
+.secondary {
+  margin-top: .3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .9rem 1.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--stone);
+  background: transparent;
+  color: var(--ink);
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .2s var(--ease), border-color .2s var(--ease);
+}
+
+.secondary:hover {
+  background: rgba(23,25,28,.05);
+  border-color: rgba(23,25,28,.2);
 }
 
 @media (max-width: 480px) {

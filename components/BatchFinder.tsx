@@ -59,8 +59,10 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
       batchId: batch.id,
       batchName: batch.name,
       createdAt: new Date().toISOString(),
+      paymentStatus: "pending",
     };
     addLead(lead);
+    return lead.id;
   }
 
   return (
