@@ -1,8 +1,6 @@
-import { writeJson } from "@/lib/r2";
-import { applyPortalAction, PORTAL_STATE_KEY } from "@/lib/portalState";
-import { readPortalState } from "@/lib/portalStateServer";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { paymentToRow, type Payment } from "@/lib/paymentData";
 import type { BatchCourse } from "@/lib/batchData";
-import type { Payment } from "@/lib/paymentData";
 
 // Creates a Razorpay order server-side so the amount is never trusted from
 // the client. Flat ₹1 test price for every batch right now — see the
@@ -56,25 +54,27 @@ export async function POST(req: Request) {
   // shows it even if the visitor never completes checkout — verify only
   // ever patches this record, it never creates it.
   if (leadId && name && email && phone && course && batchId && batchName) {
-    const payment: Payment = {
-      id: order.id,
-      leadId,
-      name,
-      email,
-      phone,
-      course,
-      batchId,
-      batchName,
-      amount: order.amount,
-      currency: order.currency,
-      status: "created",
-      razorpayPaymentId: null,
-      createdAt: new Date().toISOString(),
-      paidAt: null,
-    };
-    const existing = await readPortalState();
-    const next = applyPortalAction(existing, { type: "addPayment", payment });
-    await writeJson(PORTAL_STATE_KEY, next);
+    const supabase = getSupabaseAdmin();
+    if (supabase) {
+      const payment: Payment = {
+        id: order.id,
+        leadId,
+        name,
+        email,
+        phone,
+        course,
+        batchId,
+        batchName,
+        amount: order.amount,
+        currency: order.currency,
+        status: "created",
+        razorpayPaymentId: null,
+        createdAt: new Date().toISOString(),
+        paidAt: null,
+      };
+      const { error } = await supabase.from("payments").insert(paymentToRow(payment));
+      if (error) console.error("Failed to record payment attempt", error);
+    }
   }
 
   return Response.json({ orderId: order.id, amount: order.amount, currency: order.currency });

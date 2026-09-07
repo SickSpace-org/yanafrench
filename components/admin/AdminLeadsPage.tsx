@@ -1,15 +1,16 @@
 "use client";
 
-import { usePortalState } from "@/lib/usePortalState";
+import { useAdminCollection } from "@/lib/useAdminCollection";
+import type { Lead } from "@/lib/leadData";
 import { AdminShell } from "../AdminShell";
 import { AdminLeadsPanel } from "./AdminLeadsPanel";
 import styles from "./AdminLessonsManager.module.css";
 
 // Enrollment inquiries submitted from the public site's "Find your batch"
-// form (see components/EnrollModal.tsx) before the visitor is handed off to
-// WhatsApp — visible here even if they never actually message.
+// form (see components/EnrollModal.tsx), persisted in Supabase (see
+// app/api/leads) — visible here even if the visitor never pays.
 export function AdminLeadsPage() {
-  const { loaded, leads, removeLead } = usePortalState();
+  const { items: leads, loaded, remove } = useAdminCollection<Lead>("/api/leads");
 
   return (
     <AdminShell>
@@ -25,7 +26,7 @@ export function AdminLeadsPage() {
         </div>
       ) : (
         <div className={styles.tabPanel}>
-          <AdminLeadsPanel leads={leads} onRemove={removeLead} />
+          <AdminLeadsPanel leads={leads} onRemove={remove} />
         </div>
       )}
     </AdminShell>

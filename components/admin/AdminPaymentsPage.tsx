@@ -1,15 +1,17 @@
 "use client";
 
-import { usePortalState } from "@/lib/usePortalState";
+import { useAdminCollection } from "@/lib/useAdminCollection";
+import type { Payment } from "@/lib/paymentData";
 import { AdminShell } from "../AdminShell";
 import { AdminPaymentsPanel } from "./AdminPaymentsPanel";
 import styles from "./AdminLessonsManager.module.css";
 
 // Every Razorpay checkout attempt from the enroll form's payment step,
-// newest first — created the moment an order is opened, patched to
-// paid/failed once app/api/payment/verify confirms the signature.
+// persisted in Supabase (see app/api/payments, app/api/payment/*), newest
+// first — created the moment an order is opened, patched to paid/failed
+// once app/api/payment/verify confirms the signature.
 export function AdminPaymentsPage() {
-  const { loaded, payments, removePayment } = usePortalState();
+  const { items: payments, loaded, remove } = useAdminCollection<Payment>("/api/payments");
 
   return (
     <AdminShell>
@@ -25,7 +27,7 @@ export function AdminPaymentsPage() {
         </div>
       ) : (
         <div className={styles.tabPanel}>
-          <AdminPaymentsPanel payments={payments} onRemove={removePayment} />
+          <AdminPaymentsPanel payments={payments} onRemove={remove} />
         </div>
       )}
     </AdminShell>

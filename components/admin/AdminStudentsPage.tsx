@@ -1,14 +1,16 @@
 "use client";
 
-import { usePortalState } from "@/lib/usePortalState";
+import { useAdminCollection } from "@/lib/useAdminCollection";
+import type { Student } from "@/lib/studentData";
 import { AdminShell } from "../AdminShell";
 import { AdminStudentsPanel } from "./AdminStudentsPanel";
 import styles from "./AdminLessonsManager.module.css";
 
-// The roster of confirmed, paying students — created automatically the
-// moment a Razorpay payment is verified (see app/api/payment/verify).
+// The roster of confirmed, paying students, persisted in Supabase (see
+// app/api/students) — created automatically the moment a Razorpay payment
+// is verified (see app/api/payment/verify).
 export function AdminStudentsPage() {
-  const { loaded, students, removeStudent } = usePortalState();
+  const { items: students, loaded, remove } = useAdminCollection<Student>("/api/students");
 
   return (
     <AdminShell>
@@ -24,7 +26,7 @@ export function AdminStudentsPage() {
         </div>
       ) : (
         <div className={styles.tabPanel}>
-          <AdminStudentsPanel students={students} onRemove={removeStudent} />
+          <AdminStudentsPanel students={students} onRemove={remove} />
         </div>
       )}
     </AdminShell>

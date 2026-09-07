@@ -20,7 +20,7 @@ function canSelect(batch: Batch) {
 }
 
 export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
-  const { loaded, batches: allBatches, addLead } = usePortalState();
+  const { loaded, batches: allBatches } = usePortalState();
   const [course, setCourse] = useState<BatchCourse>("TEF");
   const [enrollingBatch, setEnrollingBatch] = useState<Batch | null>(null);
   const reduceMotion = useReducedMotion();
@@ -61,7 +61,14 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
       createdAt: new Date().toISOString(),
       paymentStatus: "pending",
     };
-    addLead(lead);
+    // Fire-and-forget, same as the old optimistic addLead — the id is
+    // generated client-side so it's available immediately for the payment
+    // step without waiting on this request.
+    fetch("/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lead),
+    }).catch(() => {});
     return lead.id;
   }
 
