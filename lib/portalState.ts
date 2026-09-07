@@ -9,6 +9,7 @@ import type { Recording } from "./recordingData";
 import type { Resource } from "./resourceData";
 import { defaultQuizLevel, type QuizLevel, type QuizSession } from "./quizData";
 import type { Batch } from "./batchData";
+import type { Lead } from "./leadData";
 
 export const PORTAL_STATE_KEY = "data/portal-state.json";
 
@@ -46,6 +47,11 @@ export type PortalState = {
   // section, and the one with isCurrent true drives the student's
   // recurring class events on her calendar (see lib/batchData.ts).
   batches: Batch[];
+
+  // Enrollment inquiries submitted from the public site's batch-picker
+  // form, newest first — visible to the admin under Enrollments regardless
+  // of whether the visitor follows through on WhatsApp.
+  leads: Lead[];
 };
 
 export const defaultPortalState: PortalState = {
@@ -70,6 +76,7 @@ export const defaultPortalState: PortalState = {
   teacherNote: { text: "Better rhythm today.", date: "" },
 
   batches: [],
+  leads: [],
 };
 
 export type PortalStateAction =
@@ -89,7 +96,9 @@ export type PortalStateAction =
   | { type: "addBatch"; batch: Batch }
   | { type: "removeBatch"; id: string }
   | { type: "updateBatch"; id: string; patch: Partial<Batch> }
-  | { type: "setCurrentBatch"; id: string };
+  | { type: "setCurrentBatch"; id: string }
+  | { type: "addLead"; lead: Lead }
+  | { type: "removeLead"; id: string };
 
 // Pure reducer shared by the API route (authoritative, persisted write) and
 // the client hook (optimistic local update, applied instantly so the UI
@@ -148,6 +157,10 @@ export function applyPortalAction(state: PortalState, action: PortalStateAction)
         batches: state.batches.map((b) => (b.course === target.course ? { ...b, isCurrent: b.id === action.id } : b)),
       };
     }
+    case "addLead":
+      return { ...state, leads: [action.lead, ...state.leads] };
+    case "removeLead":
+      return { ...state, leads: state.leads.filter((l) => l.id !== action.id) };
     default:
       return state;
   }

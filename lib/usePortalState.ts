@@ -7,6 +7,7 @@ import { recordings as seedRecordings, type Recording } from "./recordingData";
 import { resources as seedResources, type Resource } from "./resourceData";
 import type { QuizLevel } from "./quizData";
 import type { Batch } from "./batchData";
+import type { Lead } from "./leadData";
 
 const POLL_MS = 3000;
 
@@ -119,5 +120,8 @@ export function usePortalState() {
     removeBatch: (id: string) => send({ type: "removeBatch", id }),
     updateBatch: (id: string, patch: Partial<Batch>) => send({ type: "updateBatch", id, patch }),
     setCurrentBatch: (id: string) => send({ type: "setCurrentBatch", id }),
+    leads: raw.leads,
+    addLead: (lead: Lead) => send({ type: "addLead", lead }),
+    removeLead: (id: string) => send({ type: "removeLead", id }),
   };
 }

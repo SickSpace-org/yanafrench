@@ -5,6 +5,8 @@ import { useMemo, useState } from "react";
 import { whatsappUrl } from "@/lib/site";
 import { usePortalState } from "@/lib/usePortalState";
 import { DAYS, DAY_LABELS, formatTime, statusText, type Batch, type BatchCourse } from "@/lib/batchData";
+import type { Lead } from "@/lib/leadData";
+import { EnrollModal } from "./EnrollModal";
 import styles from "./BatchFinder.module.css";
 
 const COURSES: { code: BatchCourse; title: string; note: string }[] = [
@@ -37,9 +39,10 @@ function whatsappMessage(batch: Batch) {
 }
 
 export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
-  const { loaded, batches: allBatches } = usePortalState();
+  const { loaded, batches: allBatches, addLead } = usePortalState();
   const [course, setCourse] = useState<BatchCourse>("TEF");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [enrollingBatch, setEnrollingBatch] = useState<Batch | null>(null);
 
   const batches = useMemo(() => allBatches.filter((b) => b.published), [allBatches]);
 
@@ -56,6 +59,22 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
   function chooseCourse(next: BatchCourse) {
     setCourse(next);
     setSelectedId(null);
+  }
+
+  function handleEnrollSubmit(details: { name: string; phone: string; email: string }) {
+    const batch = enrollingBatch;
+    if (!batch) return;
+    const lead: Lead = {
+      id: `lead-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      ...details,
+      course: batch.course,
+      batchId: batch.id,
+      batchName: batch.name,
+      createdAt: new Date().toISOString(),
+    };
+    addLead(lead);
+    setEnrollingBatch(null);
+    window.open(whatsappUrl(whatsappMessage(batch)), "_blank", "noreferrer");
   }
 
   return (
@@ -121,18 +140,39 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
                         const selectable = canSelect(batch) || batch.status === "waitlist";
                         const isSelected = selectedId === batch.id;
                         return (
-                          <button
-                            type="button"
+                          <div
                             key={`${day}-${batch.id}`}
-                            disabled={!selectable}
+                            role="button"
+                            tabIndex={selectable ? 0 : -1}
+                            aria-disabled={!selectable}
                             onClick={() => selectable && setSelectedId(batch.id)}
+                            onKeyDown={(e) => {
+                              if (selectable && (e.key === "Enter" || e.key === " ")) {
+                                e.preventDefault();
+                                setSelectedId(batch.id);
+                              }
+                            }}
                             className={`${styles.slot} ${isSelected ? styles.slotSelected : ""} ${!selectable ? styles.slotDisabled : ""}`}
                           >
                             <span className={styles.slotTime}>{formatTime(batch.start_time)}</span>
                             <strong>{batch.name}</strong>
                             {batch.level && <small>{batch.level}</small>}
-                            <span className={`${styles.status} ${styles[`status_${batch.status}`] || ""}`}>{statusText(batch)}</span>
-                          </button>
+                            <div className={styles.slotFoot}>
+                              <span className={`${styles.status} ${styles[`status_${batch.status}`] || ""}`}>{statusText(batch)}</span>
+                              {selectable && (
+                                <button
+                                  type="button"
+                                  className={styles.slotEnroll}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEnrollingBatch(batch);
+                                  }}
+                                >
+                                  Enroll now ↗
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         );
                       }) : <span className={styles.noClass}>—</span>}
                     </div>
@@ -167,20 +207,27 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
               </div>
               <div className={styles.selectionBottom}>
                 <p>A website selection does not reserve a seat. Yana will confirm the latest availability personally.</p>
-                <a
+                <button
+                  type="button"
                   className="button button--accent"
-                  href={whatsappUrl(whatsappMessage(selected))}
-                  target="_blank"
-                  rel="noreferrer"
+                  onClick={() => setEnrollingBatch(selected)}
                 >
                   {selected.status === "waitlist" ? "Join waitlist on WhatsApp" : "Continue on WhatsApp"}
                   <span aria-hidden="true">↗</span>
-                </a>
+                </button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {enrollingBatch && (
+        <EnrollModal
+          batch={enrollingBatch}
+          onClose={() => setEnrollingBatch(null)}
+          onSubmit={handleEnrollSubmit}
+        />
+      )}
     </section>
   );
 }
