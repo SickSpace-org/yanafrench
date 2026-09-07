@@ -60,6 +60,21 @@ export function formatTime(value: string) {
   return `${displayHour}:${m} ${suffix}`;
 }
 
+// Renders a batch's weekday set for scanning at a glance: a contiguous
+// 3+ day run collapses to "Mon – Sat", otherwise days are listed in
+// week order ("Tue, Thu, Fri, Sat"). Used by the unique-batch table on
+// the public site (see components/BatchFinder.tsx) so admin-entered day
+// order (whatever order they were toggled in) never leaks into the UI.
+export function formatDays(days: string[]) {
+  const ordered = DAYS.filter((d) => days.includes(d));
+  if (ordered.length === 0) return "";
+  if (ordered.length <= 2) return ordered.join(", ");
+
+  const indexes = ordered.map((d) => DAYS.indexOf(d));
+  const isContiguous = indexes.every((idx, i) => i === 0 || idx === indexes[i - 1] + 1);
+  return isContiguous ? `${ordered[0]} – ${ordered[ordered.length - 1]}` : ordered.join(", ");
+}
+
 export function statusText(batch: Batch) {
   if (batch.status === "waitlist") return "Waitlist";
   if (batch.status === "full" || batch.seats_remaining <= 0) return "Full";

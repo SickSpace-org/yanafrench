@@ -1,10 +1,10 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
 import { whatsappUrl } from "@/lib/site";
 import { usePortalState } from "@/lib/usePortalState";
-import { DAYS, DAY_LABELS, formatTime, statusText, type Batch, type BatchCourse } from "@/lib/batchData";
+import { formatDays, formatTime, statusText, type Batch, type BatchCourse } from "@/lib/batchData";
 import type { Lead } from "@/lib/leadData";
 import { EnrollModal, type EnrollDetails } from "./EnrollModal";
 import styles from "./BatchFinder.module.css";
@@ -22,25 +22,30 @@ function canSelect(batch: Batch) {
 export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
   const { loaded, batches: allBatches, addLead } = usePortalState();
   const [course, setCourse] = useState<BatchCourse>("TEF");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [enrollingBatch, setEnrollingBatch] = useState<Batch | null>(null);
+  const reduceMotion = useReducedMotion();
 
   const batches = useMemo(() => allBatches.filter((b) => b.published), [allBatches]);
 
+  // One row per batch — the underlying data already stores every batch as a
+  // single record with a `days` array, so no de-duplication is needed here,
+  // just a stable sort for scanning. (Two source batches with different
+  // times on different days were entered as multiple records at the data
+  // level, since a batch here has one time slot for all its days — those
+  // share a name but carry distinct days/times, handled below.)
   const courseBatches = useMemo(
-    () => batches.filter((batch) => batch.course === course),
+    () => [...batches.filter((b) => b.course === course)].sort((a, b) => a.start_time.localeCompare(b.start_time)),
     [batches, course]
   );
 
-  const selected = useMemo(
-    () => batches.find((batch) => batch.id === selectedId) || null,
-    [batches, selectedId]
-  );
-
-  function chooseCourse(next: BatchCourse) {
-    setCourse(next);
-    setSelectedId(null);
-  }
+  // Batches sharing a display name but different day/time records (e.g. an
+  // "Evening Batch (Late)" split across a few time slots) get their time
+  // appended to the name so two rows never read as identical.
+  const nameCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const b of courseBatches) counts[b.name] = (counts[b.name] || 0) + 1;
+    return counts;
+  }, [courseBatches]);
 
   function handleEnrollSubmit(batch: Batch, details: EnrollDetails) {
     const lead: Lead = {
@@ -80,7 +85,7 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
             <button
               key={item.code}
               className={`${styles.courseCard} ${course === item.code ? styles.courseCardActive : ""}`}
-              onClick={() => chooseCourse(item.code)}
+              onClick={() => setCourse(item.code)}
               type="button"
               aria-pressed={course === item.code}
             >
@@ -99,106 +104,96 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
           <p>Monday–Saturday · 8:00 AM–6:00 PM IST</p>
         </div>
 
-        {!loaded ? (
-          <div className={styles.state}>Checking Yana&apos;s latest availability…</div>
-        ) : courseBatches.length === 0 ? (
-          <div className={styles.state}>
-            No {course} batches are published right now. <a href={whatsappUrl(`Hi Yana! I found The Français Hub website and I'm interested in ${course}. Could you let me know when the next batch opens?`)} target="_blank" rel="noreferrer">Ask about the next batch →</a>
-          </div>
-        ) : (
-          <div className={styles.calendarScroll}>
-            <div className={styles.calendar}>
-              {DAYS.map(day => {
-                const dayBatches = courseBatches.filter(batch => batch.days.includes(day));
-                return (
-                  <div className={styles.day} key={day}>
-                    <div className={styles.dayHead}>
-                      <span>{day}</span>
-                      <small>{DAY_LABELS[day]}</small>
-                    </div>
-                    <div className={styles.dayBody}>
-                      {dayBatches.length ? dayBatches.map(batch => {
-                        const selectable = canSelect(batch) || batch.status === "waitlist";
-                        const isSelected = selectedId === batch.id;
-                        return (
-                          <div
-                            key={`${day}-${batch.id}`}
-                            role="button"
-                            tabIndex={selectable ? 0 : -1}
-                            aria-disabled={!selectable}
-                            onClick={() => selectable && setSelectedId(batch.id)}
-                            onKeyDown={(e) => {
-                              if (selectable && (e.key === "Enter" || e.key === " ")) {
-                                e.preventDefault();
-                                setSelectedId(batch.id);
-                              }
-                            }}
-                            className={`${styles.slot} ${isSelected ? styles.slotSelected : ""} ${!selectable ? styles.slotDisabled : ""}`}
-                          >
-                            <span className={styles.slotTime}>{formatTime(batch.start_time)}</span>
-                            <strong>{batch.name}</strong>
-                            {batch.level && <small>{batch.level}</small>}
-                            <div className={styles.slotFoot}>
-                              <span className={`${styles.status} ${styles[`status_${batch.status}`] || ""}`}>{statusText(batch)}</span>
-                              {selectable && (
-                                <button
-                                  type="button"
-                                  className={styles.slotEnroll}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEnrollingBatch(batch);
-                                  }}
-                                >
-                                  Enroll now ↗
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      }) : <span className={styles.noClass}>—</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         <AnimatePresence mode="wait">
-          {selected && (
-            <motion.div
-              key={selected.id}
-              className={styles.selection}
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: .35 }}
-            >
-              <div className={styles.selectionLabel}>Your selection</div>
-              <div className={styles.selectionMain}>
-                <div>
-                  <span>{selected.course}{selected.level ? ` · ${selected.level}` : ""}</span>
-                  <h3>{selected.name}</h3>
-                </div>
-                <div className={styles.selectionDetails}>
-                  <div><small>Days</small><strong>{selected.days.join(" · ")}</strong></div>
-                  <div><small>Time</small><strong>{formatTime(selected.start_time)}–{formatTime(selected.end_time)}</strong></div>
-                  <div><small>Availability</small><strong>{statusText(selected)}</strong></div>
-                </div>
+          <motion.div
+            key={course}
+            initial={{ opacity: 0, y: reduceMotion ? 0 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: reduceMotion ? 0 : -6 }}
+            transition={{ duration: reduceMotion ? 0 : .3 }}
+          >
+            {!loaded ? (
+              <div className={styles.state}>Checking Yana&apos;s latest availability…</div>
+            ) : courseBatches.length === 0 ? (
+              <div className={styles.state}>
+                No {course} batches are published right now. <a href={whatsappUrl(`Hi Yana! I found The Français Hub website and I'm interested in ${course}. Could you let me know when the next batch opens?`)} target="_blank" rel="noreferrer">Ask about the next batch →</a>
               </div>
-              <div className={styles.selectionBottom}>
-                <p>A website selection does not reserve a seat. Yana will confirm the latest availability personally.</p>
-                <button
-                  type="button"
-                  className="button button--accent"
-                  onClick={() => setEnrollingBatch(selected)}
-                >
-                  {selected.status === "waitlist" ? "Join waitlist" : "Enroll now"}
-                  <span aria-hidden="true">↗</span>
-                </button>
-              </div>
-            </motion.div>
-          )}
+            ) : (
+              <>
+                <div className={styles.tableWrap}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Batch</th>
+                        <th>Days</th>
+                        <th>Time</th>
+                        <th>Availability</th>
+                        <th aria-hidden="true" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {courseBatches.map((batch) => {
+                        const selectable = canSelect(batch) || batch.status === "waitlist";
+                        const disambiguate = nameCounts[batch.name] > 1;
+                        return (
+                          <tr key={batch.id} className={!selectable ? styles.rowDisabled : ""}>
+                            <td>
+                              <strong>{batch.name}{disambiguate ? ` · ${formatTime(batch.start_time)}` : ""}</strong>
+                              {batch.level && <small>{batch.level}</small>}
+                            </td>
+                            <td>{formatDays(batch.days)}</td>
+                            <td>{formatTime(batch.start_time)}–{formatTime(batch.end_time)}</td>
+                            <td>
+                              <span className={`${styles.status} ${styles[`status_${batch.status}`] || ""}`}>{statusText(batch)}</span>
+                            </td>
+                            <td>
+                              {selectable ? (
+                                <button type="button" className={styles.enrollBtn} onClick={() => setEnrollingBatch(batch)}>
+                                  {batch.status === "waitlist" ? "Join waitlist" : "Enroll now"}
+                                  <span aria-hidden="true">→</span>
+                                </button>
+                              ) : (
+                                <span className={styles.fullLabel}>Full</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className={styles.cardList}>
+                  {courseBatches.map((batch) => {
+                    const selectable = canSelect(batch) || batch.status === "waitlist";
+                    const disambiguate = nameCounts[batch.name] > 1;
+                    return (
+                      <div key={batch.id} className={!selectable ? `${styles.card} ${styles.rowDisabled}` : styles.card}>
+                        <div className={styles.cardHead}>
+                          <span className={styles.cardCourse}>{batch.course}</span>
+                          <span className={`${styles.status} ${styles[`status_${batch.status}`] || ""}`}>{statusText(batch)}</span>
+                        </div>
+                        <strong>{batch.name}{disambiguate ? ` · ${formatTime(batch.start_time)}` : ""}</strong>
+                        {batch.level && <small>{batch.level}</small>}
+                        <div className={styles.cardMeta}>
+                          <span>{formatDays(batch.days)}</span>
+                          <span>{formatTime(batch.start_time)}–{formatTime(batch.end_time)}</span>
+                        </div>
+                        {selectable ? (
+                          <button type="button" className={styles.enrollBtn} onClick={() => setEnrollingBatch(batch)}>
+                            {batch.status === "waitlist" ? "Join waitlist" : "Enroll now"}
+                            <span aria-hidden="true">→</span>
+                          </button>
+                        ) : (
+                          <span className={styles.fullLabel}>Batch full</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </motion.div>
         </AnimatePresence>
       </div>
 
