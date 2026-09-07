@@ -51,6 +51,8 @@
 
 .muted { color: var(--text-faint); }
 
+.mono { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: .72rem; color: var(--text-muted); }
+
 .payment {
   display: inline-block;
   padding: .2rem .55rem;

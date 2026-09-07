@@ -87,7 +87,15 @@ export function EnrollModal({
       const orderRes = await fetch("/api/payment/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadId }),
+        body: JSON.stringify({
+          leadId,
+          name,
+          email,
+          phone,
+          course: target.course,
+          batchId: target.id,
+          batchName: target.name,
+        }),
       });
       if (!orderRes.ok) throw new Error("Couldn't start the payment. Please try again.");
       const order = await orderRes.json();

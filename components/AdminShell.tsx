@@ -9,6 +9,8 @@ const navItems = [
   { label: "Lessons", href: "/admin" },
   { label: "Batches", href: "/admin/batches" },
   { label: "Enrollments", href: "/admin/enrollments" },
+  { label: "Payments", href: "/admin/payments" },
+  { label: "Students", href: "/admin/students" },
   { label: "Highlights", href: "/admin/highlights" },
   { label: "Messages", href: "/admin/messages" },
 ];

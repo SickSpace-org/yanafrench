@@ -10,6 +10,8 @@ import type { Resource } from "./resourceData";
 import { defaultQuizLevel, type QuizLevel, type QuizSession } from "./quizData";
 import type { Batch } from "./batchData";
 import type { Lead } from "./leadData";
+import type { Payment } from "./paymentData";
+import type { Student } from "./studentData";
 
 export const PORTAL_STATE_KEY = "data/portal-state.json";
 
@@ -52,6 +54,17 @@ export type PortalState = {
   // form, newest first — visible to the admin under Enrollments regardless
   // of whether the visitor follows through on WhatsApp.
   leads: Lead[];
+
+  // Every payment attempt from the enroll form's Razorpay checkout, newest
+  // first — created (status "created") when the order is opened, patched
+  // to "paid"/"failed" once /api/payment/verify confirms the signature.
+  // Independent of `leads` so a failed/abandoned payment is never lost.
+  payments: Payment[];
+
+  // Confirmed, paying students — one record per successfully verified
+  // payment, created automatically by /api/payment/verify. This is the
+  // roster Admin → Students reads.
+  students: Student[];
 };
 
 export const defaultPortalState: PortalState = {
@@ -77,6 +90,8 @@ export const defaultPortalState: PortalState = {
 
   batches: [],
   leads: [],
+  payments: [],
+  students: [],
 };
 
 export type PortalStateAction =
@@ -99,7 +114,12 @@ export type PortalStateAction =
   | { type: "setCurrentBatch"; id: string }
   | { type: "addLead"; lead: Lead }
   | { type: "removeLead"; id: string }
-  | { type: "updateLead"; id: string; patch: Partial<Lead> };
+  | { type: "updateLead"; id: string; patch: Partial<Lead> }
+  | { type: "addPayment"; payment: Payment }
+  | { type: "updatePayment"; id: string; patch: Partial<Payment> }
+  | { type: "removePayment"; id: string }
+  | { type: "addStudent"; student: Student }
+  | { type: "removeStudent"; id: string };
 
 // Pure reducer shared by the API route (authoritative, persisted write) and
 // the client hook (optimistic local update, applied instantly so the UI
@@ -164,6 +184,19 @@ export function applyPortalAction(state: PortalState, action: PortalStateAction)
       return { ...state, leads: state.leads.filter((l) => l.id !== action.id) };
     case "updateLead":
       return { ...state, leads: state.leads.map((l) => (l.id === action.id ? { ...l, ...action.patch } : l)) };
+    case "addPayment":
+      return { ...state, payments: [action.payment, ...state.payments] };
+    case "updatePayment":
+      return { ...state, payments: state.payments.map((p) => (p.id === action.id ? { ...p, ...action.patch } : p)) };
+    case "removePayment":
+      return { ...state, payments: state.payments.filter((p) => p.id !== action.id) };
+    case "addStudent":
+      // A retried payment for the same lead must not create a second
+      // student record — same guard as the reducer's other add-once cases.
+      if (state.students.some((s) => s.leadId === action.student.leadId)) return state;
+      return { ...state, students: [action.student, ...state.students] };
+    case "removeStudent":
+      return { ...state, students: state.students.filter((s) => s.id !== action.id) };
     default:
       return state;
   }

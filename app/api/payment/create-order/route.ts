@@ -1,8 +1,24 @@
+import { writeJson } from "@/lib/r2";
+import { applyPortalAction, PORTAL_STATE_KEY } from "@/lib/portalState";
+import { readPortalState } from "@/lib/portalStateServer";
+import type { BatchCourse } from "@/lib/batchData";
+import type { Payment } from "@/lib/paymentData";
+
 // Creates a Razorpay order server-side so the amount is never trusted from
 // the client. Flat ₹1 test price for every batch right now — see the
-// comment on ENROLLMENT_FEE_PAISE in components/EnrollModal.tsx, which
+// comment on ENROLLMENT_FEE_LABEL in components/EnrollModal.tsx, which
 // displays the same figure to the visitor before checkout opens.
 const ENROLLMENT_FEE_PAISE = 100; // ₹1
+
+type CreateOrderBody = {
+  leadId?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  course?: BatchCourse;
+  batchId?: string;
+  batchName?: string;
+};
 
 export async function POST(req: Request) {
   const keyId = process.env.RAZORPAY_KEY_ID;
@@ -11,7 +27,8 @@ export async function POST(req: Request) {
     return new Response("Razorpay isn't configured.", { status: 501 });
   }
 
-  const { leadId } = (await req.json().catch(() => ({}))) as { leadId?: string };
+  const body = (await req.json().catch(() => ({}))) as CreateOrderBody;
+  const { leadId, name, email, phone, course, batchId, batchName } = body;
 
   const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
   const res = await fetch("https://api.razorpay.com/v1/orders", {
@@ -34,5 +51,31 @@ export async function POST(req: Request) {
   }
 
   const order = await res.json();
+
+  // Record the attempt immediately (status "created") so Admin → Payments
+  // shows it even if the visitor never completes checkout — verify only
+  // ever patches this record, it never creates it.
+  if (leadId && name && email && phone && course && batchId && batchName) {
+    const payment: Payment = {
+      id: order.id,
+      leadId,
+      name,
+      email,
+      phone,
+      course,
+      batchId,
+      batchName,
+      amount: order.amount,
+      currency: order.currency,
+      status: "created",
+      razorpayPaymentId: null,
+      createdAt: new Date().toISOString(),
+      paidAt: null,
+    };
+    const existing = await readPortalState();
+    const next = applyPortalAction(existing, { type: "addPayment", payment });
+    await writeJson(PORTAL_STATE_KEY, next);
+  }
+
   return Response.json({ orderId: order.id, amount: order.amount, currency: order.currency });
 }

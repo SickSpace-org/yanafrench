@@ -8,6 +8,8 @@ import { resources as seedResources, type Resource } from "./resourceData";
 import type { QuizLevel } from "./quizData";
 import type { Batch } from "./batchData";
 import type { Lead } from "./leadData";
+import type { Payment } from "./paymentData";
+import type { Student } from "./studentData";
 
 const POLL_MS = 3000;
 
@@ -124,5 +126,9 @@ export function usePortalState() {
     addLead: (lead: Lead) => send({ type: "addLead", lead }),
     removeLead: (id: string) => send({ type: "removeLead", id }),
     updateLead: (id: string, patch: Partial<Lead>) => send({ type: "updateLead", id, patch }),
+    payments: raw.payments,
+    removePayment: (id: string) => send({ type: "removePayment", id }),
+    students: raw.students,
+    removeStudent: (id: string) => send({ type: "removeStudent", id }),
   };
 }
