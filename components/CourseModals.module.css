@@ -37,3 +37,15 @@
   .factsRow { flex-direction: column; gap: .8rem; }
   .factsRow span { padding: 0; border-left: 0; }
 }
+
+.summaryBox { display: flex; flex-direction: column; gap: .8rem; padding: 1.1rem 1.3rem; border-radius: var(--r-md); background: rgba(31,58,95,.05); border: 1px solid rgba(31,58,95,.1); margin: 1rem 0 1.5rem; }
+
+.summaryBox span { display: flex; flex-direction: column; gap: .2rem; font-size: .92rem; font-weight: 700; color: var(--blue); }
+
+.summaryBox small { font-size: .58rem; text-transform: uppercase; letter-spacing: .1em; font-weight: 700; color: var(--text-faint); }
+
+.fieldError { color: var(--bordeaux); font-size: .66rem; font-weight: 600; margin-top: -.15rem; }
+
+.formError { margin: -.3rem 0 0; padding: .7rem .9rem; border-radius: 8px; background: #fbe9e7; color: #9c2f2f; font-size: .74rem; line-height: 1.5; }
+
+.secureNote { display: flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--text-muted); margin: 0 0 1.4rem; }
