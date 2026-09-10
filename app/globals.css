@@ -954,3 +954,32 @@ a:focus-visible, button:focus-visible { outline:2px solid var(--bordeaux); outli
   .course-catalog__grid { grid-template-columns: 1fr; }
   .course-catalog__filters { gap: .5rem; }
 }
+
+/* DELF pricing matrix */
+.delf-pricing { margin-top: 4.5rem; }
+.delf-pricing__head { margin-bottom: 1.6rem; }
+.delf-pricing__head h3 { font-family: var(--serif); font-size: clamp(1.9rem, 3vw, 2.6rem); margin: 0; color: var(--blue); }
+.delf-pricing__table { border: 1px solid var(--hairline-ink); border-radius: var(--r-lg); overflow: hidden; background: var(--card-surface); box-shadow: var(--shadow-soft); }
+.delf-pricing__row { display: grid; grid-template-columns: .9fr 1fr 1fr 1fr; border-top: 1px solid var(--hairline-ink); }
+.delf-pricing__row:first-child { border-top: 0; }
+.delf-pricing__row--head { background: var(--stone-wash); }
+.delf-pricing__row--head span { padding: 1rem 1.2rem; font-size: .64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-muted); }
+.delf-pricing__level { display: flex; align-items: center; padding: 1.2rem; font-family: var(--serif); font-size: 1.15rem; color: var(--blue); border-right: 1px solid var(--hairline-ink); }
+.delf-pricing__cell { display: flex; flex-direction: column; align-items: flex-start; gap: .35rem; padding: 1.2rem; border-right: 1px solid var(--hairline-ink); }
+.delf-pricing__cell:last-child { border-right: 0; }
+.delf-pricing__cell strong { font-family: var(--serif); font-size: 1.15rem; color: var(--bordeaux); }
+.delf-pricing__cell small { font-size: .68rem; color: var(--text-faint); }
+.delf-pricing__enroll { margin-top: .3rem; border: 1px solid var(--blue); border-radius: 999px; background: transparent; color: var(--blue); font-size: .64rem; font-weight: 700; padding: .45rem .9rem; cursor: pointer; transition: background .25s var(--ease), color .25s var(--ease); }
+.delf-pricing__enroll:hover { background: var(--blue); color: var(--porcelain); }
+
+@media (max-width: 1100px) {
+  .delf-pricing__row { grid-template-columns: .8fr 1fr 1fr 1fr; }
+}
+
+@media (max-width: 800px) {
+  .delf-pricing__row { grid-template-columns: 1fr; }
+  .delf-pricing__level { border-right: 0; border-bottom: 1px solid var(--hairline-ink); }
+  .delf-pricing__cell { border-right: 0; border-bottom: 1px solid var(--hairline-ink); }
+  .delf-pricing__row--head { display: none; }
+  .delf-pricing__cell::before { content: attr(data-label); font-size: .6rem; text-transform: uppercase; letter-spacing: .1em; color: var(--text-faint); font-weight: 700; }
+}
