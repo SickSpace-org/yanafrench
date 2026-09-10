@@ -274,7 +274,7 @@ export const delfCourses: DelfCourse[] = [
   { level: "A1", options: delfOptions(6999, 15, 6999, 15, 9999, 20) },
   { level: "A2", options: delfOptions(7999, 15, 7999, 15, 11000, 20) },
   { level: "B1", options: delfOptions(10500, 18, 9000, 15, 12000, 20) },
-  { level: "B2", options: delfOptions(13500, 20, 11000, 15, 13000, 20) },
+  { level: "B2", options: delfOptions(13500, 20, 11000, 15, 23000, 20) },
   { level: "C1", options: delfOptions(15000, 20, 13500, 20, 22500, 30) },
 ];
 
