@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { courseLeadToRow, type CourseLead } from "@/lib/courseLeadData";
+import { findEnrollableByProductId, enrollableTitle } from "@/lib/courseCatalogData";
 
 type CreateLeadBody = {
   name?: string;
@@ -7,7 +8,6 @@ type CreateLeadBody = {
   email?: string;
   whatsapp?: string;
   productId?: string;
-  productTitle?: string;
   currentLevel?: string;
   preferredMode?: string;
   message?: string;
@@ -20,11 +20,21 @@ export async function POST(req: Request) {
   }
 
   const body = (await req.json().catch(() => ({}))) as CreateLeadBody;
-  const { name, phone, email, whatsapp, productId, productTitle, currentLevel, preferredMode, message } = body;
+  const { name, phone, email, whatsapp, productId, currentLevel, preferredMode, message } = body;
 
-  if (!name?.trim() || !phone?.trim() || !email?.trim() || !productId || !productTitle) {
+  if (!name?.trim() || !phone?.trim() || !email?.trim() || !productId) {
     return new Response("Missing required fields.", { status: 400 });
   }
+
+  // productTitle is never trusted from the client — it's re-derived here from
+  // the catalog by productId, same principle as
+  // app/api/course-payment/create-order/route.ts's price re-derivation, so
+  // course_leads.product_title always matches course_payments.product_title.
+  const enrollable = findEnrollableByProductId(productId);
+  if (!enrollable) {
+    return new Response("Unknown course.", { status: 400 });
+  }
+  const productTitle = enrollableTitle(enrollable);
 
   const lead: CourseLead = {
     id: `course-lead-${Date.now()}-${Math.random().toString(36).slice(2)}`,

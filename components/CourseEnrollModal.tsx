@@ -44,6 +44,11 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const pendingRef = useRef<{ leadId: string } | null>(null);
+  // Guards against onDismiss re-opening the double-charge "Try Again" path
+  // when Razorpay's ondismiss fires after a successful payment has already
+  // been captured (a race with the async onSuccess below). Must be a ref,
+  // not state, so it's readable synchronously inside the Razorpay callbacks.
+  const settledRef = useRef(false);
 
   const title = enrollableTitle(enrollable);
   const priceInPaise = enrollablePriceInPaise(enrollable);
@@ -107,6 +112,7 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
 
   async function startPayment() {
     if (!pendingRef.current) return;
+    settledRef.current = false;
     setPhase("processing");
     setError(null);
 
@@ -124,6 +130,7 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
         { name: name.trim(), email: email.trim(), phone: phone.trim() },
         {
           onSuccess: async (response: RazorpaySuccessResponse) => {
+            settledRef.current = true;
             try {
               const verifyRes = await fetch("/api/course-payment/verify", {
                 method: "POST",
@@ -138,6 +145,7 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
             }
           },
           onDismiss: () => {
+            if (settledRef.current) return;
             setError("Payment wasn't completed. Your enrollment is still saved — you can try paying again.");
             setPhase("payment_failed");
           },

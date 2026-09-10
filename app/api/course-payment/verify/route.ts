@@ -42,16 +42,18 @@ export async function POST(req: Request) {
     return new Response("Signature verification failed.", { status: 400 });
   }
 
-  await supabase
+  const { error: paymentUpdateError } = await supabase
     .from("course_payments")
     .update({ status: "paid", razorpay_payment_id, paid_at: new Date().toISOString() })
     .eq("id", razorpay_order_id);
+  if (paymentUpdateError) console.error("Failed to mark course payment as paid", paymentUpdateError);
 
   if (leadId) {
-    await supabase
+    const { error: leadUpdateError } = await supabase
       .from("course_leads")
       .update({ payment_status: "paid", razorpay_order_id, razorpay_payment_id })
       .eq("id", leadId);
+    if (leadUpdateError) console.error("Failed to mark course lead as paid", leadUpdateError);
   }
 
   return Response.json({ verified: true });
