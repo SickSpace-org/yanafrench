@@ -28,7 +28,7 @@ function sanitizePhone(value: string) {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^\+?[\d\s]{7,15}$/;
 
-type Phase = "form" | "payment" | "processing" | "paid" | "payment_failed";
+type Phase = "form" | "payment" | "processing" | "paid" | "payment_failed" | "verify_failed";
 type FieldErrors = Partial<Record<"name" | "email" | "phone", string>>;
 
 export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrollable; onClose: () => void }) {
@@ -42,6 +42,7 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
   const [errors, setErrors] = useState<FieldErrors>({});
   const [phase, setPhase] = useState<Phase>("form");
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const pendingRef = useRef<{ leadId: string } | null>(null);
 
   const title = enrollableTitle(enrollable);
@@ -76,6 +77,7 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
     setError(null);
     if (!validate()) return;
 
+    setSubmitting(true);
     try {
       const res = await fetch("/api/course-leads", {
         method: "POST",
@@ -98,6 +100,8 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
       setPhase("payment");
     } catch {
       setError("Couldn't save your enrollment. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -130,7 +134,7 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
               setPhase("paid");
             } catch {
               setError("Payment went through, but we couldn't confirm it automatically — we'll verify manually.");
-              setPhase("payment_failed");
+              setPhase("verify_failed");
             }
           },
           onDismiss: () => {
@@ -241,7 +245,9 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
 
               {error && <p className={styles.formError}>{error}</p>}
 
-              <button type="submit" className={enrollStyles.submit}>Continue to Payment</button>
+              <button type="submit" className={enrollStyles.submit} disabled={submitting}>
+                {submitting ? "Saving…" : "Continue to Payment"}
+              </button>
             </form>
           </>
         )}
@@ -257,7 +263,7 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
             <p className={styles.secureNote}>🔒 Secure payment via Razorpay</p>
             {error && <p className={styles.formError}>{error}</p>}
             <button type="button" className={enrollStyles.submit} onClick={startPayment}>Pay Now</button>
-            <button type="button" className={enrollStyles.secondary} onClick={() => setPhase("form")}>Back to Enrollment</button>
+            <button type="button" className={enrollStyles.secondary} onClick={() => { setError(null); setPhase("form"); }}>Back to Enrollment</button>
           </div>
         )}
 
@@ -293,7 +299,19 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
             <p className={enrollStyles.batchMeta}>{error}</p>
             <div className={enrollStyles.fieldRow}>
               <button type="button" className={enrollStyles.submit} onClick={startPayment}>Try Again</button>
-              <button type="button" className={enrollStyles.secondary} onClick={() => setPhase("form")}>Back to Enrollment</button>
+              <button type="button" className={enrollStyles.secondary} onClick={() => { setError(null); setPhase("form"); }}>Back to Enrollment</button>
+            </div>
+          </div>
+        )}
+
+        {phase === "verify_failed" && (
+          <div className={enrollStyles.success}>
+            <div className={enrollStyles.batchTag}>Payment Received</div>
+            <h3>We couldn&apos;t confirm your payment automatically.</h3>
+            <p className={enrollStyles.batchMeta}>{error}</p>
+            <div className={enrollStyles.fieldRow}>
+              <WhatsAppLink className={enrollStyles.submit} message={`Hi! I just paid for ${title} but the confirmation didn't go through automatically. Can you please verify my payment?`}>Contact The Français Hub</WhatsAppLink>
+              <button type="button" className={enrollStyles.secondary} onClick={onClose}>Close</button>
             </div>
           </div>
         )}
