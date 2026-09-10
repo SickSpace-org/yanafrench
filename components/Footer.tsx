@@ -9,6 +9,7 @@ export function Footer() {
         <div className="footer__brand"><Wordmark/><p>French, with direction.</p></div>
         <div className="footer__col">
           <span className="footer__heading">Programs</span>
+          <Link href="/courses">Courses</Link>
           <Link href="/tef-tcf">TEF / TCF</Link>
           <Link href="/delf">DELF</Link>
           <Link href="/find-your-batch">Find your batch</Link>

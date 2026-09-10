@@ -8,6 +8,7 @@ import { Wordmark } from "./Wordmark";
 
 const links = [
   ["Programs", "/#programs"],
+  ["Courses", "/courses"],
   ["Le Hub", "/le-hub"],
   ["About", "/about"],
   ["Results", "/results"],
