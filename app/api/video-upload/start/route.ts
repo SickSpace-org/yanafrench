@@ -1,5 +1,6 @@
 import { CreateMultipartUploadCommand } from "@aws-sdk/client-s3";
 import { buildUploadKey, getR2Client } from "@/lib/r2";
+import { authErrorResponse, requireAdmin } from "@/lib/auth";
 
 // Starts a multipart upload and returns the object key + uploadId the
 // client uses for every subsequent part-url/complete/abort call. Videos go
@@ -7,6 +8,12 @@ import { buildUploadKey, getR2Client } from "@/lib/r2";
 // a single PUT has no way to retry just the part that failed — one dropped
 // packet on a multi-hundred-MB file means starting over from zero.
 export async function POST(req: Request) {
+  try {
+    await requireAdmin();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   const r2 = getR2Client();
   if (!r2) {
     return new Response(
