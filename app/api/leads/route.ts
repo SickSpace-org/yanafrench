@@ -1,8 +1,15 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { authErrorResponse, requireAdmin } from "@/lib/auth";
 import { leadFromRow, leadToRow, type Lead, type LeadRow } from "@/lib/leadData";
 
 // GET: list every enrollment inquiry for Admin → Enrollments, newest first.
 export async function GET() {
+  try {
+    await requireAdmin();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return Response.json([]);
 
@@ -14,8 +21,8 @@ export async function GET() {
   return Response.json((data as LeadRow[]).map(leadFromRow));
 }
 
-// POST: the enroll form (see components/BatchFinder.tsx) creates the lead
-// client-side (id generated there) and fires this — the id is generated on
+// POST: deliberately unguarded — anonymous site visitors submit this via
+// the enroll form (see components/BatchFinder.tsx). The id is generated on
 // the client rather than here so EnrollModal has it immediately to kick
 // off the Razorpay payment step without waiting on this round trip.
 export async function POST(req: Request) {

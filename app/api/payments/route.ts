@@ -1,10 +1,17 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { authErrorResponse, requireAdmin } from "@/lib/auth";
 import { paymentFromRow, type PaymentRow } from "@/lib/paymentData";
 
 // GET: every Razorpay checkout attempt for Admin → Payments, newest first.
 // Rows are only ever written by app/api/payment/create-order (insert) and
 // app/api/payment/verify (status update) — no public POST here.
 export async function GET() {
+  try {
+    await requireAdmin();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return Response.json([]);
 

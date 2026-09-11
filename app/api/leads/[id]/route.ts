@@ -1,9 +1,15 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { authErrorResponse, requireAdmin } from "@/lib/auth";
 import type { Lead } from "@/lib/leadData";
 
-// PATCH: partial update, used by app/api/payment/verify to set
-// paymentStatus/razorpay ids, and available for admin edits later.
+// PATCH: admin edits from Admin → Enrollments.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    await requireAdmin();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return new Response("Supabase isn't configured.", { status: 501 });
 
@@ -33,6 +39,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
 // DELETE: Admin → Enrollments' Remove action.
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    await requireAdmin();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return new Response("Supabase isn't configured.", { status: 501 });
 

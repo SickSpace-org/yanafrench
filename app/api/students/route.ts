@@ -1,10 +1,17 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { authErrorResponse, requireAdmin } from "@/lib/auth";
 import { studentFromRow, type StudentRow } from "@/lib/studentData";
 
 // GET: the roster of confirmed, paying students for Admin → Students,
 // newest first. Rows are only ever written by app/api/payment/verify on a
 // successfully verified payment — no public POST here.
 export async function GET() {
+  try {
+    await requireAdmin();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return Response.json([]);
 

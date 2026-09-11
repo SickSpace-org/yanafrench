@@ -1,4 +1,5 @@
 import { readJson, writeJson } from "@/lib/r2";
+import { authErrorResponse, requireStudent } from "@/lib/auth";
 
 // Shared message thread between the student and admin Messages pages,
 // persisted in R2 so both sides see the same conversation regardless of
@@ -16,11 +17,23 @@ const seedMessages: ThreadMessage[] = [
 ];
 
 export async function GET() {
+  try {
+    await requireStudent();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   const messages = await readJson<ThreadMessage[]>(MESSAGES_KEY, seedMessages);
   return Response.json(messages);
 }
 
 export async function POST(req: Request) {
+  try {
+    await requireStudent();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   const body = await req.json().catch(() => null);
   const from = body?.from;
   const text = typeof body?.text === "string" ? body.text.trim() : "";

@@ -1,7 +1,14 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { authErrorResponse, requireAdmin } from "@/lib/auth";
 
 // DELETE: Admin → Students' Remove action.
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    await requireAdmin();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   const supabase = getSupabaseAdmin();
   if (!supabase) return new Response("Supabase isn't configured.", { status: 501 });
 

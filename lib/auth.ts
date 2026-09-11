@@ -55,3 +55,23 @@ export async function requireAdmin(): Promise<Viewer> {
   }
   return viewer;
 }
+
+// Student-scoped routes: a student may access their own data, and an admin
+// may access the same routes (e.g. "View as student"). Same allowance as
+// proxy.ts's /student-hub gate.
+export async function requireStudent(): Promise<Viewer> {
+  const viewer = await getViewer();
+  if (!viewer || (viewer.role !== "student" && viewer.role !== "admin")) {
+    throw new AuthError(viewer ? 403 : 401);
+  }
+  return viewer;
+}
+
+// Route handlers call a guard and pass any thrown AuthError here to get the
+// Response it maps to; anything else rethrows.
+export function authErrorResponse(error: unknown): Response {
+  if (error instanceof AuthError) {
+    return new Response(error.message, { status: error.status });
+  }
+  throw error;
+}
