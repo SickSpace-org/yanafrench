@@ -99,7 +99,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 <span className={styles.dropdownHeading}>{student.name}</span>
                 <button type="button" className={styles.dropdownLink}>View profile</button>
                 <button type="button" className={styles.dropdownLink}>Settings</button>
-                <button type="button" className={styles.dropdownLink}>Log out</button>
+                <form action="/auth/signout" method="post" style={{ display: "contents" }}>
+                  <button type="submit" className={styles.dropdownLink}>Log out</button>
+                </form>
               </div>
             )}
           </div>

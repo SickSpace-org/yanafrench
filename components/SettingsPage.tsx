@@ -136,7 +136,9 @@ export function SettingsPage() {
               </div>
               <div className={styles.accountRow}>
                 <div><strong>Log out</strong><small>Sign out of Le Hub on this device</small></div>
-                <button type="button" className={styles.ghostButton}>Log out</button>
+                <form action="/auth/signout" method="post">
+                  <button type="submit" className={styles.ghostButton}>Log out</button>
+                </form>
               </div>
               <div className={styles.accountRow}>
                 <div><strong>Delete account</strong><small>Permanently remove your Le Hub account and data</small></div>

@@ -18,8 +18,23 @@
 .brand span { color: var(--bordeaux-light); }
 .brand small { font-family: var(--sans); font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.6); }
 
+.headerActions { display: flex; align-items: center; gap: 1.1rem; }
+
 .viewStudent { font-size: .72rem; font-weight: 700; color: rgba(255,255,255,.8); }
 .viewStudent:hover { color: #fff; }
+
+.signOut {
+  font: inherit;
+  font-size: .72rem;
+  font-weight: 700;
+  color: rgba(255,255,255,.8);
+  background: transparent;
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 8px;
+  padding: .34rem .7rem;
+  cursor: pointer;
+}
+.signOut:hover { color: #fff; border-color: rgba(255,255,255,.55); }
 
 .body { flex: 1; display: grid; grid-template-columns: 210px 1fr; align-items: start; }
 

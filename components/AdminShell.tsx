@@ -22,7 +22,12 @@ export function AdminShell({ children }: { children: ReactNode }) {
     <div className={styles.app}>
       <header className={styles.header}>
         <Link href="/admin" className={styles.brand}>le hub<span>.</span> <small>admin</small></Link>
-        <Link href="/student-hub" className={styles.viewStudent}>View as student →</Link>
+        <div className={styles.headerActions}>
+          <Link href="/student-hub" className={styles.viewStudent}>View as student →</Link>
+          <form action="/auth/signout" method="post">
+            <button type="submit" className={styles.signOut}>Log out</button>
+          </form>
+        </div>
       </header>
 
       <div className={styles.body}>
