@@ -13,7 +13,21 @@ function formatWhen(iso: string) {
 // verified payment (see app/api/payment/verify), created automatically the
 // moment someone pays. Distinct from Enrollments (every inquiry) and
 // Payments (every transaction attempt, paid or not).
-export function AdminStudentsPanel({ students, onRemove }: { students: Student[]; onRemove: (id: string) => void }) {
+export function AdminStudentsPanel({
+  students,
+  onRemove,
+  onResendSetupLink,
+  sendingId,
+  sentId,
+  failedId,
+}: {
+  students: Student[];
+  onRemove: (id: string) => void;
+  onResendSetupLink: (id: string) => void;
+  sendingId: string | null;
+  sentId: string | null;
+  failedId: string | null;
+}) {
   if (students.length === 0) {
     return <div className={styles.empty}>No paying students yet.</div>;
   }
@@ -27,6 +41,7 @@ export function AdminStudentsPanel({ students, onRemove }: { students: Student[]
             <th>Contact</th>
             <th>Course &amp; batch</th>
             <th>Enrolled</th>
+            <th>Login</th>
             <th />
           </tr>
         </thead>
@@ -43,6 +58,25 @@ export function AdminStudentsPanel({ students, onRemove }: { students: Student[]
                 <div>{s.batchName}</div>
               </td>
               <td className={styles.time}>{formatWhen(s.enrolledAt)}</td>
+              <td>
+                <button
+                  type="button"
+                  className={styles.action}
+                  disabled={sendingId === s.id}
+                  title={failedId === s.id ? "Resend couldn't deliver this — verify a sending domain at resend.com/domains, or check the server logs." : undefined}
+                  onClick={() => onResendSetupLink(s.id)}
+                >
+                  {sendingId === s.id
+                    ? "Sending…"
+                    : sentId === s.id
+                      ? "Sent ✓"
+                      : failedId === s.id
+                        ? "Not delivered ⚠"
+                        : s.userId
+                          ? "Resend setup link"
+                          : "Send setup link"}
+                </button>
+              </td>
               <td>
                 <button type="button" className={styles.remove} onClick={() => onRemove(s.id)}>Remove</button>
               </td>

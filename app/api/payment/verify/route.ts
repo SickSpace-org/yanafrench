@@ -6,6 +6,7 @@ import { studentToRow } from "@/lib/studentData";
 import { writeJson } from "@/lib/r2";
 import { applyPortalAction, PORTAL_STATE_KEY } from "@/lib/portalState";
 import { readPortalState } from "@/lib/portalStateServer";
+import { provisionStudentAccount } from "@/lib/studentAccount";
 
 // Batches still live on R2 (see lib/portalState.ts) — a paid seat is taken
 // the moment a payment is verified, decrementing seats_remaining and
@@ -118,6 +119,12 @@ export async function POST(req: Request) {
       enrolledAt: new Date().toISOString(),
     };
     if (!existing) {
+      // Best-effort: a provisioning failure (e.g. email couldn't be sent)
+      // must never fail this response — the payment already succeeded.
+      // The admin can always resend the setup link from Admin -> Students.
+      const provisioned = await provisionStudentAccount(payment.email);
+      student.userId = provisioned?.userId ?? null;
+
       const { error } = await supabase.from("students").insert(studentToRow(student));
       if (error) console.error("Failed to insert student", error);
       else await decrementBatchSeat(payment.batchId);

@@ -5,18 +5,13 @@ import { lessons } from "@/lib/courseData";
 import { computeLessonProgress, computeOverallProgress } from "@/lib/progressData";
 import { getSpeakingHistory } from "@/lib/speakingData";
 import { usePortalState } from "@/lib/usePortalState";
+import { useStudentProfile, displayName } from "@/lib/useStudentProfile";
 import { DashboardShell } from "./DashboardShell";
 import styles from "./StudentDashboard.module.css";
 
-// Mock data — stands in for what will eventually come from the student's
-// account and a real backend. Progress/CEFR/completed-lessons come from
-// lib/progressData.ts instead, computed from actual lesson, assignment
-// and speaking-practice activity.
-const student = {
-  name: "Amelia",
-  level: "TEF · CLB 7+",
-};
-
+// Mock data — stands in for what will eventually come from a real backend.
+// Progress/CEFR/completed-lessons come from lib/progressData.ts instead,
+// computed from actual lesson, assignment and speaking-practice activity.
 const nextTask = {
   type: "Listening",
   title: "Task 04 · Interview about travel plans",
@@ -61,6 +56,8 @@ function ProgressRing({ value }: { value: number }) {
 
 export function StudentDashboard() {
   const { quizSessions, wordOfWeek, teacherNote } = usePortalState();
+  const profile = useStudentProfile();
+  const name = displayName(profile) || "there";
   const speakingHistory = getSpeakingHistory();
   const lessonProgress = computeLessonProgress(lessons);
   const overallProgress = computeOverallProgress(lessons, quizSessions, speakingHistory);
@@ -68,7 +65,7 @@ export function StudentDashboard() {
   return (
     <DashboardShell>
       <div className={styles.greeting}>
-        <small>BONJOUR, {student.name.toUpperCase()}</small>
+        <small>BONJOUR, {name.toUpperCase()}</small>
         <h1>Your French,<br /><em>moving forward.</em></h1>
       </div>
 

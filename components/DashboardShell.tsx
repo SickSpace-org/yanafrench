@@ -4,10 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { getNotifications } from "@/lib/notificationData";
+import { useStudentProfile, displayName } from "@/lib/useStudentProfile";
 import styles from "./DashboardShell.module.css";
-
-// Mock signed-in student — stands in for a real account once there's auth.
-const student = { name: "Amelia" };
 
 const navItems: { type: string; label: string; href?: string }[] = [
   { type: "dashboard", label: "Dashboard", href: "/student-hub" },
@@ -40,8 +38,10 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  const profile = useStudentProfile();
+  const name = displayName(profile) || "Student";
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" });
-  const initials = student.name.slice(0, 2).toUpperCase();
+  const initials = name.slice(0, 2).toUpperCase();
 
   function closeMenus() {
     setNotifOpen(false);
@@ -96,7 +96,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
             </button>
             {profileOpen && (
               <div className={`${styles.dropdown} ${styles.dropdownRight}`}>
-                <span className={styles.dropdownHeading}>{student.name}</span>
+                <span className={styles.dropdownHeading}>{name}</span>
                 <button type="button" className={styles.dropdownLink}>View profile</button>
                 <button type="button" className={styles.dropdownLink}>Settings</button>
                 <form action="/auth/signout" method="post" style={{ display: "contents" }}>

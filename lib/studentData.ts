@@ -17,6 +17,9 @@ export type Student = {
   batchId: string;
   batchName: string;
   enrolledAt: string; // ISO — when the payment was confirmed
+  // The linked Supabase Auth user (see lib/studentAccount.ts) — null for
+  // the students created before this system existed, until backfilled.
+  userId?: string | null;
 };
 
 // snake_case row shape as stored in the Supabase `students` table.
@@ -31,6 +34,7 @@ export type StudentRow = {
   batch_id: string;
   batch_name: string;
   enrolled_at: string;
+  user_id: string | null;
 };
 
 export function studentFromRow(row: StudentRow): Student {
@@ -45,6 +49,7 @@ export function studentFromRow(row: StudentRow): Student {
     batchId: row.batch_id,
     batchName: row.batch_name,
     enrolledAt: row.enrolled_at,
+    userId: row.user_id,
   };
 }
 
@@ -60,5 +65,6 @@ export function studentToRow(student: Student): StudentRow {
     batch_id: student.batchId,
     batch_name: student.batchName,
     enrolled_at: student.enrolledAt,
+    user_id: student.userId ?? null,
   };
 }

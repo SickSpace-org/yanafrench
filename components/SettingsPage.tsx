@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { lessons } from "@/lib/courseData";
-import { profile } from "@/lib/profileData";
 import { computeOverallProgress } from "@/lib/progressData";
 import { getSpeakingHistory } from "@/lib/speakingData";
 import { usePortalState } from "@/lib/usePortalState";
+import { useStudentProfile } from "@/lib/useStudentProfile";
 import { DashboardShell } from "./DashboardShell";
 import styles from "./SettingsPage.module.css";
 
@@ -27,7 +27,11 @@ function Toggle({ label, defaultOn = false }: { label: string; defaultOn?: boole
 
 export function SettingsPage() {
   const [tab, setTab] = useState<Tab>("Profile");
-  const initials = profile.name.slice(0, 2).toUpperCase();
+  const profileData = useStudentProfile();
+  const name = profileData.kind === "student" ? profileData.student.name : profileData.kind === "admin-preview" ? profileData.email : "";
+  const email = profileData.kind === "student" ? profileData.student.email : profileData.kind === "admin-preview" ? profileData.email : "";
+  const course = profileData.kind === "student" ? profileData.student.course : "—";
+  const initials = (name || "?").slice(0, 2).toUpperCase();
   const { quizSessions } = usePortalState();
   const overallProgress = computeOverallProgress(lessons, quizSessions, getSpeakingHistory());
 
@@ -51,8 +55,8 @@ export function SettingsPage() {
               <div className={styles.profileHead}>
                 <span className={styles.avatar}>{initials}</span>
                 <div>
-                  <strong>{profile.name}</strong>
-                  <small>{profile.email}</small>
+                  <strong>{name}</strong>
+                  <small>{email}</small>
                 </div>
                 <button type="button" className={styles.ghostButton}>Change photo</button>
               </div>
@@ -60,25 +64,21 @@ export function SettingsPage() {
               <div className={styles.fieldGrid}>
                 <label>
                   <span>Name</span>
-                  <input defaultValue={profile.name} />
+                  <input key={name} defaultValue={name} />
                 </label>
                 <label>
                   <span>Email</span>
-                  <input defaultValue={profile.email} type="email" />
-                </label>
-                <label>
-                  <span>Current French level</span>
-                  <input defaultValue={profile.level} disabled />
+                  <input key={email} defaultValue={email} type="email" />
                 </label>
                 <label>
                   <span>Course</span>
-                  <input defaultValue={profile.course} disabled />
+                  <input key={course} defaultValue={course} disabled />
                 </label>
               </div>
 
               <label className={styles.fullWidth}>
                 <span>Learning goals</span>
-                <textarea defaultValue={profile.goals} />
+                <textarea placeholder="What are you working toward?" />
               </label>
 
               <div className={styles.progressCallout}>

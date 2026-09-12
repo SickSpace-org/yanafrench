@@ -77,3 +77,15 @@
 }
 
 .remove:hover { text-decoration: underline; }
+
+.action {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+.action:hover { text-decoration: underline; }
+.action:disabled { color: var(--text-faint); cursor: default; text-decoration: none; }

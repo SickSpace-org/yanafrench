@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { profile } from "@/lib/profileData";
 import { formatMessageTime, useMessageThread } from "@/lib/useMessageThread";
 import { AdminShell } from "../AdminShell";
 import styles from "../MessagesPage.module.css";
+
+// Placeholder conversation label — the thread itself is still one single
+// global conversation shared by every student (see lib/useMessageThread.ts),
+// not yet split per student. Fixing that is a separate, larger change.
+const conversation = { name: "Student", course: "—" };
 
 // Same shared, R2-backed thread as the student's Messages page (see
 // lib/useMessageThread.ts and app/api/messages/route.ts) — sending here as
@@ -28,7 +32,7 @@ export function AdminMessagesPage() {
     setDraft("");
   }
 
-  const initials = profile.name.slice(0, 2).toUpperCase();
+  const initials = conversation.name.slice(0, 2).toUpperCase();
 
   return (
     <AdminShell>
@@ -42,7 +46,7 @@ export function AdminMessagesPage() {
           <div className={styles.conversationActive}>
             <span className={styles.avatar}>{initials}</span>
             <div>
-              <strong>{profile.name}</strong>
+              <strong>{conversation.name}</strong>
               <small>{messages[messages.length - 1]?.text.slice(0, 34)}…</small>
             </div>
           </div>
@@ -52,8 +56,8 @@ export function AdminMessagesPage() {
           <div className={styles.threadHead}>
             <span className={styles.avatar}>{initials}</span>
             <div>
-              <strong>{profile.name}</strong>
-              <small>{profile.course} · {profile.level}</small>
+              <strong>{conversation.name}</strong>
+              <small>{conversation.course}</small>
             </div>
           </div>
 
