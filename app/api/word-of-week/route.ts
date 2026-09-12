@@ -1,6 +1,7 @@
 import { google } from "@ai-sdk/google";
 import { APICallError, RetryError, generateText, Output } from "ai";
 import { z } from "zod";
+import { authErrorResponse, requireAdmin } from "@/lib/auth";
 
 const wordSchema = z.object({
   word: z.string().describe("The French word or short phrase itself, exactly as it should be displayed"),
@@ -13,6 +14,12 @@ const wordSchema = z.object({
 const WORD_TYPES = ["connector", "idiom or fixed expression", "reflexive verb", "adjective", "adverb", "everyday noun", "phrasal expression"];
 
 export async function POST() {
+  try {
+    await requireAdmin();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   try {
     const type = WORD_TYPES[Math.floor(Math.random() * WORD_TYPES.length)];
     const { output } = await generateText({

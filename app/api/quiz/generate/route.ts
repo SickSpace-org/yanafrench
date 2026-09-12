@@ -2,6 +2,7 @@ import { google } from "@ai-sdk/google";
 import { APICallError, RetryError, generateText, Output } from "ai";
 import { z } from "zod";
 import { readPortalState } from "@/lib/portalStateServer";
+import { authErrorResponse, requireStudent } from "@/lib/auth";
 import {
   countSessionsToday,
   encodeQuizToken,
@@ -46,6 +47,12 @@ const sessionSchema = z.object({
 });
 
 export async function POST() {
+  try {
+    await requireStudent();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   try {
     const state = await readPortalState();
     if (countSessionsToday(state.quizSessions) >= DAILY_QUIZ_LIMIT) {

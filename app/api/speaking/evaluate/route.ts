@@ -1,6 +1,13 @@
 import { evaluateSpeakingAudio, SpeakingEvalRateLimitError } from "@/lib/speakingEval";
+import { authErrorResponse, requireStudent } from "@/lib/auth";
 
 export async function POST(req: Request) {
+  try {
+    await requireStudent();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   try {
     const formData = await req.formData();
     const audio = formData.get("audio");

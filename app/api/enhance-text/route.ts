@@ -1,5 +1,6 @@
 import { google } from "@ai-sdk/google";
 import { APICallError, RetryError, generateText } from "ai";
+import { authErrorResponse, requireAdmin } from "@/lib/auth";
 
 const KIND_GUIDANCE: Record<string, string> = {
   title: "Rewrite this as a short, clear, appealing title. One line, no trailing period, no quotes.",
@@ -7,6 +8,12 @@ const KIND_GUIDANCE: Record<string, string> = {
 };
 
 export async function POST(req: Request) {
+  try {
+    await requireAdmin();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   try {
     const body = await req.json().catch(() => null);
     const kind = typeof body?.kind === "string" ? body.kind : "description";

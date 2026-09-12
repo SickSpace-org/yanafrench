@@ -4,6 +4,7 @@ import { z } from "zod";
 import { writeJson } from "@/lib/r2";
 import { PORTAL_STATE_KEY, type PortalState } from "@/lib/portalState";
 import { readPortalState } from "@/lib/portalStateServer";
+import { authErrorResponse, requireStudent } from "@/lib/auth";
 import { evaluateSpeakingAudio, SpeakingEvalRateLimitError } from "@/lib/speakingEval";
 import {
   countSessionsToday,
@@ -28,6 +29,12 @@ function normalize(s: string): string {
 type SubmittedAnswer = { questionId: string; response: string };
 
 export async function POST(req: Request) {
+  try {
+    await requireStudent();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   try {
     const formData = await req.formData();
     const tokenRaw = formData.get("token");

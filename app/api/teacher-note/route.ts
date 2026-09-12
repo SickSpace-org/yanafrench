@@ -1,5 +1,6 @@
 import { google } from "@ai-sdk/google";
 import { APICallError, RetryError, generateText } from "ai";
+import { authErrorResponse, requireAdmin } from "@/lib/auth";
 
 // A short, deterministic-leaning generation like this tends to collapse to
 // the same completion every call at low sampling variance — picking a
@@ -8,6 +9,12 @@ import { APICallError, RetryError, generateText } from "ai";
 const ANGLES = ["confidence", "momentum", "courage", "consistency", "resilience", "energy", "focus", "progress", "curiosity", "grit"];
 
 export async function POST() {
+  try {
+    await requireAdmin();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
   try {
     const angle = ANGLES[Math.floor(Math.random() * ANGLES.length)];
     const { text } = await generateText({
