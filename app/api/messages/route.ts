@@ -1,53 +1,60 @@
-import { readJson, writeJson } from "@/lib/r2";
-import { authErrorResponse, requireStudent } from "@/lib/auth";
+import { authErrorResponse, requireStudent, type Viewer } from "@/lib/auth";
+import { getMessagesFor, appendMessageFor, type ThreadMessage } from "@/lib/messageStore";
 
-// Shared message thread between the student and admin Messages pages,
-// persisted in R2 so both sides see the same conversation regardless of
-// device or browser — localStorage can't do that since it's per-browser.
+export type { ThreadMessage };
 
-export type ThreadMessage = { id: string; from: "student" | "teacher"; text: string; time: number };
+// Per-student message thread — one document per student (see
+// lib/messageStore.ts), not the single shared thread every student used
+// to see. A student always reads/writes their own; an admin must name
+// which student via ?studentUserId= (GET) / studentUserId in the body
+// (POST) — see components/admin/AdminMessagesPage.tsx's conversation list.
+function resolveTargetUserId(viewer: Viewer, studentUserId: string | null): string | Response {
+  if (viewer.role === "admin") {
+    if (!studentUserId) return new Response("studentUserId is required.", { status: 400 });
+    return studentUserId;
+  }
+  return viewer.userId;
+}
 
-const MESSAGES_KEY = "data/messages.json";
-
-const seedMessages: ThreadMessage[] = [
-  { id: "m1", from: "teacher", text: "Bonjour Amelia ! I left a voice note on your last recording — your rhythm is really improving.", time: Date.now() - 1000 * 60 * 60 * 26 },
-  { id: "m2", from: "student", text: "Thank you! I'll listen to it before our next class.", time: Date.now() - 1000 * 60 * 60 * 24 },
-  { id: "m3", from: "teacher", text: "Perfect. Also, don't forget Lesson 13 is up — it builds directly on what we covered Thursday.", time: Date.now() - 1000 * 60 * 60 * 23 },
-  { id: "m4", from: "teacher", text: "Thursday 9:30 AM as usual — see you then!", time: Date.now() - 1000 * 60 * 60 * 4 },
-];
-
-export async function GET() {
+export async function GET(req: Request) {
+  let viewer: Viewer;
   try {
-    await requireStudent();
+    viewer = await requireStudent();
   } catch (err) {
     return authErrorResponse(err);
   }
 
-  const messages = await readJson<ThreadMessage[]>(MESSAGES_KEY, seedMessages);
-  return Response.json(messages);
+  const target = resolveTargetUserId(viewer, new URL(req.url).searchParams.get("studentUserId"));
+  if (target instanceof Response) return target;
+
+  return Response.json(await getMessagesFor(target));
 }
 
 export async function POST(req: Request) {
+  let viewer: Viewer;
   try {
-    await requireStudent();
+    viewer = await requireStudent();
   } catch (err) {
     return authErrorResponse(err);
   }
 
   const body = await req.json().catch(() => null);
-  const from = body?.from;
   const text = typeof body?.text === "string" ? body.text.trim() : "";
+  const studentUserId = typeof body?.studentUserId === "string" ? body.studentUserId : null;
 
-  if ((from !== "student" && from !== "teacher") || !text) {
-    return new Response("Invalid message", { status: 400 });
-  }
+  if (!text) return new Response("Invalid message", { status: 400 });
 
-  const existing = await readJson<ThreadMessage[]>(MESSAGES_KEY, seedMessages);
+  const target = resolveTargetUserId(viewer, studentUserId);
+  if (target instanceof Response) return target;
+
+  // The sender's voice is derived from their actual role, never trusted
+  // from the client — otherwise a student could post a message that
+  // renders as if it came from the teacher, in their own thread.
+  const from: ThreadMessage["from"] = viewer.role === "admin" ? "teacher" : "student";
   const message: ThreadMessage = { id: `msg-${Date.now()}`, from, text, time: Date.now() };
-  const next = [...existing, message];
 
-  const saved = await writeJson(MESSAGES_KEY, next);
-  if (!saved) {
+  const next = await appendMessageFor(target, message);
+  if (!next) {
     return new Response("Messages aren't persisted yet — R2 isn't configured.", { status: 501 });
   }
 

@@ -3,7 +3,8 @@
 import { motion } from "motion/react";
 import { lessons } from "@/lib/courseData";
 import { computeLessonProgress, computeOverallProgress } from "@/lib/progressData";
-import { getSpeakingHistory } from "@/lib/speakingData";
+import { useSpeakingHistory } from "@/lib/useSpeakingHistory";
+import { useQuizState } from "@/lib/useQuizState";
 import { usePortalState } from "@/lib/usePortalState";
 import { useStudentProfile, displayName } from "@/lib/useStudentProfile";
 import { DashboardShell } from "./DashboardShell";
@@ -28,7 +29,6 @@ const nextClass = {
 };
 
 const weeklyFocus = { text: "Speak with more natural connectors", tag: "TEF · Expression orale" };
-const currentLevelCode = "B1";
 const streak = 12;
 
 function ProgressRing({ value }: { value: number }) {
@@ -55,10 +55,11 @@ function ProgressRing({ value }: { value: number }) {
 }
 
 export function StudentDashboard() {
-  const { quizSessions, wordOfWeek, teacherNote } = usePortalState();
+  const { wordOfWeek, teacherNote } = usePortalState();
+  const { level: currentLevelCode, sessions: quizSessions } = useQuizState();
   const profile = useStudentProfile();
   const name = displayName(profile) || "there";
-  const speakingHistory = getSpeakingHistory();
+  const { history: speakingHistory } = useSpeakingHistory();
   const lessonProgress = computeLessonProgress(lessons);
   const overallProgress = computeOverallProgress(lessons, quizSessions, speakingHistory);
 

@@ -1,10 +1,8 @@
 import { google } from "@ai-sdk/google";
 import { APICallError, RetryError, generateText, Output } from "ai";
 import { z } from "zod";
-import { writeJson } from "@/lib/r2";
-import { PORTAL_STATE_KEY, type PortalState } from "@/lib/portalState";
-import { readPortalState } from "@/lib/portalStateServer";
-import { authErrorResponse, requireStudent } from "@/lib/auth";
+import { getQuizStore, appendQuizSession } from "@/lib/quizStore";
+import { authErrorResponse, requireStudent, type Viewer } from "@/lib/auth";
 import { evaluateSpeakingAudio, SpeakingEvalRateLimitError } from "@/lib/speakingEval";
 import {
   countSessionsToday,
@@ -13,8 +11,6 @@ import {
   type QuizGradedItem,
   type QuizSession,
 } from "@/lib/quizData";
-
-const MAX_HISTORY = 50;
 
 const remarkSchema = z.object({
   summary: z.string().describe("2-3 encouraging, specific sentences summarizing how the student did this session"),
@@ -29,8 +25,9 @@ function normalize(s: string): string {
 type SubmittedAnswer = { questionId: string; response: string };
 
 export async function POST(req: Request) {
+  let viewer: Viewer;
   try {
-    await requireStudent();
+    viewer = await requireStudent();
   } catch (err) {
     return authErrorResponse(err);
   }
@@ -50,8 +47,8 @@ export async function POST(req: Request) {
     const answers = JSON.parse(answersRaw) as SubmittedAnswer[];
     const answerByQuestionId = new Map(answers.map((a) => [a.questionId, a.response]));
 
-    const state = await readPortalState();
-    if (countSessionsToday(state.quizSessions) >= DAILY_QUIZ_LIMIT) {
+    const quizStore = await getQuizStore(viewer.userId);
+    if (countSessionsToday(quizStore.sessions) >= DAILY_QUIZ_LIMIT) {
       return new Response("Daily quiz limit reached", { status: 403 });
     }
 
@@ -135,8 +132,7 @@ export async function POST(req: Request) {
       items,
     };
 
-    const nextState: PortalState = { ...state, quizSessions: [session, ...state.quizSessions].slice(0, MAX_HISTORY) };
-    const saved = await writeJson(PORTAL_STATE_KEY, nextState);
+    const saved = await appendQuizSession(viewer.userId, session);
     if (!saved) {
       return new Response("Not persisted — R2 isn't configured.", { status: 501 });
     }

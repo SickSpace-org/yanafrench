@@ -5,7 +5,6 @@ import { applyPortalAction, defaultPortalState, type PortalState, type PortalSta
 import { courses as seedCourses, type CourseItem } from "./courseCatalog";
 import { recordings as seedRecordings, type Recording } from "./recordingData";
 import { resources as seedResources, type Resource } from "./resourceData";
-import type { QuizLevel } from "./quizData";
 import type { Batch } from "./batchData";
 
 const POLL_MS = 3000;
@@ -17,9 +16,10 @@ function mergeList<T extends { id: string }>(added: T[], seed: T[], overrides: R
 }
 
 // Polls the shared R2-backed portal state so any change made in the admin
-// panel (courses, recordings, resources, quiz level/history) reaches the
-// student Lessons page across devices/browsers — the same pattern used
-// for Messages.
+// panel (courses, recordings, resources) reaches the student Lessons page
+// across devices/browsers. Quiz level/history and messages are per-student
+// now (see lib/quizStore.ts, lib/messageStore.ts) — this hook only ever
+// covers content genuinely shared by every student.
 export function usePortalState() {
   const [raw, setRaw] = useState<PortalState>(defaultPortalState);
   const [loaded, setLoaded] = useState(false);
@@ -88,10 +88,6 @@ export function usePortalState() {
 
   return {
     loaded,
-    // The quiz flow writes sessions server-side (see /api/quiz/submit)
-    // rather than through `send`, since grading and the daily-limit check
-    // have to happen in one place — call this after a session finishes to
-    // pull the fresh state instead of going through the optimistic path.
     refresh,
     zoomLink: raw.zoomLink,
     setZoomLink: (url: string) => send({ type: "setZoomLink", url }),
@@ -107,9 +103,6 @@ export function usePortalState() {
     addResource: (resource: Resource) => send({ type: "addResource", resource }),
     removeResource: (id: string) => send({ type: "removeResource", id }),
     updateResource: (id: string, patch: Partial<Resource>) => send({ type: "updateResource", id, patch }),
-    quizLevel: raw.quizLevel,
-    quizSessions: raw.quizSessions,
-    setQuizLevel: (level: QuizLevel) => send({ type: "setQuizLevel", level }),
     wordOfWeek: raw.wordOfWeek,
     teacherNote: raw.teacherNote,
     setWordOfWeek: (wordOfWeek: { word: string; meaning: string }) => send({ type: "setWordOfWeek", wordOfWeek }),

@@ -10,9 +10,10 @@ import {
   type CefrLevel,
 } from "@/lib/progressData";
 import { lessons } from "@/lib/courseData";
-import { getSpeakingHistory } from "@/lib/speakingData";
-import { usePortalState } from "@/lib/usePortalState";
-import { getSavedWords, getVocabulary } from "@/lib/vocabData";
+import { useSpeakingHistory } from "@/lib/useSpeakingHistory";
+import { useQuizState } from "@/lib/useQuizState";
+import { useVocabState } from "@/lib/useVocabState";
+import { getVocabulary } from "@/lib/vocabData";
 import { DashboardShell } from "./DashboardShell";
 import styles from "./ProgressPage.module.css";
 
@@ -28,16 +29,15 @@ function buildPath() {
   return d.trim();
 }
 
-const currentLevelCode = "B1";
-
 export function ProgressPage() {
-  const { quizSessions } = usePortalState();
+  const { level: currentLevelCode, sessions: quizSessions } = useQuizState();
   const currentIndex = cefrLevels.findIndex((l) => l.code === currentLevelCode);
   const nextLevel = cefrLevels[currentIndex + 1];
   const currentLevel = cefrLevels[currentIndex];
   const [selected, setSelected] = useState<CefrLevel | null>(null);
-  const speakingHistory = getSpeakingHistory();
-  const vocabCount = getVocabulary().length + getSavedWords().length;
+  const { history: speakingHistory } = useSpeakingHistory();
+  const { savedWords } = useVocabState();
+  const vocabCount = getVocabulary().length + savedWords.length;
   const skills = computeSkillProgress(quizSessions, speakingHistory, vocabCount);
   const overallProgress = computeOverallProgress(lessons, quizSessions, speakingHistory);
 

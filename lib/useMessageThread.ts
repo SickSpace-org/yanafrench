@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ThreadMessage } from "./messageStore";
 
-export type ThreadMessage = { id: string; from: "student" | "teacher"; text: string; time: number };
+export type { ThreadMessage };
 
 const POLL_MS = 3000;
 
@@ -20,12 +21,18 @@ export function formatMessageTime(epochMs: number) {
   return `${date.toLocaleDateString("en-US", { day: "numeric", month: "short" })} · ${clock}`;
 }
 
-// Polls the shared R2-backed message thread so both the student and admin
-// Messages pages stay in sync across devices/browsers, not just same-tab.
-export function useMessageThread() {
+// Polls a student's R2-backed message thread (see lib/messageStore.ts) so
+// both sides stay in sync across devices/browsers, not just same-tab.
+// Called with no argument for a student's own thread (MessagesPage.tsx —
+// the server always resolves this to the caller's own thread regardless
+// of what's passed); called with a specific studentUserId for the admin
+// side (AdminMessagesPage.tsx), whose conversation list picks a student.
+export function useMessageThread(studentUserId?: string) {
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [loaded, setLoaded] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const query = studentUserId ? `?studentUserId=${encodeURIComponent(studentUserId)}` : "";
 
   // A poll and a send() can both be in flight at once. Without a sequence
   // guard, a poll that started before a send resolves can land after it
@@ -44,7 +51,7 @@ export function useMessageThread() {
   const refresh = useCallback(async () => {
     const seq = ++seqRef.current;
     try {
-      const res = await fetch("/api/messages", { cache: "no-store" });
+      const res = await fetch(`/api/messages${query}`, { cache: "no-store" });
       if (!res.ok) return;
       const data = await res.json();
       if (seq === seqRef.current) setMessages(applyPending(data));
@@ -53,9 +60,12 @@ export function useMessageThread() {
     } finally {
       setLoaded(true);
     }
-  }, [applyPending]);
+  }, [applyPending, query]);
 
   useEffect(() => {
+    setLoaded(false);
+    setMessages([]);
+    pendingRef.current = [];
     refresh();
     timerRef.current = setInterval(refresh, POLL_MS);
     return () => {
@@ -63,11 +73,19 @@ export function useMessageThread() {
     };
   }, [refresh]);
 
-  const send = useCallback(async (from: "student" | "teacher", text: string) => {
+  // `from` is never sent — the server derives it from the caller's own
+  // role, so a student can't post as "teacher" or vice versa.
+  const send = useCallback(async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
 
-    const optimistic: ThreadMessage = { id: `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`, from, text: trimmed, time: Date.now() };
+    const optimisticFrom: ThreadMessage["from"] = studentUserId ? "teacher" : "student";
+    const optimistic: ThreadMessage = {
+      id: `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      from: optimisticFrom,
+      text: trimmed,
+      time: Date.now(),
+    };
     pendingRef.current = [...pendingRef.current, optimistic];
     setMessages((prev) => [...prev, optimistic]);
 
@@ -76,7 +94,7 @@ export function useMessageThread() {
       const res = await fetch("/api/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from, text: trimmed }),
+        body: JSON.stringify({ text: trimmed, ...(studentUserId ? { studentUserId } : {}) }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -86,7 +104,7 @@ export function useMessageThread() {
     } catch {
       // Leave it pending — replayed on every poll until a retry succeeds.
     }
-  }, [applyPending]);
+  }, [applyPending, studentUserId]);
 
   return { messages, loaded, send };
 }

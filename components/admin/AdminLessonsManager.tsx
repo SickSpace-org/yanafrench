@@ -13,7 +13,7 @@ import { UploadDropzone } from "../UploadDropzone";
 import { AdminShell } from "../AdminShell";
 import { IconCheck, IconClose, IconPlay, IconUpload, IconVideoFrame } from "../Icons";
 import { AiEnhanceButton } from "./AiEnhanceButton";
-import { AdminQuizPanel } from "./AdminQuizPanel";
+import { AdminQuizTab } from "./AdminQuizTab";
 import styles from "./AdminLessonsManager.module.css";
 
 const tabs = ["Course", "Recordings", "Resources", "Quiz"] as const;
@@ -322,9 +322,6 @@ export function AdminLessonsManager() {
     addResource,
     removeResource,
     updateResource,
-    quizLevel,
-    quizSessions,
-    setQuizLevel,
   } = usePortalState();
 
   const [replacingId, setReplacingId] = useState<string | null>(null);
@@ -740,11 +737,7 @@ export function AdminLessonsManager() {
         </div>
       )}
 
-      {activeTab === "Quiz" && (
-        <div className={styles.tabPanel}>
-          <AdminQuizPanel level={quizLevel} sessions={quizSessions} onLevelChange={setQuizLevel} />
-        </div>
-      )}
+      {activeTab === "Quiz" && <AdminQuizTab />}
       </>
       )}
     </AdminShell>

@@ -1,5 +1,3 @@
-import { notifyAdminChange } from "./adminEvents";
-
 export type VocabWord = {
   id: string;
   word: string;
@@ -26,27 +24,6 @@ export const vocabulary: VocabWord[] = [
 ];
 
 export const vocabCategories = ["All", "Saved", "Connectors", "Opinion", "Everyday", "TEF Vocabulary", "Grammar terms"] as const;
-
-const SAVED_WORDS_KEY = "student-hub-vocab-saved";
-
-export function getSavedWords(): VocabWord[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const stored = localStorage.getItem(SAVED_WORDS_KEY);
-    return stored ? (JSON.parse(stored) as VocabWord[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function saveWord(word: VocabWord) {
-  if (typeof window === "undefined") return;
-  try {
-    const existing = getSavedWords().filter((w) => w.id !== word.id);
-    localStorage.setItem(SAVED_WORDS_KEY, JSON.stringify([word, ...existing]));
-    notifyAdminChange();
-  } catch {}
-}
 
 export function getVocabulary() {
   return vocabulary;

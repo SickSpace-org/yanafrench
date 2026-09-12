@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import { useSearchParams } from "next/navigation";
-import { getSpeakingAttempt, speakingHistory, type SkillScores } from "@/lib/speakingData";
+import { formatAttemptDate, type SkillScores } from "@/lib/speakingData";
+import { useSpeakingHistory } from "@/lib/useSpeakingHistory";
 import { DashboardShell } from "./DashboardShell";
 import styles from "./SpeakingResults.module.css";
 
@@ -37,13 +38,38 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
 export function SpeakingResults() {
   const searchParams = useSearchParams();
   const attemptId = searchParams.get("attempt");
-  const attempt = attemptId ? getSpeakingAttempt(attemptId) : undefined;
-  const evaluation = attempt?.evaluation ?? speakingHistory[0].evaluation;
+  const { history, loaded } = useSpeakingHistory();
+  const attempt = history.find((a) => a.id === attemptId);
+
+  if (!loaded) {
+    return (
+      <DashboardShell>
+        <p>Loading…</p>
+      </DashboardShell>
+    );
+  }
+
+  if (!attempt) {
+    return (
+      <DashboardShell>
+        <div className={styles.head}>
+          <small>SPEAKING · RESULTS</small>
+          <h1>Your speaking evaluation.</h1>
+        </div>
+        <p>
+          That attempt wasn&apos;t found. <Link href="/student-hub/speaking">Practice one now</Link> or{" "}
+          <Link href="/student-hub/speaking/history">view your past attempts</Link>.
+        </p>
+      </DashboardShell>
+    );
+  }
+
+  const evaluation = attempt.evaluation;
 
   return (
     <DashboardShell>
       <div className={styles.head}>
-        <small>{attempt ? `${attempt.topic.toUpperCase()} · ${attempt.date}` : "SPEAKING · RESULTS"}</small>
+        <small>{`${attempt.topic.toUpperCase()} · ${formatAttemptDate(attempt.date)}`}</small>
         <h1>Your speaking evaluation.</h1>
       </div>
 

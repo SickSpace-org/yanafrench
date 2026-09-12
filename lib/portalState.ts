@@ -13,11 +13,14 @@
 import type { CourseItem } from "./courseCatalog";
 import type { Recording } from "./recordingData";
 import type { Resource } from "./resourceData";
-import { defaultQuizLevel, type QuizLevel, type QuizSession } from "./quizData";
 import type { Batch } from "./batchData";
 
 export const PORTAL_STATE_KEY = "data/portal-state.json";
 
+// Quiz level/history used to live here too, but moved to lib/quizStore.ts
+// (one R2 document per student, data/quiz/{userId}.json) since a single
+// shared value/list can't represent more than one real student. Same
+// reasoning moved messages to lib/messageStore.ts.
 export type PortalState = {
   zoomLink: string;
 
@@ -33,15 +36,6 @@ export type PortalState = {
   resourceOverrides: Record<string, Partial<Resource>>;
   hiddenResourceIds: string[];
 
-  // The student's CEFR level, set by the admin, used to pitch AI-generated
-  // quiz questions at the right difficulty.
-  quizLevel: QuizLevel;
-  // Completed quiz sessions (AI-generated questions + grading + remark),
-  // newest first. Appended directly by /api/quiz/submit rather than via a
-  // PortalStateAction — grading and the daily-limit check must happen
-  // server-side in one place, not be replayable from the client.
-  quizSessions: QuizSession[];
-
   // Admin-authored highlights shown on the student's dashboard.
   wordOfWeek: { word: string; meaning: string };
   teacherNote: { text: string; date: string };
@@ -49,8 +43,10 @@ export type PortalState = {
   // Class batches — no static seed/overrides layer like courses etc.,
   // since there's nothing pre-existing to merge against: admin owns this
   // list outright. Shown live on the public site's Available Batches
-  // section, and the one with isCurrent true drives the student's
-  // recurring class events on her calendar (see lib/batchData.ts).
+  // section (see lib/batchData.ts). A student's own calendar picks their
+  // enrolled batch by id (see components/CalendarPage.tsx) rather than
+  // relying on isCurrent, which only reflects the admin's own pick of
+  // "the batch running right now" for the marketing site.
   batches: Batch[];
 };
 
@@ -69,9 +65,6 @@ export const defaultPortalState: PortalState = {
   resourceOverrides: {},
   hiddenResourceIds: [],
 
-  quizLevel: defaultQuizLevel,
-  quizSessions: [],
-
   wordOfWeek: { word: "pourtant", meaning: "however · yet" },
   teacherNote: { text: "Better rhythm today.", date: "" },
 
@@ -89,7 +82,6 @@ export type PortalStateAction =
   | { type: "addResource"; resource: Resource }
   | { type: "removeResource"; id: string }
   | { type: "updateResource"; id: string; patch: Partial<Resource> }
-  | { type: "setQuizLevel"; level: QuizLevel }
   | { type: "setWordOfWeek"; wordOfWeek: { word: string; meaning: string } }
   | { type: "setTeacherNote"; teacherNote: { text: string; date: string } }
   | { type: "addBatch"; batch: Batch }
@@ -131,8 +123,6 @@ export function applyPortalAction(state: PortalState, action: PortalStateAction)
         ...state,
         resourceOverrides: { ...state.resourceOverrides, [action.id]: { ...state.resourceOverrides[action.id], ...action.patch } },
       };
-    case "setQuizLevel":
-      return { ...state, quizLevel: action.level };
     case "setWordOfWeek":
       return { ...state, wordOfWeek: action.wordOfWeek };
     case "setTeacherNote":

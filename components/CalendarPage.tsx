@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { generateClassEvents, formatTime, DAY_LABELS, type Batch, type BatchCourse } from "@/lib/batchData";
 import { usePortalState } from "@/lib/usePortalState";
+import { useStudentProfile } from "@/lib/useStudentProfile";
 import { DashboardShell } from "./DashboardShell";
 import styles from "./CalendarPage.module.css";
 
@@ -13,7 +14,7 @@ function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-function BatchCard({ batch, zoomLink }: { batch: Batch; zoomLink: string }) {
+function BatchCard({ batch, zoomLink, isYours }: { batch: Batch; zoomLink: string; isYours: boolean }) {
   const next = useMemo(() => generateClassEvents(batch, zoomLink, 30)[0] ?? null, [batch, zoomLink]);
 
   return (
@@ -21,7 +22,7 @@ function BatchCard({ batch, zoomLink }: { batch: Batch; zoomLink: string }) {
       <div className={styles.batchTop}>
         <span className={styles.batchCourse}>{batch.course.toUpperCase()}</span>
         {batch.level && <span className={styles.batchLevel}>{batch.level}</span>}
-        {batch.isCurrent && <span className={styles.mainBadge}>Her main batch</span>}
+        {isYours && <span className={styles.mainBadge}>Your batch</span>}
       </div>
       <strong>{batch.name}</strong>
       <small>{batch.days.map((d) => DAY_LABELS[d] ?? d).join(" · ")}</small>
@@ -38,18 +39,25 @@ function BatchCard({ batch, zoomLink }: { batch: Batch; zoomLink: string }) {
 
 export function CalendarPage() {
   const { batches, zoomLink } = usePortalState();
+  const profile = useStudentProfile();
+  // A real student's own enrolled batch (see students.batch_id) — falls
+  // back to the admin's sitewide "current" pick only for an admin
+  // previewing the hub, who has no enrolled batch of their own.
+  const myBatchId = profile.kind === "student" ? profile.student.batchId : null;
+  const isMine = (b: Batch) => (myBatchId ? b.id === myBatchId : b.isCurrent);
   const [category, setCategory] = useState<CategoryFilter>("All");
 
-  // Every published batch for the selected course — not just the one
-  // admin marked "current" — so a batch shows up here the moment it's
-  // published, with no separate step required. The current one (if any)
-  // just sorts first.
+  // Every published batch for the selected course — not just the
+  // student's own — so a batch shows up here the moment it's published,
+  // with no separate step required. The student's own batch just sorts
+  // first.
   const visibleBatches = useMemo(
     () =>
       batches
         .filter((b) => b.published && (category === "All" || b.course === category))
-        .sort((a, b) => Number(b.isCurrent) - Number(a.isCurrent)),
-    [batches, category]
+        .sort((a, b) => Number(isMine(b)) - Number(isMine(a))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [batches, category, myBatchId]
   );
 
   // Only drives the dots on the grid — the batches themselves (not
@@ -123,10 +131,10 @@ export function CalendarPage() {
         </div>
 
         <div className={styles.agenda}>
-          <h2>Her batches</h2>
+          <h2>Your batches</h2>
           {visibleBatches.length > 0 ? (
             <div className={styles.list}>
-              {visibleBatches.map((b) => <BatchCard key={b.id} batch={b} zoomLink={zoomLink} />)}
+              {visibleBatches.map((b) => <BatchCard key={b.id} batch={b} zoomLink={zoomLink} isYours={isMine(b)} />)}
             </div>
           ) : (
             <div className={styles.empty}>

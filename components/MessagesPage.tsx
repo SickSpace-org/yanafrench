@@ -19,7 +19,7 @@ export function MessagesPage() {
   function handleSend(e: FormEvent) {
     e.preventDefault();
     if (!draft.trim()) return;
-    send("student", draft);
+    send(draft);
     setDraft("");
   }
 

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { lessons } from "@/lib/courseData";
 import { computeOverallProgress } from "@/lib/progressData";
-import { getSpeakingHistory } from "@/lib/speakingData";
-import { usePortalState } from "@/lib/usePortalState";
+import { useSpeakingHistory } from "@/lib/useSpeakingHistory";
+import { useQuizState } from "@/lib/useQuizState";
 import { useStudentProfile } from "@/lib/useStudentProfile";
 import { DashboardShell } from "./DashboardShell";
 import styles from "./SettingsPage.module.css";
@@ -32,8 +32,9 @@ export function SettingsPage() {
   const email = profileData.kind === "student" ? profileData.student.email : profileData.kind === "admin-preview" ? profileData.email : "";
   const course = profileData.kind === "student" ? profileData.student.course : "—";
   const initials = (name || "?").slice(0, 2).toUpperCase();
-  const { quizSessions } = usePortalState();
-  const overallProgress = computeOverallProgress(lessons, quizSessions, getSpeakingHistory());
+  const { sessions: quizSessions } = useQuizState();
+  const { history: speakingHistory } = useSpeakingHistory();
+  const overallProgress = computeOverallProgress(lessons, quizSessions, speakingHistory);
 
   return (
     <DashboardShell>

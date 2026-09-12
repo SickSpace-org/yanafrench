@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { CourseItem } from "@/lib/courseCatalog";
 import type { Recording } from "@/lib/recordingData";
 import { usePortalState } from "@/lib/usePortalState";
+import { useQuizState } from "@/lib/useQuizState";
 import { DashboardShell } from "./DashboardShell";
 import { IconPlay, IconVideoFrame } from "./Icons";
 import { QuizPractice } from "./QuizPractice";
@@ -156,10 +157,8 @@ export function LessonsPage() {
     courses: allCourses,
     recordings: allRecordings,
     resources: allResources,
-    quizLevel,
-    quizSessions,
-    refresh,
   } = usePortalState();
+  const { level: quizLevel, sessions: quizSessions, refresh } = useQuizState();
 
   const courses = allCourses.filter((c) => c.published);
   const recordings = allRecordings.filter((r) => r.published);

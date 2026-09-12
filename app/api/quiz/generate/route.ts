@@ -1,8 +1,8 @@
 import { google } from "@ai-sdk/google";
 import { APICallError, RetryError, generateText, Output } from "ai";
 import { z } from "zod";
-import { readPortalState } from "@/lib/portalStateServer";
-import { authErrorResponse, requireStudent } from "@/lib/auth";
+import { getQuizStore } from "@/lib/quizStore";
+import { authErrorResponse, requireStudent, type Viewer } from "@/lib/auth";
 import {
   countSessionsToday,
   encodeQuizToken,
@@ -47,15 +47,16 @@ const sessionSchema = z.object({
 });
 
 export async function POST() {
+  let viewer: Viewer;
   try {
-    await requireStudent();
+    viewer = await requireStudent();
   } catch (err) {
     return authErrorResponse(err);
   }
 
   try {
-    const state = await readPortalState();
-    if (countSessionsToday(state.quizSessions) >= DAILY_QUIZ_LIMIT) {
+    const quizStore = await getQuizStore(viewer.userId);
+    if (countSessionsToday(quizStore.sessions) >= DAILY_QUIZ_LIMIT) {
       return new Response("Daily quiz limit reached", { status: 403 });
     }
 
@@ -66,7 +67,7 @@ export async function POST() {
         "fresh, randomized questions every time — different topics, vocabulary and scenarios from any previous " +
         "session. Keep instructions and explanations in English; keep question content itself in French. Follow " +
         "the response schema's field names exactly.",
-      prompt: `Generate a quiz for a student at CEFR level ${state.quizLevel}.`,
+      prompt: `Generate a quiz for a student at CEFR level ${quizStore.level}.`,
       output: Output.object({ schema: sessionSchema }),
     });
 
@@ -98,9 +99,9 @@ export async function POST() {
           : { id: q.id, type: "speaking", skill: q.skill, prompt: q.prompt }
     );
 
-    const token = encodeQuizToken({ level: state.quizLevel, questions });
+    const token = encodeQuizToken({ level: quizStore.level, questions });
 
-    return Response.json({ token, level: state.quizLevel, questions: publicQuestions });
+    return Response.json({ token, level: quizStore.level, questions: publicQuestions });
   } catch (error) {
     const cause = RetryError.isInstance(error) ? error.lastError : error;
     if (APICallError.isInstance(cause) && cause.statusCode === 429) {

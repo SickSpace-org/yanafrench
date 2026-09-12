@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { getSavedWords, getVocabulary, saveWord, vocabCategories, type VocabWord } from "@/lib/vocabData";
+import { useMemo, useState, type FormEvent } from "react";
+import { getVocabulary, vocabCategories, type VocabWord } from "@/lib/vocabData";
+import { useVocabState } from "@/lib/useVocabState";
 import { DashboardShell } from "./DashboardShell";
 import styles from "./VocabularyPage.module.css";
 
-const FAVORITES_KEY = "student-hub-vocab-favorites";
 type View = "all" | "favorites" | "flashcards";
 
 function slugify(text: string) {
@@ -14,11 +14,10 @@ function slugify(text: string) {
 
 export function VocabularyPage() {
   const baseWords = getVocabulary();
-  const [savedWords, setSavedWords] = useState<VocabWord[]>([]);
+  const { savedWords, favoriteIds: favorites, saveWord, toggleFavorite } = useVocabState();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<(typeof vocabCategories)[number]>("All");
   const [view, setView] = useState<View>("all");
-  const [favorites, setFavorites] = useState<string[]>([]);
   const [cardIndex, setCardIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
 
@@ -26,22 +25,6 @@ export function VocabularyPage() {
   const [translateResult, setTranslateResult] = useState<{ word: string; meaning: string } | null>(null);
   const [translateError, setTranslateError] = useState("");
   const [justSavedId, setJustSavedId] = useState<string | null>(null);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(FAVORITES_KEY);
-      if (stored) setFavorites(JSON.parse(stored));
-    } catch {}
-    setSavedWords(getSavedWords());
-  }, []);
-
-  function toggleFavorite(id: string) {
-    setFavorites((prev) => {
-      const next = prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id];
-      try { localStorage.setItem(FAVORITES_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
-  }
 
   const words = useMemo(() => [...savedWords, ...baseWords], [savedWords, baseWords]);
   const recent = [...baseWords].slice(0, 4);
@@ -111,7 +94,6 @@ export function VocabularyPage() {
       dateLearned: new Date().toLocaleDateString("en-US", { day: "numeric", month: "short" }),
     };
     saveWord(newWord);
-    setSavedWords((prev) => [newWord, ...prev.filter((w) => w.id !== newWord.id)]);
     setJustSavedId(newWord.id);
   }
 
