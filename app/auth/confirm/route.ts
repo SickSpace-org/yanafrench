@@ -12,13 +12,19 @@ export async function GET(request: Request) {
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = searchParams.get("next") ?? "/reset-password";
 
+  const supabase = await createServerSupabase();
+
   if (token_hash && type) {
-    const supabase = await createServerSupabase();
     const { error } = await supabase.auth.verifyOtp({ type, token_hash });
     if (!error) {
       return NextResponse.redirect(new URL(next, request.url));
     }
   }
 
+  // A missing/invalid/expired token must never fall through to whatever
+  // session this browser already happened to have — sign out first so a
+  // bad link always lands on a clean, logged-out /login, never silently
+  // reusing an unrelated still-active session (e.g. an admin's).
+  await supabase.auth.signOut();
   return NextResponse.redirect(new URL("/login?error=link_invalid", request.url));
 }

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
-import { createBrowserSupabase } from "@/lib/supabase/client";
 import styles from "../login/login.module.css";
 
 export function ForgotPasswordForm() {
@@ -14,13 +13,17 @@ export function ForgotPasswordForm() {
     if (!email.trim() || status === "sending") return;
     setStatus("sending");
 
-    const supabase = createBrowserSupabase();
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/auth/confirm?next=/reset-password`,
-    });
-
-    // Don't reveal whether the address has an account.
-    setStatus(error && error.status === 429 ? "error" : "sent");
+    try {
+      await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      // Don't reveal whether the address has an account — always "sent".
+      setStatus("sent");
+    } catch {
+      setStatus("error");
+    }
   }
 
   if (status === "sent") {
@@ -41,7 +44,7 @@ export function ForgotPasswordForm() {
     <form className={styles.form} onSubmit={handleSubmit}>
       {status === "error" && (
         <p className={styles.error} role="alert">
-          Too many attempts. Wait a minute and try again.
+          Something went wrong. Try again in a moment.
         </p>
       )}
 

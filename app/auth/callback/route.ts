@@ -8,13 +8,17 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/auth/home";
 
+  const supabase = await createServerSupabase();
+
   if (code) {
-    const supabase = await createServerSupabase();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
 
+  // Same defensive rule as /auth/confirm: a failed exchange must not fall
+  // through to whatever session this browser already had.
+  await supabase.auth.signOut();
   return NextResponse.redirect(`${origin}/login?error=auth_callback`);
 }
