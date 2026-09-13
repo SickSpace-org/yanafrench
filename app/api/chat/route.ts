@@ -9,6 +9,7 @@ import {
   toUIMessageStream,
 } from "ai";
 import { programmes, resources, resourcePathways } from "@/lib/data";
+import { checkRateLimit, rateLimitResponse, clientIp } from "@/lib/rateLimit";
 
 const SYSTEM_PROMPT = `You are the assistant on The Français Hub website — Yana's French coaching business (TEF/TCF exam prep, DELF A1-B2 certification, and general French learning).
 
@@ -26,6 +27,9 @@ ${resources.map((r) => `- ${r.title} [${r.category}, ${r.level}, ${r.price}]: ${
 Never invent prices, scores, or programme details that aren't listed above.`;
 
 export async function POST(req: Request) {
+  const allowed = await checkRateLimit(`chat:${clientIp(req)}`, 20, 600);
+  if (!allowed) return rateLimitResponse();
+
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({

@@ -1,6 +1,7 @@
 import { google } from "@ai-sdk/google";
 import { APICallError, RetryError, generateText } from "ai";
-import { authErrorResponse, requireAdmin } from "@/lib/auth";
+import { authErrorResponse, requireAdmin, type Viewer } from "@/lib/auth";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 const KIND_GUIDANCE: Record<string, string> = {
   title: "Rewrite this as a short, clear, appealing title. One line, no trailing period, no quotes.",
@@ -8,11 +9,15 @@ const KIND_GUIDANCE: Record<string, string> = {
 };
 
 export async function POST(req: Request) {
+  let viewer: Viewer;
   try {
-    await requireAdmin();
+    viewer = await requireAdmin();
   } catch (err) {
     return authErrorResponse(err);
   }
+
+  const allowed = await checkRateLimit(`enhance-text:${viewer.userId}`, 20, 600);
+  if (!allowed) return rateLimitResponse();
 
   try {
     const body = await req.json().catch(() => null);

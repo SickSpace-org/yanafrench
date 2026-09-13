@@ -1,7 +1,8 @@
 import { google } from "@ai-sdk/google";
 import { APICallError, RetryError, generateText, Output } from "ai";
 import { z } from "zod";
-import { authErrorResponse, requireAdmin } from "@/lib/auth";
+import { authErrorResponse, requireAdmin, type Viewer } from "@/lib/auth";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 const wordSchema = z.object({
   word: z.string().describe("The French word or short phrase itself, exactly as it should be displayed"),
@@ -14,11 +15,15 @@ const wordSchema = z.object({
 const WORD_TYPES = ["connector", "idiom or fixed expression", "reflexive verb", "adjective", "adverb", "everyday noun", "phrasal expression"];
 
 export async function POST() {
+  let viewer: Viewer;
   try {
-    await requireAdmin();
+    viewer = await requireAdmin();
   } catch (err) {
     return authErrorResponse(err);
   }
+
+  const allowed = await checkRateLimit(`word-of-week:${viewer.userId}`, 20, 600);
+  if (!allowed) return rateLimitResponse();
 
   try {
     const type = WORD_TYPES[Math.floor(Math.random() * WORD_TYPES.length)];

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getQuizStore, appendQuizSession } from "@/lib/quizStore";
 import { authErrorResponse, requireStudent, type Viewer } from "@/lib/auth";
 import { evaluateSpeakingAudio, SpeakingEvalRateLimitError } from "@/lib/speakingEval";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 import {
   countSessionsToday,
   decodeQuizToken,
@@ -31,6 +32,9 @@ export async function POST(req: Request) {
   } catch (err) {
     return authErrorResponse(err);
   }
+
+  const allowed = await checkRateLimit(`quiz-submit:${viewer.userId}`, 5, 600);
+  if (!allowed) return rateLimitResponse();
 
   try {
     const formData = await req.formData();

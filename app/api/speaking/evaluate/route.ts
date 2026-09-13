@@ -2,6 +2,7 @@ import { evaluateSpeakingAudio, SpeakingEvalRateLimitError } from "@/lib/speakin
 import { authErrorResponse, requireStudent, type Viewer } from "@/lib/auth";
 import { appendSpeakingAttempt } from "@/lib/speakingStore";
 import type { SpeakingAttempt } from "@/lib/speakingData";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
   let viewer: Viewer;
@@ -10,6 +11,9 @@ export async function POST(req: Request) {
   } catch (err) {
     return authErrorResponse(err);
   }
+
+  const allowed = await checkRateLimit(`speaking-evaluate:${viewer.userId}`, 10, 3600);
+  if (!allowed) return rateLimitResponse();
 
   try {
     const formData = await req.formData();

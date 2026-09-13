@@ -3,6 +3,7 @@ import { APICallError, RetryError, generateText, Output } from "ai";
 import { z } from "zod";
 import { getQuizStore } from "@/lib/quizStore";
 import { authErrorResponse, requireStudent, type Viewer } from "@/lib/auth";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 import {
   countSessionsToday,
   encodeQuizToken,
@@ -53,6 +54,9 @@ export async function POST() {
   } catch (err) {
     return authErrorResponse(err);
   }
+
+  const allowed = await checkRateLimit(`quiz-generate:${viewer.userId}`, 5, 600);
+  if (!allowed) return rateLimitResponse();
 
   try {
     const quizStore = await getQuizStore(viewer.userId);

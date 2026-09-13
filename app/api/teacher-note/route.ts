@@ -1,6 +1,7 @@
 import { google } from "@ai-sdk/google";
 import { APICallError, RetryError, generateText } from "ai";
-import { authErrorResponse, requireAdmin } from "@/lib/auth";
+import { authErrorResponse, requireAdmin, type Viewer } from "@/lib/auth";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 // A short, deterministic-leaning generation like this tends to collapse to
 // the same completion every call at low sampling variance — picking a
@@ -9,11 +10,15 @@ import { authErrorResponse, requireAdmin } from "@/lib/auth";
 const ANGLES = ["confidence", "momentum", "courage", "consistency", "resilience", "energy", "focus", "progress", "curiosity", "grit"];
 
 export async function POST() {
+  let viewer: Viewer;
   try {
-    await requireAdmin();
+    viewer = await requireAdmin();
   } catch (err) {
     return authErrorResponse(err);
   }
+
+  const allowed = await checkRateLimit(`teacher-note:${viewer.userId}`, 20, 600);
+  if (!allowed) return rateLimitResponse();
 
   try {
     const angle = ANGLES[Math.floor(Math.random() * ANGLES.length)];
