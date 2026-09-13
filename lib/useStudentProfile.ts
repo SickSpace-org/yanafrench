@@ -1,40 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Student } from "./studentData";
 
 // Real signed-in identity for the student-hub UI (DashboardShell,
 // StudentDashboard, SettingsPage) — replaces the old hardcoded "Amelia"
 // mock. A single fetch on mount is enough here (unlike usePortalState /
-// useMessageThread, which poll): identity doesn't change mid-session.
+// useMessageThread, which poll): identity doesn't change mid-session
+// except when the student edits their own profile — call `refresh` after
+// that.
 export type StudentProfile =
   | { kind: "loading" }
   | { kind: "student"; student: Student }
   | { kind: "admin-preview"; email: string }
   | { kind: "error" };
 
-export function useStudentProfile(): StudentProfile {
+export function useStudentProfile(): StudentProfile & { refresh: () => void } {
   const [profile, setProfile] = useState<StudentProfile>({ kind: "loading" });
 
-  useEffect(() => {
-    let cancelled = false;
+  const refresh = useCallback(() => {
     fetch("/api/student/me", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : Promise.reject(res)))
       .then((data) => {
-        if (cancelled) return;
         if (data.kind === "student") setProfile({ kind: "student", student: data.student });
         else if (data.kind === "admin-preview") setProfile({ kind: "admin-preview", email: data.email });
         else setProfile({ kind: "error" });
       })
       .catch(() => {
-        if (!cancelled) setProfile({ kind: "error" });
+        setProfile({ kind: "error" });
       });
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
-  return profile;
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  return { ...profile, refresh };
 }
 
 // Convenience for display-only spots (nav name, initials, greeting) that

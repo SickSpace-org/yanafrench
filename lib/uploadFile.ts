@@ -84,6 +84,25 @@ export async function uploadFileToR2(file: File): Promise<string> {
   return fileUrl;
 }
 
+// Same direct-to-R2 pattern, scoped to a student's own profile photo (see
+// app/api/student/avatar) rather than admin-owned course content.
+async function presignAvatarUpload(file: File): Promise<{ uploadUrl: string; fileUrl: string }> {
+  const res = await fetch("/api/student/avatar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contentType: file.type || "application/octet-stream" }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function uploadAvatarToR2(file: File): Promise<string> {
+  const { uploadUrl, fileUrl } = await presignAvatarUpload(file);
+  const { promise } = putFileToR2(uploadUrl, file);
+  await promise;
+  return fileUrl;
+}
+
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;

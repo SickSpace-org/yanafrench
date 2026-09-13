@@ -1,26 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { lessons } from "@/lib/courseData";
 import { computeOverallProgress } from "@/lib/progressData";
 import { useSpeakingHistory } from "@/lib/useSpeakingHistory";
 import { useQuizState } from "@/lib/useQuizState";
 import { useStudentProfile } from "@/lib/useStudentProfile";
+import { createBrowserSupabase } from "@/lib/supabase/client";
+import { uploadAvatarToR2 } from "@/lib/uploadFile";
+import { whatsappUrl, site } from "@/lib/site";
 import { DashboardShell } from "./DashboardShell";
 import styles from "./SettingsPage.module.css";
 
 const tabs = ["Profile", "Password", "Notifications", "Language", "Appearance", "Account"] as const;
 type Tab = (typeof tabs)[number];
 
-function Toggle({ label, defaultOn = false }: { label: string; defaultOn?: boolean }) {
-  const [on, setOn] = useState(defaultOn);
+const MIN_PASSWORD_LENGTH = 8;
+
+function ComingSoon({ text }: { text: string }) {
   return (
-    <div className={styles.toggleRow}>
-      <span>{label}</span>
-      <button type="button" className={on ? styles.toggleOn : styles.toggleOff} onClick={() => setOn((v) => !v)} aria-pressed={on}>
-        <i />
-      </button>
+    <div className={styles.comingSoon}>
+      <p>{text}</p>
     </div>
   );
 }
@@ -28,13 +29,126 @@ function Toggle({ label, defaultOn = false }: { label: string; defaultOn?: boole
 export function SettingsPage() {
   const [tab, setTab] = useState<Tab>("Profile");
   const profileData = useStudentProfile();
+  const isStudent = profileData.kind === "student";
   const name = profileData.kind === "student" ? profileData.student.name : profileData.kind === "admin-preview" ? profileData.email : "";
   const email = profileData.kind === "student" ? profileData.student.email : profileData.kind === "admin-preview" ? profileData.email : "";
   const course = profileData.kind === "student" ? profileData.student.course : "—";
+  const avatarUrl = profileData.kind === "student" ? profileData.student.avatarUrl : null;
   const initials = (name || "?").slice(0, 2).toUpperCase();
   const { sessions: quizSessions } = useQuizState();
   const { history: speakingHistory } = useSpeakingHistory();
   const overallProgress = computeOverallProgress(lessons, quizSessions, speakingHistory);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [photoStatus, setPhotoStatus] = useState<"idle" | "uploading" | "error">("idle");
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  const [nameDraft, setNameDraft] = useState(name);
+  const [nameKey, setNameKey] = useState(name);
+  if (name !== nameKey) {
+    setNameKey(name);
+    setNameDraft(name);
+  }
+  const [profileStatus, setProfileStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordStatus, setPasswordStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  async function handlePhotoSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setPhotoStatus("error");
+      setPhotoError("Please choose an image file.");
+      return;
+    }
+    setPhotoStatus("uploading");
+    setPhotoError(null);
+    try {
+      const fileUrl = await uploadAvatarToR2(file);
+      const res = await fetch("/api/student/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatarUrl: fileUrl }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      profileData.refresh();
+      setPhotoStatus("idle");
+    } catch (err) {
+      setPhotoStatus("error");
+      setPhotoError(err instanceof Error ? err.message : "Couldn't upload your photo.");
+    }
+  }
+
+  async function handleSaveProfile() {
+    if (!nameDraft.trim()) {
+      setProfileStatus("error");
+      setProfileError("Name can't be empty.");
+      return;
+    }
+    setProfileStatus("saving");
+    setProfileError(null);
+    try {
+      const res = await fetch("/api/student/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nameDraft.trim() }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      profileData.refresh();
+      setProfileStatus("saved");
+    } catch (err) {
+      setProfileStatus("error");
+      setProfileError(err instanceof Error ? err.message : "Couldn't save your changes.");
+    }
+  }
+
+  async function handlePasswordSubmit(e: FormEvent) {
+    e.preventDefault();
+    setPasswordError(null);
+
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      setPasswordStatus("error");
+      setPasswordError(`Use at least ${MIN_PASSWORD_LENGTH} characters.`);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordStatus("error");
+      setPasswordError("The two new passwords don't match.");
+      return;
+    }
+    if (!email) {
+      setPasswordStatus("error");
+      setPasswordError("Couldn't find your account email.");
+      return;
+    }
+
+    setPasswordStatus("saving");
+    const supabase = createBrowserSupabase();
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+    if (signInError) {
+      setPasswordStatus("error");
+      setPasswordError("Your current password is incorrect.");
+      return;
+    }
+
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+    if (updateError) {
+      setPasswordStatus("error");
+      setPasswordError(updateError.message);
+      return;
+    }
+
+    setPasswordStatus("saved");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+  }
 
   return (
     <DashboardShell>
@@ -54,22 +168,46 @@ export function SettingsPage() {
           {tab === "Profile" && (
             <>
               <div className={styles.profileHead}>
-                <span className={styles.avatar}>{initials}</span>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" className={styles.avatarImg} style={{ width: 56, height: 56 }} />
+                ) : (
+                  <span className={styles.avatar}>{initials}</span>
+                )}
                 <div>
                   <strong>{name}</strong>
                   <small>{email}</small>
                 </div>
-                <button type="button" className={styles.ghostButton}>Change photo</button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={handlePhotoSelected}
+                  disabled={!isStudent}
+                />
+                <button
+                  type="button"
+                  className={styles.ghostButton}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!isStudent || photoStatus === "uploading"}
+                >
+                  {photoStatus === "uploading" ? "Uploading…" : "Change photo"}
+                </button>
               </div>
+              {photoStatus === "error" && photoError && <p className={styles.formError}>{photoError}</p>}
 
               <div className={styles.fieldGrid}>
                 <label>
                   <span>Name</span>
-                  <input key={name} defaultValue={name} />
+                  <input
+                    value={nameDraft}
+                    onChange={(e) => { setNameDraft(e.target.value); setProfileStatus("idle"); }}
+                    disabled={!isStudent}
+                  />
                 </label>
                 <label>
                   <span>Email</span>
-                  <input key={email} defaultValue={email} type="email" />
+                  <input value={email} type="email" disabled />
                 </label>
                 <label>
                   <span>Course</span>
@@ -79,7 +217,7 @@ export function SettingsPage() {
 
               <label className={styles.fullWidth}>
                 <span>Learning goals</span>
-                <textarea placeholder="What are you working toward?" />
+                <textarea placeholder="Coming soon" disabled />
               </label>
 
               <div className={styles.progressCallout}>
@@ -90,43 +228,77 @@ export function SettingsPage() {
                 <Link href="/student-hub/progress" className={styles.link}>View progress →</Link>
               </div>
 
-              <button type="button" className={styles.saveButton}>Save changes</button>
+              {profileStatus === "error" && profileError && <p className={styles.formError}>{profileError}</p>}
+              {profileStatus === "saved" && <p className={styles.formSuccess}>Saved.</p>}
+
+              <button
+                type="button"
+                className={styles.saveButton}
+                onClick={handleSaveProfile}
+                disabled={!isStudent || profileStatus === "saving"}
+              >
+                {profileStatus === "saving" ? "Saving…" : "Save changes"}
+              </button>
             </>
           )}
 
           {tab === "Password" && (
-            <div className={styles.fieldGrid}>
-              <label className={styles.fullWidth}><span>Current password</span><input type="password" placeholder="••••••••" /></label>
-              <label><span>New password</span><input type="password" placeholder="••••••••" /></label>
-              <label><span>Confirm new password</span><input type="password" placeholder="••••••••" /></label>
-              <button type="button" className={styles.saveButton}>Update password</button>
-            </div>
+            <form className={styles.fieldGrid} onSubmit={handlePasswordSubmit}>
+              <label className={styles.fullWidth}>
+                <span>Current password</span>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  required
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  disabled={!isStudent}
+                />
+              </label>
+              <label>
+                <span>New password</span>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  required
+                  minLength={MIN_PASSWORD_LENGTH}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  disabled={!isStudent}
+                />
+              </label>
+              <label>
+                <span>Confirm new password</span>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={!isStudent}
+                />
+              </label>
+              {passwordStatus === "error" && passwordError && <p className={`${styles.formError} ${styles.fullWidth}`}>{passwordError}</p>}
+              {passwordStatus === "saved" && <p className={`${styles.formSuccess} ${styles.fullWidth}`}>Password updated.</p>}
+              <button type="submit" className={styles.saveButton} disabled={!isStudent || passwordStatus === "saving"}>
+                {passwordStatus === "saving" ? "Updating…" : "Update password"}
+              </button>
+            </form>
           )}
 
           {tab === "Notifications" && (
-            <div className={styles.toggleList}>
-              <Toggle label="Class reminders" defaultOn />
-              <Toggle label="New lesson and video alerts" defaultOn />
-              <Toggle label="Assignment deadlines" defaultOn />
-              <Toggle label="Speaking and test results" defaultOn />
-              <Toggle label="Teacher feedback" defaultOn />
-              <Toggle label="Product and platform updates" />
-            </div>
+            <ComingSoon text="Notification preferences are coming soon. For now, keep an eye on the bell icon and your Messages tab for updates from Yana." />
           )}
 
           {tab === "Language" && (
-            <div className={styles.optionList}>
-              <label className={styles.optionRow}><input type="radio" name="lang" defaultChecked /> English (interface)</label>
-              <label className={styles.optionRow}><input type="radio" name="lang" /> Français (interface)</label>
-            </div>
+            <ComingSoon text="An interface language switcher is coming soon. Le Hub is in English for now." />
           )}
 
           {tab === "Appearance" && (
-            <div className={styles.optionList}>
-              <label className={styles.optionRow}><input type="radio" name="theme" defaultChecked /> Light</label>
-              <label className={styles.optionRow}><input type="radio" name="theme" /> Dark</label>
-              <label className={styles.optionRow}><input type="radio" name="theme" /> Match system</label>
-            </div>
+            <ComingSoon text="Dark mode and other appearance options are coming soon." />
           )}
 
           {tab === "Account" && (
@@ -142,8 +314,15 @@ export function SettingsPage() {
                 </form>
               </div>
               <div className={styles.accountRow}>
-                <div><strong>Delete account</strong><small>Permanently remove your Le Hub account and data</small></div>
-                <button type="button" className={styles.dangerButton}>Delete account</button>
+                <div><strong>Delete account</strong><small>Message {site.tutor.split(" ")[0]} directly to close your account</small></div>
+                <a
+                  href={whatsappUrl(`Hi ${site.tutor.split(" ")[0]}, I'd like to close my Le Hub account (${email}). Could you help me with that?`)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={styles.dangerButton}
+                >
+                  Contact Yana
+                </a>
               </div>
             </div>
           )}

@@ -40,6 +40,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   const profile = useStudentProfile();
   const name = displayName(profile) || "Student";
+  const avatarUrl = profile.kind === "student" ? profile.student.avatarUrl : null;
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" });
   const initials = name.slice(0, 2).toUpperCase();
 
@@ -92,13 +93,13 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               aria-expanded={profileOpen}
               onClick={() => { setProfileOpen((v) => !v); setNotifOpen(false); }}
             >
-              {initials}
+              {avatarUrl ? <img src={avatarUrl} alt="" className={styles.avatarImg} /> : initials}
             </button>
             {profileOpen && (
               <div className={`${styles.dropdown} ${styles.dropdownRight}`}>
                 <span className={styles.dropdownHeading}>{name}</span>
-                <button type="button" className={styles.dropdownLink}>View profile</button>
-                <button type="button" className={styles.dropdownLink}>Settings</button>
+                <Link href="/student-hub/settings" className={styles.dropdownLink} onClick={closeMenus}>View profile</Link>
+                <Link href="/student-hub/settings" className={styles.dropdownLink} onClick={closeMenus}>Settings</Link>
                 <form action="/auth/signout" method="post" style={{ display: "contents" }}>
                   <button type="submit" className={styles.dropdownLink}>Log out</button>
                 </form>

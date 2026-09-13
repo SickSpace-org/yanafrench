@@ -20,6 +20,10 @@ export type Student = {
   // The linked Supabase Auth user (see lib/studentAccount.ts) — null for
   // the students created before this system existed, until backfilled.
   userId?: string | null;
+  // Profile photo — set via Settings' "Change photo" (see
+  // app/api/student/avatar). Null for most students; initials are the
+  // fallback everywhere this is shown.
+  avatarUrl?: string | null;
 };
 
 // snake_case row shape as stored in the Supabase `students` table.
@@ -35,6 +39,7 @@ export type StudentRow = {
   batch_name: string;
   enrolled_at: string;
   user_id: string | null;
+  avatar_url: string | null;
 };
 
 export function studentFromRow(row: StudentRow): Student {
@@ -50,6 +55,7 @@ export function studentFromRow(row: StudentRow): Student {
     batchName: row.batch_name,
     enrolledAt: row.enrolled_at,
     userId: row.user_id,
+    avatarUrl: row.avatar_url,
   };
 }
 
@@ -66,5 +72,6 @@ export function studentToRow(student: Student): StudentRow {
     batch_name: student.batchName,
     enrolled_at: student.enrolledAt,
     user_id: student.userId ?? null,
+    avatar_url: student.avatarUrl ?? null,
   };
 }

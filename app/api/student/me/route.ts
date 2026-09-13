@@ -42,3 +42,48 @@ export async function GET() {
 
   return Response.json({ kind: "student", student: studentFromRow(data as StudentRow) });
 }
+
+// Self-service profile edits from Settings — name and/or avatar only.
+// Email and course intentionally aren't editable here: email needs
+// Supabase's own re-verification flow, and course is admin-owned.
+export async function PATCH(req: Request) {
+  let viewer: Viewer;
+  try {
+    viewer = await requireStudent();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
+  if (viewer.role === "admin") {
+    return new Response("Admins have no student profile to edit.", { status: 400 });
+  }
+
+  const body = await req.json().catch(() => null);
+  const update: Record<string, string> = {};
+  if (typeof body?.name === "string" && body.name.trim()) update.name = body.name.trim();
+  if (typeof body?.avatarUrl === "string") update.avatar_url = body.avatarUrl;
+
+  if (Object.keys(update).length === 0) {
+    return new Response("Nothing to update.", { status: 400 });
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return new Response("Supabase isn't configured.", { status: 501 });
+
+  const { data, error } = await supabase
+    .from("students")
+    .update(update)
+    .eq("user_id", viewer.userId)
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to update student profile", viewer.userId, error);
+    return new Response("Failed to save your changes.", { status: 500 });
+  }
+  if (!data) {
+    return new Response("No student record is linked to this account yet.", { status: 404 });
+  }
+
+  return Response.json({ kind: "student", student: studentFromRow(data as StudentRow) });
+}

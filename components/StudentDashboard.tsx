@@ -7,28 +7,11 @@ import { useSpeakingHistory } from "@/lib/useSpeakingHistory";
 import { useQuizState } from "@/lib/useQuizState";
 import { usePortalState } from "@/lib/usePortalState";
 import { useStudentProfile, displayName } from "@/lib/useStudentProfile";
+import { generateClassEvents } from "@/lib/batchData";
+import { site } from "@/lib/site";
 import { DashboardShell } from "./DashboardShell";
 import styles from "./StudentDashboard.module.css";
 
-// Mock data — stands in for what will eventually come from a real backend.
-// Progress/CEFR/completed-lessons come from lib/progressData.ts instead,
-// computed from actual lesson, assignment and speaking-practice activity.
-const nextTask = {
-  type: "Listening",
-  title: "Task 04 · Interview about travel plans",
-  dueDate: "Due tomorrow",
-  estimatedTime: "18 min",
-  progress: 40,
-};
-
-const nextClass = {
-  day: "Thursday",
-  time: "9:30 AM",
-  teacher: "Yana",
-  platform: "Google Meet",
-};
-
-const weeklyFocus = { text: "Speak with more natural connectors", tag: "TEF · Expression orale" };
 const streak = 12;
 
 function ProgressRing({ value }: { value: number }) {
@@ -55,13 +38,20 @@ function ProgressRing({ value }: { value: number }) {
 }
 
 export function StudentDashboard() {
-  const { wordOfWeek, teacherNote } = usePortalState();
+  const { wordOfWeek, teacherNote, batches, zoomLink } = usePortalState();
   const { level: currentLevelCode, sessions: quizSessions } = useQuizState();
   const profile = useStudentProfile();
   const name = displayName(profile) || "there";
   const { history: speakingHistory } = useSpeakingHistory();
   const lessonProgress = computeLessonProgress(lessons);
   const overallProgress = computeOverallProgress(lessons, quizSessions, speakingHistory);
+
+  // The student's own enrolled batch (see students.batch_id) — same
+  // real-data source CalendarPage uses, rather than a fixed "Thursday"
+  // that was the same for every student.
+  const myBatchId = profile.kind === "student" ? profile.student.batchId : null;
+  const myBatch = batches.find((b) => b.id === myBatchId) ?? null;
+  const nextClass = myBatch ? generateClassEvents(myBatch, zoomLink, 30)[0] ?? null : null;
 
   return (
     <DashboardShell>
@@ -70,40 +60,28 @@ export function StudentDashboard() {
         <h1>Your French,<br /><em>moving forward.</em></h1>
       </div>
 
-      <div className={styles.focusStrip}>
-        <span>THIS WEEK&apos;S FOCUS</span>
-        <strong>{weeklyFocus.text}</strong>
-        <small>{weeklyFocus.tag}</small>
-      </div>
-
-      <div className={`${styles.card} ${styles.taskCard}`}>
-        <div className={styles.taskMain}>
-          <span className={styles.cardLabel}>NEXT TASK</span>
-          <span className={styles.taskType}>{nextTask.type}</span>
-          <strong className={styles.taskTitle}>{nextTask.title}</strong>
-          <div className={styles.taskMetaRow}>
-            <span>{nextTask.dueDate}</span>
-            <span className={styles.metaDot} />
-            <span>{nextTask.estimatedTime}</span>
-          </div>
-        </div>
-        <div className={styles.taskProgress}>
-          <div className={styles.taskProgressHead}>
-            <span>Progress</span>
-            <strong>{nextTask.progress}%</strong>
-          </div>
-          <div className={styles.progressBar}><span style={{ width: `${nextTask.progress}%` }} /></div>
-          <button type="button" className={styles.cardCtaSolid}>Continue →</button>
-        </div>
-      </div>
-
       <div className={styles.grid}>
         <div className={styles.card}>
           <span className={styles.cardLabel}>NEXT CLASS</span>
-          <strong className={styles.cardTitle}>{nextClass.day}</strong>
-          <small className={styles.cardMeta}>{nextClass.time} · {nextClass.platform}</small>
-          <div className={styles.teacherLine}><i /> With {nextClass.teacher}</div>
-          <button type="button" className={styles.cardCtaSolid}>Join class</button>
+          {nextClass ? (
+            <>
+              <strong className={styles.cardTitle}>
+                {nextClass.date.toLocaleDateString("en-US", { weekday: "long" })}
+              </strong>
+              <small className={styles.cardMeta}>{nextClass.time}</small>
+              <div className={styles.teacherLine}><i /> With {site.tutor}</div>
+              {zoomLink ? (
+                <a href={zoomLink} target="_blank" rel="noreferrer" className={styles.cardCtaSolid}>Join class</a>
+              ) : (
+                <button type="button" className={styles.cardCtaSolid} disabled>Link coming soon</button>
+              )}
+            </>
+          ) : (
+            <>
+              <strong className={styles.cardTitle}>No class scheduled</strong>
+              <small className={styles.cardMeta}>Ask {site.tutor.split(" ")[0]} about your batch</small>
+            </>
+          )}
         </div>
 
         <div className={`${styles.card} ${styles.cardProgress}`}>

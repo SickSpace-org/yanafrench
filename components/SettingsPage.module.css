@@ -93,6 +93,19 @@
 .dangerButton { border: 1px solid rgba(182,58,58,.35); background: none; color: var(--bordeaux); padding: .55rem 1rem; border-radius: 999px; font-size: .7rem; font-weight: 700; }
 .dangerButton:hover { background: rgba(182,58,58,.06); }
 
+.avatarImg { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+
+.fieldGrid input:disabled, .fullWidth textarea:disabled { color: var(--text-faint); background: var(--porcelain-2); cursor: not-allowed; }
+
+.saveButton:disabled { opacity: .6; cursor: default; }
+
+.formError { font-size: .74rem; color: var(--bordeaux); margin: 0 0 1rem; }
+.formSuccess { font-size: .74rem; color: #2f6b47; margin: 0 0 1rem; }
+
+.comingSoon { padding: 1.4rem 0; }
+.comingSoon p { font-size: .82rem; color: var(--text-faint); max-width: 44ch; line-height: 1.6; margin: 0 0 1.2rem; }
+.comingSoon .optionList { opacity: .5; pointer-events: none; }
+
 @media (max-width: 720px) {
   .layout { grid-template-columns: 1fr; }
   .tabList { flex-direction: row; overflow-x: auto; position: static; }
