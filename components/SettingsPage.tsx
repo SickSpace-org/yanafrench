@@ -6,7 +6,7 @@ import { lessons } from "@/lib/courseData";
 import { computeOverallProgress } from "@/lib/progressData";
 import { useSpeakingHistory } from "@/lib/useSpeakingHistory";
 import { useQuizState } from "@/lib/useQuizState";
-import { useStudentProfile } from "@/lib/useStudentProfile";
+import { useStudentProfile, displayName } from "@/lib/useStudentProfile";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { uploadAvatarToR2 } from "@/lib/uploadFile";
 import { whatsappUrl, site } from "@/lib/site";
@@ -30,8 +30,10 @@ export function SettingsPage() {
   const [tab, setTab] = useState<Tab>("Profile");
   const profileData = useStudentProfile();
   const isStudent = profileData.kind === "student";
-  const name = profileData.kind === "student" ? profileData.student.name : profileData.kind === "admin-preview" ? profileData.email : "";
-  const email = profileData.kind === "student" ? profileData.student.email : profileData.kind === "admin-preview" ? profileData.email : "";
+  const isAdminPreview = profileData.kind === "admin-preview";
+  const name = displayName(profileData);
+  // Never surface the admin's own email here — it isn't a student's data.
+  const email = profileData.kind === "student" ? profileData.student.email : "";
   const course = profileData.kind === "student" ? profileData.student.course : "—";
   const avatarUrl = profileData.kind === "student" ? profileData.student.avatarUrl : null;
   const initials = (name || "?").slice(0, 2).toUpperCase();
@@ -165,7 +167,11 @@ export function SettingsPage() {
         </nav>
 
         <div className={styles.panel}>
-          {tab === "Profile" && (
+          {tab === "Profile" && isAdminPreview && (
+            <ComingSoon text="You're previewing Le Hub as a student would see it — this tab shows a real student's own profile once you're viewing as them, not your admin account." />
+          )}
+
+          {tab === "Profile" && !isAdminPreview && (
             <>
               <div className={styles.profileHead}>
                 {avatarUrl ? (
@@ -313,17 +319,19 @@ export function SettingsPage() {
                   <button type="submit" className={styles.ghostButton}>Log out</button>
                 </form>
               </div>
-              <div className={styles.accountRow}>
-                <div><strong>Delete account</strong><small>Message {site.tutor.split(" ")[0]} directly to close your account</small></div>
-                <a
-                  href={whatsappUrl(`Hi ${site.tutor.split(" ")[0]}, I'd like to close my Le Hub account (${email}). Could you help me with that?`)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={styles.dangerButton}
-                >
-                  Contact Yana
-                </a>
-              </div>
+              {isStudent && (
+                <div className={styles.accountRow}>
+                  <div><strong>Delete account</strong><small>Message {site.tutor.split(" ")[0]} directly to close your account</small></div>
+                  <a
+                    href={whatsappUrl(`Hi ${site.tutor.split(" ")[0]}, I'd like to close my Le Hub account (${email}). Could you help me with that?`)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.dangerButton}
+                  >
+                    Contact Yana
+                  </a>
+                </div>
+              )}
             </div>
           )}
         </div>

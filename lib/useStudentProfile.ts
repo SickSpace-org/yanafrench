@@ -41,8 +41,12 @@ export function useStudentProfile(): StudentProfile & { refresh: () => void } {
 // Convenience for display-only spots (nav name, initials, greeting) that
 // don't need to distinguish loading/error from "no name yet" — falls back
 // to the account email, then a generic label, never a stale mock name.
+// An admin previewing student-hub never gets their own email surfaced
+// here — it would be indistinguishable from a real student's name — they
+// get a fixed, unmistakable label instead (see DashboardShell's preview
+// banner for the fuller explanation).
 export function displayName(profile: StudentProfile): string {
   if (profile.kind === "student") return profile.student.name;
-  if (profile.kind === "admin-preview") return profile.email;
+  if (profile.kind === "admin-preview") return "Admin Preview";
   return "";
 }

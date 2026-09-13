@@ -39,6 +39,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const profile = useStudentProfile();
+  const isAdminPreview = profile.kind === "admin-preview";
   const name = displayName(profile) || "Student";
   const avatarUrl = profile.kind === "student" ? profile.student.avatarUrl : null;
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" });
@@ -60,6 +61,9 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         </div>
         <div className={styles.date}>{today}</div>
         <div className={styles.headerActions}>
+          {isAdminPreview && (
+            <Link href="/admin" className={styles.previewBack}>← Back to Admin</Link>
+          )}
           <div className={styles.menuWrap}>
             <button
               type="button"
@@ -93,7 +97,16 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               aria-expanded={profileOpen}
               onClick={() => { setProfileOpen((v) => !v); setNotifOpen(false); }}
             >
-              {avatarUrl ? <img src={avatarUrl} alt="" className={styles.avatarImg} /> : initials}
+              {isAdminPreview ? (
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="2.8" />
+                </svg>
+              ) : avatarUrl ? (
+                <img src={avatarUrl} alt="" className={styles.avatarImg} />
+              ) : (
+                initials
+              )}
             </button>
             {profileOpen && (
               <div className={`${styles.dropdown} ${styles.dropdownRight}`}>
@@ -108,6 +121,12 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
+
+      {isAdminPreview && (
+        <div className={styles.previewBanner}>
+          <strong>Admin Preview Mode</strong> — you&apos;re viewing Le Hub as a student would. Nothing you see here belongs to your own account.
+        </div>
+      )}
 
       {(notifOpen || profileOpen) && <button type="button" className={styles.backdrop} aria-label="Close menus" onClick={closeMenus} />}
       {mobileNavOpen && <button type="button" className={styles.backdrop} aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
