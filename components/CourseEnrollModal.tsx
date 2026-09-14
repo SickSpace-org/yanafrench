@@ -10,7 +10,7 @@ import {
 } from "@/lib/courseCatalogData";
 import { CURRENT_LEVELS, LEARNING_MODES, type CurrentLevel, type LearningMode } from "@/lib/courseLeadData";
 import { formatRupees } from "@/lib/formatCurrency";
-import { createCourseOrder, openCourseCheckout, type RazorpaySuccessResponse } from "@/lib/coursePayment";
+import { createCourseOrder, openCourseCheckout, AlreadyEnrolledError, type RazorpaySuccessResponse } from "@/lib/coursePayment";
 import { WhatsAppLink } from "./WhatsAppLink";
 import enrollStyles from "./EnrollModal.module.css";
 import styles from "./CourseModals.module.css";
@@ -28,7 +28,7 @@ function sanitizePhone(value: string) {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^\+?[\d\s]{7,15}$/;
 
-type Phase = "form" | "payment" | "processing" | "paid" | "payment_failed" | "verify_failed";
+type Phase = "form" | "payment" | "processing" | "paid" | "payment_failed" | "verify_failed" | "already_enrolled";
 type FieldErrors = Partial<Record<"name" | "email" | "phone", string>>;
 
 export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrollable; onClose: () => void }) {
@@ -152,6 +152,10 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
         }
       );
     } catch (err) {
+      if (err instanceof AlreadyEnrolledError) {
+        setPhase("already_enrolled");
+        return;
+      }
       setError(err instanceof Error ? err.message : "Something went wrong starting the payment.");
       setPhase("payment_failed");
     }
@@ -308,6 +312,21 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
             <div className={enrollStyles.fieldRow}>
               <button type="button" className={enrollStyles.submit} onClick={startPayment}>Try Again</button>
               <button type="button" className={enrollStyles.secondary} onClick={() => { setError(null); setPhase("form"); }}>Back to Enrollment</button>
+            </div>
+          </div>
+        )}
+
+        {phase === "already_enrolled" && (
+          <div className={enrollStyles.success}>
+            <div className={enrollStyles.batchTag}>Already Enrolled</div>
+            <h3>Looks like you&apos;re already enrolled in this course.</h3>
+            <p className={enrollStyles.batchMeta}>
+              {email || "This email"} already has an active enrollment for {title}. If that doesn&apos;t look right,
+              message us directly.
+            </p>
+            <div className={enrollStyles.fieldRow}>
+              <WhatsAppLink className={enrollStyles.submit} message={`Hi! I tried to enroll in ${title} again (${email}) and it says I'm already enrolled — could you check?`}>Contact The Français Hub</WhatsAppLink>
+              <button type="button" className={enrollStyles.secondary} onClick={onClose}>Close</button>
             </div>
           </div>
         )}

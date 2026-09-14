@@ -11,6 +11,20 @@ function initialsFor(name: string) {
   return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "?";
 }
 
+// A student can now hold more than one enrollment (batch or course-catalog)
+// — summarized to one short label for the roster/thread-head, since this
+// list is just a "who is this" identifier, not the place to show all of it
+// (see Admin → Students for the full stacked list).
+function enrollmentSummary(student: Student): string {
+  const labels = [
+    ...student.batchEnrollments.map((e) => e.course),
+    ...student.courseEnrollments.map((e) => e.productTitle),
+  ];
+  if (labels.length === 0) return "No enrollments";
+  if (labels.length === 1) return labels[0];
+  return `${labels[0]} +${labels.length - 1} more`;
+}
+
 // One student's thread — mounted fresh (via `key` on the caller) each time
 // the selected student changes, so useMessageThread's poll/pending state
 // never bleeds from one conversation into another.
@@ -37,7 +51,7 @@ function ConversationThread({ student }: { student: Student }) {
         <span className={styles.avatar}>{initialsFor(student.name)}</span>
         <div>
           <strong>{student.name}</strong>
-          <small>{student.course}</small>
+          <small>{enrollmentSummary(student)}</small>
         </div>
       </div>
 
@@ -101,7 +115,7 @@ export function AdminMessagesPage() {
                   <span className={styles.avatar}>{initialsFor(s.name)}</span>
                   <div>
                     <strong>{s.name}</strong>
-                    <small>{s.course}</small>
+                    <small>{enrollmentSummary(s)}</small>
                   </div>
                 </button>
               ))}

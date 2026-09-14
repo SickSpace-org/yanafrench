@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { authErrorResponse, requireStudent, type Viewer } from "@/lib/auth";
 import { studentFromRow, type StudentRow } from "@/lib/studentData";
+import { fetchStudentEnrollments } from "@/lib/enrollment";
 
 // The signed-in student's own record — real identity for the student-hub
 // UI (see lib/useStudentProfile.ts), replacing the old hardcoded "Amelia"
@@ -40,7 +41,8 @@ export async function GET() {
     return new Response("No student record is linked to this account yet.", { status: 404 });
   }
 
-  return Response.json({ kind: "student", student: studentFromRow(data as StudentRow) });
+  const { batchEnrollments, courseEnrollments } = await fetchStudentEnrollments(supabase, (data as StudentRow).id);
+  return Response.json({ kind: "student", student: studentFromRow(data as StudentRow, batchEnrollments, courseEnrollments) });
 }
 
 // Self-service profile edits from Settings — name and/or avatar only.
@@ -85,5 +87,6 @@ export async function PATCH(req: Request) {
     return new Response("No student record is linked to this account yet.", { status: 404 });
   }
 
-  return Response.json({ kind: "student", student: studentFromRow(data as StudentRow) });
+  const { batchEnrollments, courseEnrollments } = await fetchStudentEnrollments(supabase, (data as StudentRow).id);
+  return Response.json({ kind: "student", student: studentFromRow(data as StudentRow, batchEnrollments, courseEnrollments) });
 }

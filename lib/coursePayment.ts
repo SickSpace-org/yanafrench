@@ -10,6 +10,16 @@ export type RazorpaySuccessResponse = {
   razorpay_signature: string;
 };
 
+// Thrown by createCourseOrder when this email already holds an active
+// enrollment for the product — distinct from a generic failure so the UI
+// can show "you're already enrolled" instead of a retry prompt.
+export class AlreadyEnrolledError extends Error {
+  constructor() {
+    super("Already enrolled in this course.");
+    this.name = "AlreadyEnrolledError";
+  }
+}
+
 // Creates a Razorpay order server-side via /api/course-payment/create-order
 // — the server re-derives the price from lib/courseCatalogData.ts by
 // productId, so nothing here can inflate or discount the charged amount.
@@ -25,6 +35,7 @@ export async function createCourseOrder(input: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
+  if (res.status === 409) throw new AlreadyEnrolledError();
   if (!res.ok) throw new Error("Couldn't start the payment. Please try again.");
   return res.json();
 }

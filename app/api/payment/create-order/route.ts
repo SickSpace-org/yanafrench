@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { paymentToRow, type Payment } from "@/lib/paymentData";
+import { hasActiveBatchEnrollment } from "@/lib/enrollment";
 import type { BatchCourse } from "@/lib/batchData";
 
 // Creates a Razorpay order server-side so the amount is never trusted from
@@ -27,6 +28,15 @@ export async function POST(req: Request) {
 
   const body = (await req.json().catch(() => ({}))) as CreateOrderBody;
   const { leadId, name, email, phone, course, batchId, batchName } = body;
+
+  // Block before any Razorpay order exists — a student who's already
+  // enrolled in this exact batch never sees a checkout window for it.
+  if (email && batchId) {
+    const supabaseForCheck = getSupabaseAdmin();
+    if (supabaseForCheck && (await hasActiveBatchEnrollment(supabaseForCheck, email, batchId))) {
+      return new Response("You're already enrolled in this batch.", { status: 409 });
+    }
+  }
 
   const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
   const res = await fetch("https://api.razorpay.com/v1/orders", {

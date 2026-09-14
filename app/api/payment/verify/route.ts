@@ -1,12 +1,14 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { paymentFromRow, type PaymentRow } from "@/lib/paymentData";
-import type { Student } from "@/lib/studentData";
-import { studentToRow } from "@/lib/studentData";
+import { resolveStudentIdentity } from "@/lib/enrollment";
 import { writeJson } from "@/lib/r2";
 import { applyPortalAction, PORTAL_STATE_KEY } from "@/lib/portalState";
 import { readPortalState } from "@/lib/portalStateServer";
-import { provisionStudentAccount } from "@/lib/studentAccount";
+
+function newEnrollmentId(): string {
+  return `enroll-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
 
 // Batches still live on R2 (see lib/portalState.ts) — a paid seat is taken
 // the moment a payment is verified, decrementing seats_remaining and
@@ -91,43 +93,57 @@ export async function POST(req: Request) {
       .eq("id", leadId);
   }
 
-  // The student record needs the payment's contact/batch details — if
+  // The enrollment needs the payment's contact/batch details — if
   // create-order couldn't record the payment (missing fields), there's
-  // nothing reliable to build a student from, so this is skipped rather
-  // than guessed.
+  // nothing reliable to build one from, so this is skipped rather than
+  // guessed.
   if (paymentRow) {
     const payment = paymentFromRow(paymentRow as PaymentRow);
 
-    // Guards against a duplicate student if verify is ever hit twice for
-    // the same payment (e.g. a retried handler callback).
-    const { data: existing } = await supabase
-      .from("students")
+    // Guards against a duplicate enrollment if verify is ever hit twice for
+    // the same payment (e.g. a retried handler callback) — payment_id is
+    // unique on batch_enrollments, so this is also enforced at the DB level.
+    const { data: existingEnrollment } = await supabase
+      .from("batch_enrollments")
       .select("id")
       .eq("payment_id", payment.id)
       .maybeSingle();
 
-    const student: Student = {
-      id: `student-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      leadId: leadId || payment.leadId,
-      paymentId: payment.id,
-      name: payment.name,
-      email: payment.email,
-      phone: payment.phone,
-      course: payment.course,
-      batchId: payment.batchId,
-      batchName: payment.batchName,
-      enrolledAt: new Date().toISOString(),
-    };
-    if (!existing) {
+    if (!existingEnrollment) {
       // Best-effort: a provisioning failure (e.g. email couldn't be sent)
       // must never fail this response — the payment already succeeded.
       // The admin can always resend the setup link from Admin -> Students.
-      const provisioned = await provisionStudentAccount(payment.email);
-      student.userId = provisioned?.userId ?? null;
+      const { studentId } = await resolveStudentIdentity(supabase, {
+        name: payment.name,
+        email: payment.email,
+        phone: payment.phone,
+      });
 
-      const { error } = await supabase.from("students").insert(studentToRow(student));
-      if (error) console.error("Failed to insert student", error);
-      else await decrementBatchSeat(payment.batchId);
+      const { error } = await supabase.from("batch_enrollments").insert({
+        id: newEnrollmentId(),
+        student_id: studentId,
+        lead_id: leadId || payment.leadId,
+        payment_id: payment.id,
+        course: payment.course,
+        batch_id: payment.batchId,
+        batch_name: payment.batchName,
+        status: "active",
+        enrolled_at: new Date().toISOString(),
+      });
+      // A student who already holds this exact batch (student_id, batch_id
+      // unique) hits this on a race with create-order's own pre-check — log
+      // it distinctly so it's never confused with an unexpected DB error,
+      // and never silently dropped like the old students_user_id_key bug.
+      if (error?.code === "23505") {
+        console.warn(`[payment/verify] Duplicate enrollment race for payment ${payment.id} (${payment.email}, batch ${payment.batchId}) — already enrolled, no second row created.`);
+      } else if (error) {
+        console.error("Failed to insert batch enrollment for payment", payment.id, error);
+      }
+
+      // The seat was paid for regardless of whether the enrollment row
+      // above was created, a duplicate, or hit an unexpected error — it
+      // must never depend on that side effect succeeding.
+      await decrementBatchSeat(payment.batchId);
     }
   }
 

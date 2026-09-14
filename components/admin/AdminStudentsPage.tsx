@@ -11,10 +11,21 @@ import styles from "./AdminLessonsManager.module.css";
 // app/api/students) — created automatically the moment a Razorpay payment
 // is verified (see app/api/payment/verify).
 export function AdminStudentsPage() {
-  const { items: students, loaded, remove } = useAdminCollection<Student>("/api/students");
+  const { items: students, loaded, remove, refresh } = useAdminCollection<Student>("/api/students");
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [sentId, setSentId] = useState<string | null>(null);
   const [failedId, setFailedId] = useState<string | null>(null);
+
+  // Removes a single enrollment (batch or course-catalog), not the
+  // student's whole identity/login — see app/api/batch-enrollments/[id]
+  // and app/api/course-enrollments/[id]. useAdminCollection's own `remove`
+  // only knows how to delete a top-level /api/students row, so this is a
+  // separate one-off call followed by a manual refresh.
+  async function removeEnrollment(kind: "batch" | "course", enrollmentId: string) {
+    const endpoint = kind === "batch" ? "/api/batch-enrollments" : "/api/course-enrollments";
+    await fetch(`${endpoint}/${enrollmentId}`, { method: "DELETE" }).catch(() => {});
+    refresh();
+  }
 
   // Also how the 3 pre-existing students (created before student accounts
   // existed) get linked — one deliberate click each, never automatic.
@@ -51,6 +62,7 @@ export function AdminStudentsPage() {
           <AdminStudentsPanel
             students={students}
             onRemove={remove}
+            onRemoveEnrollment={removeEnrollment}
             onResendSetupLink={resendSetupLink}
             sendingId={sendingId}
             sentId={sentId}

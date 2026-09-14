@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { formatTime, statusText, type Batch, type BatchCourse } from "@/lib/batchData";
 import { CURRENT_LEVELS, type CurrentLevel } from "@/lib/leadData";
 import { loadRazorpayScript } from "@/lib/loadRazorpayScript";
+import { site, whatsappUrl } from "@/lib/site";
 import styles from "./EnrollModal.module.css";
 
 const COURSES: BatchCourse[] = ["TEF", "TCF", "DELF"];
@@ -36,7 +37,7 @@ export type EnrollDetails = {
   notes: string;
 };
 
-type Phase = "form" | "processing" | "paid" | "payment_failed";
+type Phase = "form" | "processing" | "paid" | "payment_failed" | "already_enrolled";
 
 type RazorpaySuccessResponse = {
   razorpay_order_id: string;
@@ -117,6 +118,10 @@ export function EnrollModal({
           batchName: target.name,
         }),
       });
+      if (orderRes.status === 409) {
+        setPhase("already_enrolled");
+        return;
+      }
       if (!orderRes.ok) throw new Error("Couldn't start the payment. Please try again.");
       const order = await orderRes.json();
 
@@ -234,6 +239,28 @@ export function EnrollModal({
               <div className={styles.fieldRow}>
                 <button type="button" className={styles.submit} onClick={retryPayment}>Try payment again</button>
                 <button type="button" className={styles.secondary} onClick={onClose}>I&apos;ll pay later</button>
+              </div>
+            </div>
+          )}
+
+          {phase === "already_enrolled" && (
+            <div className={styles.success}>
+              <div className={styles.batchTag}>Already enrolled</div>
+              <h3>Looks like you&apos;re already in this batch.</h3>
+              <p className={styles.batchMeta}>
+                {email || "This email"} is already enrolled in {pendingRef.current?.batch.name ?? "this batch"}. If that
+                doesn&apos;t look right, message {site.tutor.split(" ")[0]} directly.
+              </p>
+              <div className={styles.fieldRow}>
+                <a
+                  href={whatsappUrl(`Hi ${site.tutor.split(" ")[0]}, I tried to enroll in ${pendingRef.current?.batch.name ?? "a batch"} again (${email}) and it says I'm already enrolled — could you check?`)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={styles.submit}
+                >
+                  Message {site.tutor.split(" ")[0]}
+                </a>
+                <button type="button" className={styles.secondary} onClick={onClose}>Close</button>
               </div>
             </div>
           )}

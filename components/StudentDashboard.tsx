@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "motion/react";
 import { lessons } from "@/lib/courseData";
 import { computeLessonProgress, computeOverallProgress } from "@/lib/progressData";
@@ -46,12 +47,20 @@ export function StudentDashboard() {
   const lessonProgress = computeLessonProgress(lessons);
   const overallProgress = computeOverallProgress(lessons, quizSessions, speakingHistory);
 
-  // The student's own enrolled batch (see students.batch_id) — same
-  // real-data source CalendarPage uses, rather than a fixed "Thursday"
-  // that was the same for every student.
-  const myBatchId = profile.kind === "student" ? profile.student.batchId : null;
-  const myBatch = batches.find((b) => b.id === myBatchId) ?? null;
-  const nextClass = myBatch ? generateClassEvents(myBatch, zoomLink, 30)[0] ?? null : null;
+  // The student's own enrolled batches (see lib/batchEnrollmentData.ts —
+  // one person can hold more than one) — same real-data source
+  // CalendarPage uses, rather than a fixed "Thursday" that was the same
+  // for every student. Combined into one card: the single soonest class
+  // across every enrollment, labelled by course, with a link to see the
+  // rest on Calendar rather than a full multi-enrollment switcher.
+  const myBatchIds = profile.kind === "student" ? new Set(profile.student.batchEnrollments.map((e) => e.batchId)) : new Set<string>();
+  const myUpcomingClasses = batches
+    .filter((b) => myBatchIds.has(b.id))
+    .map((b) => generateClassEvents(b, zoomLink, 30)[0])
+    .filter((e): e is NonNullable<typeof e> => Boolean(e))
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+  const nextClass = myUpcomingClasses[0] ?? null;
+  const moreUpcomingCount = Math.max(0, myUpcomingClasses.length - 1);
 
   return (
     <DashboardShell>
@@ -66,7 +75,7 @@ export function StudentDashboard() {
           {nextClass ? (
             <>
               <strong className={styles.cardTitle}>
-                {nextClass.date.toLocaleDateString("en-US", { weekday: "long" })}
+                {nextClass.course} · {nextClass.date.toLocaleDateString("en-US", { weekday: "long" })}
               </strong>
               <small className={styles.cardMeta}>{nextClass.time}</small>
               <div className={styles.teacherLine}><i /> With {site.tutor}</div>
@@ -74,6 +83,11 @@ export function StudentDashboard() {
                 <a href={zoomLink} target="_blank" rel="noreferrer" className={styles.cardCtaSolid}>Join class</a>
               ) : (
                 <button type="button" className={styles.cardCtaSolid} disabled>Link coming soon</button>
+              )}
+              {moreUpcomingCount > 0 && (
+                <Link href="/student-hub/calendar" className={styles.cardMeta} style={{ display: "block", marginTop: ".5rem" }}>
+                  +{moreUpcomingCount} more upcoming · View calendar →
+                </Link>
               )}
             </>
           ) : (

@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { coursePaymentToRow, type CoursePayment } from "@/lib/coursePaymentData";
+import { hasActiveCourseEnrollment } from "@/lib/enrollment";
 import { findEnrollableByProductId, enrollablePriceInPaise, enrollableTitle } from "@/lib/courseCatalogData";
 
 type CreateOrderBody = {
@@ -33,6 +34,16 @@ export async function POST(req: Request) {
   }
   const amount = enrollablePriceInPaise(enrollable);
   const title = enrollableTitle(enrollable);
+
+  // Block before any Razorpay order exists — same rule as the Programs
+  // flow's create-order: no checkout window for a product this email
+  // already owns.
+  if (email) {
+    const supabaseForCheck = getSupabaseAdmin();
+    if (supabaseForCheck && (await hasActiveCourseEnrollment(supabaseForCheck, email, productId))) {
+      return new Response("You're already enrolled in this course.", { status: 409 });
+    }
+  }
 
   const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
   const res = await fetch("https://api.razorpay.com/v1/orders", {

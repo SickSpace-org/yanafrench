@@ -40,16 +40,20 @@ function BatchCard({ batch, zoomLink, isYours }: { batch: Batch; zoomLink: strin
 export function CalendarPage() {
   const { batches, zoomLink } = usePortalState();
   const profile = useStudentProfile();
-  // A real student's own enrolled batch (see students.batch_id) — falls
-  // back to the admin's sitewide "current" pick only for an admin
-  // previewing the hub, who has no enrolled batch of their own.
-  const myBatchId = profile.kind === "student" ? profile.student.batchId : null;
-  const isMine = (b: Batch) => (myBatchId ? b.id === myBatchId : b.isCurrent);
+  // A real student's own enrolled batches (see lib/batchEnrollmentData.ts —
+  // one person can hold more than one) — falls back to the admin's
+  // sitewide "current" pick only for an admin previewing the hub, who has
+  // no enrolled batch of their own.
+  const myBatchIds = useMemo(
+    () => (profile.kind === "student" ? new Set(profile.student.batchEnrollments.map((e) => e.batchId)) : null),
+    [profile]
+  );
+  const isMine = (b: Batch) => (myBatchIds ? myBatchIds.has(b.id) : b.isCurrent);
   const [category, setCategory] = useState<CategoryFilter>("All");
 
   // Every published batch for the selected course — not just the
   // student's own — so a batch shows up here the moment it's published,
-  // with no separate step required. The student's own batch just sorts
+  // with no separate step required. The student's own batch(es) just sort
   // first.
   const visibleBatches = useMemo(
     () =>
@@ -57,7 +61,7 @@ export function CalendarPage() {
         .filter((b) => b.published && (category === "All" || b.course === category))
         .sort((a, b) => Number(isMine(b)) - Number(isMine(a))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [batches, category, myBatchId]
+    [batches, category, myBatchIds]
   );
 
   // Only drives the dots on the grid — the batches themselves (not

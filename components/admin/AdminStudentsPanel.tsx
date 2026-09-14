@@ -9,13 +9,16 @@ function formatWhen(iso: string) {
   return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(date);
 }
 
-// The roster of confirmed, paying students — one row per successfully
-// verified payment (see app/api/payment/verify), created automatically the
-// moment someone pays. Distinct from Enrollments (every inquiry) and
-// Payments (every transaction attempt, paid or not).
+// The roster of confirmed, paying students — one row per person (login),
+// not per payment. A person can hold several enrollments now (see
+// lib/batchEnrollmentData.ts / lib/courseEnrollmentData.ts), so "Remove"
+// is split in two: removing a single enrollment leaves the login and
+// their other enrollments intact, while "Remove student" deletes the
+// whole identity (cascades to all of it, see the enrollments migration).
 export function AdminStudentsPanel({
   students,
   onRemove,
+  onRemoveEnrollment,
   onResendSetupLink,
   sendingId,
   sentId,
@@ -23,6 +26,7 @@ export function AdminStudentsPanel({
 }: {
   students: Student[];
   onRemove: (id: string) => void;
+  onRemoveEnrollment: (kind: "batch" | "course", enrollmentId: string) => void;
   onResendSetupLink: (id: string) => void;
   sendingId: string | null;
   sentId: string | null;
@@ -39,8 +43,8 @@ export function AdminStudentsPanel({
           <tr>
             <th>Name</th>
             <th>Contact</th>
-            <th>Course &amp; batch</th>
-            <th>Enrolled</th>
+            <th>Enrollments</th>
+            <th>First enrolled</th>
             <th>Login</th>
             <th />
           </tr>
@@ -54,8 +58,26 @@ export function AdminStudentsPanel({
                 <a href={`mailto:${s.email}`}>{s.email}</a>
               </td>
               <td>
-                <span className={styles.course}>{s.course}</span>
-                <div>{s.batchName}</div>
+                {s.batchEnrollments.length === 0 && s.courseEnrollments.length === 0 ? (
+                  <span className={styles.muted}>No enrollments</span>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: ".45rem" }}>
+                    {s.batchEnrollments.map((e) => (
+                      <div key={e.id} style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
+                        <span className={styles.course}>{e.course}</span>
+                        <span>{e.batchName}</span>
+                        <button type="button" className={styles.remove} onClick={() => onRemoveEnrollment("batch", e.id)}>Remove</button>
+                      </div>
+                    ))}
+                    {s.courseEnrollments.map((e) => (
+                      <div key={e.id} style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
+                        <span className={styles.course}>Course</span>
+                        <span>{e.productTitle}</span>
+                        <button type="button" className={styles.remove} onClick={() => onRemoveEnrollment("course", e.id)}>Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </td>
               <td className={styles.time}>{formatWhen(s.enrolledAt)}</td>
               <td>
@@ -78,7 +100,7 @@ export function AdminStudentsPanel({
                 </button>
               </td>
               <td>
-                <button type="button" className={styles.remove} onClick={() => onRemove(s.id)}>Remove</button>
+                <button type="button" className={styles.remove} onClick={() => onRemove(s.id)}>Remove student</button>
               </td>
             </tr>
           ))}

@@ -34,7 +34,16 @@ export function SettingsPage() {
   const name = displayName(profileData);
   // Never surface the admin's own email here — it isn't a student's data.
   const email = profileData.kind === "student" ? profileData.student.email : "";
-  const course = profileData.kind === "student" ? profileData.student.course : "—";
+  // A person can hold more than one enrollment now (see
+  // lib/batchEnrollmentData.ts / lib/courseEnrollmentData.ts) — listed
+  // together rather than a single "Course" field.
+  const enrollmentLabels =
+    profileData.kind === "student"
+      ? [
+          ...profileData.student.batchEnrollments.map((e) => `${e.course} – ${e.batchName}`),
+          ...profileData.student.courseEnrollments.map((e) => `${e.productTitle} (course)`),
+        ]
+      : [];
   const avatarUrl = profileData.kind === "student" ? profileData.student.avatarUrl : null;
   const initials = (name || "?").slice(0, 2).toUpperCase();
   const { sessions: quizSessions } = useQuizState();
@@ -216,8 +225,8 @@ export function SettingsPage() {
                   <input value={email} type="email" disabled />
                 </label>
                 <label>
-                  <span>Course</span>
-                  <input key={course} defaultValue={course} disabled />
+                  <span>Enrolled in</span>
+                  <input key={enrollmentLabels.join("|")} defaultValue={enrollmentLabels.join(", ") || "—"} disabled />
                 </label>
               </div>
 
