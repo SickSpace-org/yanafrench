@@ -12,21 +12,11 @@ import { CURRENT_LEVELS, LEARNING_MODES, type CurrentLevel, type LearningMode } 
 import { formatRupees } from "@/lib/formatCurrency";
 import { createCourseOrder, openCourseCheckout, AlreadyEnrolledError, type RazorpaySuccessResponse } from "@/lib/coursePayment";
 import { WhatsAppLink } from "./WhatsAppLink";
+import { PhoneNumberInput, isValidPhoneNumber } from "./PhoneNumberInput";
 import enrollStyles from "./EnrollModal.module.css";
 import styles from "./CourseModals.module.css";
 
-// Digits only, plus a single optional leading "+" for any country code —
-// copied from components/EnrollModal.tsx rather than imported, so the two
-// enrollment flows stay fully decoupled (per the isolation requirement in
-// docs/superpowers/specs/2026-09-10-courses-section-design.md).
-function sanitizePhone(value: string) {
-  const hasLeadingPlus = value.trimStart().startsWith("+");
-  const digitsAndSpaces = value.replace(/[^\d\s]/g, "");
-  return hasLeadingPlus ? `+${digitsAndSpaces.trimStart()}` : digitsAndSpaces;
-}
-
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_RE = /^\+?[\d\s]{7,15}$/;
 
 type Phase = "form" | "payment" | "processing" | "paid" | "payment_failed" | "verify_failed" | "already_enrolled";
 type FieldErrors = Partial<Record<"name" | "email" | "phone", string>>;
@@ -72,7 +62,7 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
     if (!email.trim()) next.email = "Email is required.";
     else if (!EMAIL_RE.test(email.trim())) next.email = "Enter a valid email address.";
     if (!phone.trim()) next.phone = "Phone number is required.";
-    else if (!PHONE_RE.test(phone.trim())) next.phone = "Enter a valid phone number.";
+    else if (!isValidPhoneNumber(phone)) next.phone = "Enter a valid phone number.";
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -210,27 +200,14 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
                 </label>
                 <label>
                   <span>Phone number *</span>
-                  <input
-                    type="tel"
-                    inputMode="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(sanitizePhone(e.target.value))}
-                    placeholder="e.g. +91 98765 43210"
-                    aria-invalid={errors.phone ? "true" : "false"}
-                  />
+                  <PhoneNumberInput value={phone} onChange={setPhone} ariaInvalid={!!errors.phone} />
                   {errors.phone && <span className={styles.fieldError}>{errors.phone}</span>}
                 </label>
               </div>
 
               <label>
                 <span>WhatsApp number (optional)</span>
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(sanitizePhone(e.target.value))}
-                  placeholder="If different from phone"
-                />
+                <PhoneNumberInput value={whatsapp} onChange={setWhatsapp} placeholder="If different from phone" />
               </label>
 
               <div className={enrollStyles.fieldRow}>

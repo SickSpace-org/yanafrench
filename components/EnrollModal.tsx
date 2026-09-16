@@ -6,6 +6,7 @@ import { formatTime, statusText, type Batch, type BatchCourse } from "@/lib/batc
 import { CURRENT_LEVELS, type CurrentLevel } from "@/lib/leadData";
 import { loadRazorpayScript } from "@/lib/loadRazorpayScript";
 import { site, whatsappUrl } from "@/lib/site";
+import { PhoneNumberInput, isValidPhoneNumber } from "./PhoneNumberInput";
 import styles from "./EnrollModal.module.css";
 
 const COURSES: BatchCourse[] = ["TEF", "TCF", "DELF"];
@@ -17,16 +18,6 @@ const ENROLLMENT_FEE_LABEL = "₹1";
 
 function canSelect(batch: Batch) {
   return (batch.status !== "full" && batch.seats_remaining > 0) || batch.status === "waitlist";
-}
-
-// Digits only, plus a single optional leading "+" for any country code
-// (not just India) and spaces for readability while typing — strips
-// letters and other symbols as they're typed rather than only validating
-// after the fact.
-function sanitizePhone(value: string) {
-  const hasLeadingPlus = value.trimStart().startsWith("+");
-  const digitsAndSpaces = value.replace(/[^\d\s]/g, "");
-  return hasLeadingPlus ? `+${digitsAndSpaces.trimStart()}` : digitsAndSpaces;
 }
 
 export type EnrollDetails = {
@@ -178,7 +169,7 @@ export function EnrollModal({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!batch || !name.trim() || !phone.trim() || !email.trim()) return;
+    if (!batch || !name.trim() || !phone.trim() || !email.trim() || !isValidPhoneNumber(phone)) return;
     const leadId = onSubmit(batch, { name: name.trim(), phone: phone.trim(), email: email.trim(), currentLevel, notes: notes.trim() });
     startPayment(batch, leadId);
   }
@@ -309,16 +300,7 @@ export function EnrollModal({
                 <div className={styles.fieldRow}>
                   <label>
                     <span>Phone number</span>
-                    <input
-                      type="tel"
-                      inputMode="tel"
-                      value={phone}
-                      onChange={(e) => setPhone(sanitizePhone(e.target.value))}
-                      placeholder="e.g. +1 4155552671"
-                      pattern="^\+?[\d\s]{7,15}$"
-                      title="Numbers only, with an optional country code (e.g. +1, +44, +91)"
-                      required
-                    />
+                    <PhoneNumberInput value={phone} onChange={setPhone} required />
                   </label>
                   <label>
                     <span>Email</span>

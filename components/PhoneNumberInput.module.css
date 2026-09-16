@@ -1,0 +1,56 @@
+.phoneInput {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  width: 100%;
+  padding: .55rem .9rem;
+  border: 1px solid var(--stone);
+  border-radius: 10px;
+  background: white;
+  transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
+}
+
+.phoneInput:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(31, 58, 95, .1);
+}
+
+.phoneInput :global(.PhoneInputCountry) {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  margin-right: .2rem;
+  cursor: pointer;
+}
+
+.phoneInput :global(.PhoneInputCountryIcon) {
+  width: 1.4em;
+  height: 1.4em;
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(23, 25, 28, .12);
+  transition: transform .18s var(--ease);
+}
+
+.phoneInput :global(.PhoneInputCountry:hover) :global(.PhoneInputCountryIcon),
+.phoneInput :global(.PhoneInputCountry:focus-within) :global(.PhoneInputCountryIcon) {
+  transform: scale(1.12);
+}
+
+.phoneInput :global(.PhoneInputCountrySelectArrow) {
+  color: var(--text-muted);
+  opacity: .65;
+  margin-left: .15rem;
+}
+
+.phoneInput :global(.PhoneInputInput) {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: .88rem;
+  font-family: inherit;
+  color: var(--ink);
+  padding: .2rem 0;
+}
