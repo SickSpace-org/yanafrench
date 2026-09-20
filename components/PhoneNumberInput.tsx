@@ -11,6 +11,12 @@
 import { useState } from "react";
 import PhoneInput, { getCountryCallingCode, type Country, type Value } from "react-phone-number-input/max";
 import "react-phone-number-input/style.css";
+// The library's default flag renderer <img>s each flag from an external URL
+// (purecatamphetamine.github.io) — blocked by this site's CSP img-src, and a
+// third-party dependency even if it weren't. These are the same SVGs bundled
+// locally as inline React components instead, so flags render with no
+// network request and no CSP change needed.
+import * as flags from "country-flag-icons/react/3x2";
 // libphonenumber-js's own metadata reports the LONGEST number length it
 // recognizes for a country across every number type (premium-rate,
 // service numbers, etc.) — for India that's several digits past a real
@@ -69,6 +75,7 @@ export function PhoneNumberInput({
       onChange={(v) => onChange(v ?? "")}
       numberInputProps={{ id, required, "aria-invalid": ariaInvalid, maxLength: maxNationalDigits(country) }}
       placeholder={placeholder}
+      flags={flags}
       className={styles.phoneInput}
     />
   );
