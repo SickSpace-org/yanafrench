@@ -710,6 +710,8 @@ body.enroll-modal-open .nav {
 .resource-approach__card p { margin:0; font-size:.8rem; line-height:1.7; color:rgba(246,244,239,.65); }
 
 .resource-catalog { background: var(--stone-wash); border-top: 1px solid var(--stone); }
+.resource-catalog__coming-soon { text-align: center; margin: 0 auto; }
+.resource-catalog__coming-soon-lead { color: var(--text-muted); font-size: .95rem; line-height: 1.85; margin: 1.4rem auto 2rem; max-width: 480px; }
 .resource-catalog__filters { display:flex; flex-wrap:wrap; gap:.6rem; margin-bottom:2.5rem; }
 .resource-catalog__filter { border:1px solid rgba(16,19,28,.14); background:rgba(255,255,255,.5); border-radius:999px; padding:.6rem 1.1rem; font-size:.72rem; font-weight:700; cursor:pointer; transition:background .3s var(--ease), border-color .3s var(--ease), color .3s var(--ease), transform .2s var(--ease); }
 .resource-catalog__filter:hover { transform:translateY(-2px); border-color:rgba(16,19,28,.28); }

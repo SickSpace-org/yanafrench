@@ -3,7 +3,9 @@ import Link from "next/link";
 import { PageHero } from "@/components/PageHero";
 import { Reveal } from "@/components/Reveal";
 import { ResourceCatalog } from "@/components/ResourceCatalog";
+import { ResourcesComingSoon } from "@/components/ResourcesComingSoon";
 import { resourcePathways, resourcesApproach } from "@/lib/data";
+import { RESOURCES_COMING_SOON } from "@/lib/config";
 import { Arrow } from "@/components/Arrow";
 
 export const metadata: Metadata = {
@@ -61,7 +63,7 @@ export default function ResourcesPage() {
       </div>
     </section>
 
-    <ResourceCatalog />
+    {RESOURCES_COMING_SOON ? <ResourcesComingSoon /> : <ResourceCatalog />}
 
     <section className="resource-cta">
       <div className="container resource-cta__inner">

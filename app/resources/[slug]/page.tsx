@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { PageHero } from "@/components/PageHero";
 import { Reveal } from "@/components/Reveal";
 import { FinalCta } from "@/components/FinalCta";
 import { WhatsAppLink } from "@/components/WhatsAppLink";
 import { resources } from "@/lib/data";
+import { RESOURCES_COMING_SOON } from "@/lib/config";
 
 export function generateStaticParams() {
   return resources.map((r) => ({ slug: r.slug }));
@@ -19,6 +20,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function ResourceDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  // Same switch as app/resources/page.tsx — a stale bookmark or indexed
+  // link to a specific resource shouldn't still show outdated content
+  // while the catalog itself says "Coming Soon".
+  if (RESOURCES_COMING_SOON) redirect("/resources");
+
   const { slug } = await params;
   const resource = resources.find((r) => r.slug === slug);
   if (!resource) notFound();
