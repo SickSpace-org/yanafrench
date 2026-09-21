@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { Hero } from "@/components/Hero";
+import { AuthNoticeToast } from "@/components/AuthNoticeToast";
 import { Pathways } from "@/components/Pathways";
 import { TefFeature } from "@/components/TefFeature";
 import { MaxFour } from "@/components/MaxFour";
@@ -14,6 +16,9 @@ import { FinalCta } from "@/components/FinalCta";
 
 export default function Home() {
   return <>
+    <Suspense fallback={null}>
+      <AuthNoticeToast param="logged_out" message="You&rsquo;ve been signed out." />
+    </Suspense>
     <Hero/>
     <Pathways/>
     <TefFeature/>

@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { Suspense, useState, type ReactNode } from "react";
 import { getNotifications } from "@/lib/notificationData";
 import { useStudentProfile, displayName } from "@/lib/useStudentProfile";
+import { AuthNoticeToast } from "./AuthNoticeToast";
+import { BfcacheGuard } from "./BfcacheGuard";
 import styles from "./DashboardShell.module.css";
 
 const navItems: { type: string; label: string; href?: string }[] = [
@@ -113,7 +115,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
                 <span className={styles.dropdownHeading}>{name}</span>
                 <Link href="/student-hub/settings" className={styles.dropdownLink} onClick={closeMenus}>View profile</Link>
                 <Link href="/student-hub/settings" className={styles.dropdownLink} onClick={closeMenus}>Settings</Link>
-                <form action="/auth/signout" method="post" style={{ display: "contents" }}>
+                <form action="/auth/signout?redirect=/" method="post" style={{ display: "contents" }}>
                   <button type="submit" className={styles.dropdownLink}>Log out</button>
                 </form>
               </div>
@@ -121,6 +123,10 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
+      <Suspense fallback={null}>
+        <AuthNoticeToast param="signout_error" message="Couldn&rsquo;t sign you out — please try again." variant="error" />
+      </Suspense>
+      <BfcacheGuard />
 
       {isAdminPreview && (
         <div className={styles.previewBanner}>

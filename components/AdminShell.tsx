@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import { AuthNoticeToast } from "./AuthNoticeToast";
+import { BfcacheGuard } from "./BfcacheGuard";
 import styles from "./AdminShell.module.css";
 
 const navItems = [
@@ -29,6 +31,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </form>
         </div>
       </header>
+      <Suspense fallback={null}>
+        <AuthNoticeToast param="signout_error" message="Couldn&rsquo;t sign you out — please try again." variant="error" />
+      </Suspense>
+      <BfcacheGuard />
 
       <div className={styles.body}>
         <aside className={styles.sidebar}>

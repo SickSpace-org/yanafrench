@@ -324,7 +324,7 @@ export function SettingsPage() {
               </div>
               <div className={styles.accountRow}>
                 <div><strong>Log out</strong><small>Sign out of Le Hub on this device</small></div>
-                <form action="/auth/signout" method="post">
+                <form action="/auth/signout?redirect=/" method="post">
                   <button type="submit" className={styles.ghostButton}>Log out</button>
                 </form>
               </div>

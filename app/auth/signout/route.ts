@@ -16,11 +16,36 @@ export async function POST(request: Request) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
+  // Student Hub's own logout forms (DashboardShell, SettingsPage) pass
+  // ?redirect=/ so a deliberate logout lands on the public homepage instead
+  // of /login — Admin's form omits it and keeps the old /login behavior.
+  // Whitelisted to the literal "/" rather than passed through, since this
+  // value ultimately drives a redirect target.
+  const requestUrl = new URL(request.url);
+  const toHome = requestUrl.searchParams.get("redirect") === "/";
+
   const supabase = await createServerSupabase();
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+
+  if (error) {
+    // Don't claim success — send the student back to where they were
+    // (same-origin Referer only) with a flag the page reads to show an
+    // error instead of silently redirecting as if sign-out worked.
+    const referer = request.headers.get("referer");
+    let back = new URL(toHome ? "/" : "/login", request.url);
+    if (referer) {
+      try {
+        const refererUrl = new URL(referer);
+        if (refererUrl.host === requestUrl.host) back = refererUrl;
+      } catch {}
+    }
+    back.searchParams.set("signout_error", "1");
+    return NextResponse.redirect(back, { status: 303 });
+  }
 
   // 303 so the browser follows with GET.
-  return NextResponse.redirect(new URL("/login?notice=signed_out", request.url), {
-    status: 303,
-  });
+  const destination = toHome
+    ? new URL("/?logged_out=1", request.url)
+    : new URL("/login?notice=signed_out", request.url);
+  return NextResponse.redirect(destination, { status: 303 });
 }

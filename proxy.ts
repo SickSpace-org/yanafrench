@@ -55,6 +55,10 @@ export async function proxy(request: NextRequest) {
     if (role !== "admin") {
       return redirectPreservingSession(new URL("/student-hub", request.url), response);
     }
+    // Signed-in-only content must never come back from bfcache after
+    // logout (browser Back would otherwise flash the last-rendered page
+    // before any script re-checks auth) or an intermediate cache.
+    response.headers.set("Cache-Control", "no-store");
     return response;
   }
 
@@ -64,6 +68,7 @@ export async function proxy(request: NextRequest) {
   if (role !== "student" && role !== "admin") {
     return loginRedirect(request, response);
   }
+  response.headers.set("Cache-Control", "no-store");
   return response;
 }
 
