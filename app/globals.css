@@ -651,7 +651,7 @@ body.enroll-modal-open .nav {
 .about-page { background: var(--porcelain); }
 .about-page__grid { display:grid; grid-template-columns:.75fr 1fr; gap:clamp(4rem, 9vw, 9rem); align-items:center; }
 .about-page__portrait { position:relative; }
-.about-page__portrait img { width:100%; aspect-ratio:3/4; object-fit:cover; object-position:center top; box-shadow: var(--shadow-lift); border-radius: var(--r-xl); }
+.about-page__portrait img { width:100%; height:auto; aspect-ratio:3/4; object-fit:cover; object-position:center top; box-shadow: var(--shadow-lift); border-radius: var(--r-xl); }
 .about-page__flashcard {
   position: absolute;
   left: 1.4rem;
