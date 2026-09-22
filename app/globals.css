@@ -42,29 +42,6 @@
   --h2-tight: clamp(3rem, 5.2vw, 5.4rem);
 }
 
-/* Homepage-only: every token below is the same hue as :root's, just mixed
-   lighter — scoped to .home so nav, footer and every other page keep the
-   original intensity untouched. */
-.home {
-  --porcelain: #F9F7F2;
-  --porcelain-2: #F4F1E9;
-  --ink: #3B3D40;
-  --text-primary: #45474B;
-  --ink-soft: #7791AC;
-  --blue: #4F6E93;
-  --blue-2: #6084A8;
-  --bordeaux: #C96A63;
-  --bordeaux-light: #EBA89C;
-  --stone: #E7E3D9;
-  --stone-wash: #F4F0E7;
-  --hairline-ink: rgba(23,25,28,.06);
-  --hairline-ink-hover: rgba(23,25,28,.1);
-  --text-muted: #8B877F;
-  --text-faint: #A29E93;
-  --card-surface: #FDFCFA;
-  --shadow-glow: 0 0 0 1px rgba(61,111,165,.1), 0 20px 46px rgba(23,25,28,.1);
-}
-
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body {
@@ -157,7 +134,7 @@ h1 em,h2 em { font-weight: 400; font-style: italic; }
 .button--accent {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(120deg, #1F3A5F 0%, #3D6FA5 42%, #6F9BC4 58%, #B6534A 78%, #7A2E2E 100%);
+  background: linear-gradient(120deg, #14263f 0%, #2C5686 42%, #4D77A6 58%, #96362F 78%, #591D1D 100%);
   background-size: 220% 220%;
   background-position: 0% 50%;
   color: white;
@@ -304,7 +281,7 @@ body.enroll-modal-open .nav {
   background:
     radial-gradient(circle at 84% -8%, rgba(143,180,217,.24), transparent 42%),
     radial-gradient(circle at -8% 105%, rgba(182,58,58,.26), transparent 46%),
-    linear-gradient(165deg, #24344c 0%, #202b3f 62%, #1c212c 100%);
+    linear-gradient(165deg, #142239 0%, #101a2c 62%, #0a0d14 100%);
   background-size: 130% 130%, 130% 130%, 100% 100%;
   animation: heroGlowDrift 36s ease-in-out infinite;
   overflow: hidden;
@@ -391,7 +368,7 @@ body.enroll-modal-open .nav {
   height: min(72vh, 740px);
   overflow:hidden;
   border-radius: var(--r-xl);
-  background:#2C3C58;
+  background:#16233b;
   margin-left:auto;
   box-shadow: var(--shadow-lift), 0 0 0 1px rgba(255,255,255,.08);
 }
@@ -431,7 +408,7 @@ body.enroll-modal-open .nav {
   transition: transform .5s var(--ease), box-shadow .45s var(--ease);
   will-change: transform;
 }
-.pathway::before { content:""; position:absolute; inset:0; background:linear-gradient(165deg,#2E4468,#202B3F); opacity:0; transition:opacity .45s var(--ease); z-index:0; border-radius:inherit; }
+.pathway::before { content:""; position:absolute; inset:0; background:linear-gradient(165deg,#152643,#0a1120); opacity:0; transition:opacity .45s var(--ease); z-index:0; border-radius:inherit; }
 .pathway > * { position:relative; z-index:1; transition:color .3s var(--ease); }
 .pathway:hover { --ty: -6px; transition: transform .12s linear, box-shadow .45s var(--ease); box-shadow: var(--shadow-glow); color: var(--porcelain); }
 .pathway:hover::before { opacity:1; }
@@ -454,7 +431,7 @@ body.enroll-modal-open .nav {
 .pathway:hover .pathway__arrow { background: rgba(31,58,95,.14); color:var(--blue); transform:translate(4px,-4px); }
 
 /* tef feature */
-.tef-feature { background: radial-gradient(circle at 90% 0%, rgba(143,180,217,.11), transparent 42%), linear-gradient(165deg,#24344c,#1c212c 75%); color:var(--porcelain); position:relative; overflow:hidden; }
+.tef-feature { background: radial-gradient(circle at 90% 0%, rgba(143,180,217,.13), transparent 42%), linear-gradient(165deg,#142239,#0a0d14 75%); color:var(--porcelain); position:relative; overflow:hidden; }
 .tef-feature::after { content:"ç"; position:absolute; right:-2vw; bottom:-10vw; font-family:var(--serif); font-size:37vw; line-height:.7; color:rgba(255,255,255,.02); animation: ambientDrift 32s ease-in-out infinite reverse; }
 .tef-feature__grid { display:grid; grid-template-columns:1.05fr .75fr; gap:clamp(4rem, 10vw, 12rem); align-items:start; position:relative; z-index:1; }
 .tef-feature__title h2 { font-size:clamp(6rem, 15vw, 15.5rem); line-height:.74; margin:0; color:var(--porcelain); }
@@ -507,7 +484,7 @@ body.enroll-modal-open .nav {
 .yana-section__tags span:hover { border-color:var(--bordeaux); background:rgba(61,111,165,.06); transform:translateY(-2px); }
 
 /* personality */
-.personality-band { background: radial-gradient(circle at 10% 20%, rgba(143,180,217,.06), transparent 38%), linear-gradient(165deg,#24344c,#1c212c 80%); color:var(--porcelain); padding:clamp(6rem, 10vw, 10rem) 0; }
+.personality-band { background: radial-gradient(circle at 10% 20%, rgba(143,180,217,.08), transparent 38%), linear-gradient(165deg,#142239,#0a0d14 80%); color:var(--porcelain); padding:clamp(6rem, 10vw, 10rem) 0; }
 .personality-band__grid { display:grid; grid-template-columns:1fr .68fr; gap:clamp(3rem, 8vw, 9rem); align-items:center; }
 .personality-band__copy h2 { font-size:clamp(3.4rem, 6.2vw, 6.6rem); line-height:.92; margin:0; }
 .personality-band__copy h2 em { color:var(--bordeaux-light); }
@@ -572,7 +549,7 @@ body.enroll-modal-open .nav {
 .approach__item p { font-size:.78rem; line-height:1.7; color:var(--text-muted); max-width:230px; }
 
 /* language journey */
-.language-journey { height:400vh; background: radial-gradient(circle at 20% 20%, rgba(143,180,217,.08), transparent 40%), linear-gradient(165deg,#24344c,#1c212c); color:var(--porcelain); position:relative; }
+.language-journey { height:400vh; background: radial-gradient(circle at 20% 20%, rgba(143,180,217,.1), transparent 40%), linear-gradient(165deg,#142239,#0a0d14); color:var(--porcelain); position:relative; }
 .language-journey__sticky { height:100vh; position:sticky; top:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem; overflow:hidden; }
 .language-journey .eyebrow { position:relative; z-index:2; margin-bottom:5rem; top:-1rem; }
 .language-journey__stage { width:min(1200px, 100%); height:22vh; min-height:180px; display:grid; place-items:center; position:relative; z-index:1; }
@@ -654,9 +631,6 @@ body.enroll-modal-open .nav {
 .final-cta__mark { position:absolute; right:0; bottom:-5rem; font-family:var(--serif); font-size:25rem; color:rgba(255,255,255,.04); line-height:.7; z-index:-1; animation: ambientDrift 30s ease-in-out infinite reverse; }
 .final-cta__mark span { color:rgba(143,180,217,.1); }
 .final-cta__button { min-width:180px; }
-/* homepage-only: lighter version of the same maroon-to-black gradient —
-   other pages that render FinalCta keep the original intensity. */
-.home .final-cta { background: radial-gradient(circle at 88% 85%, rgba(182,58,58,.18), transparent 48%), radial-gradient(circle at 15% 10%, rgba(143,180,217,.16), transparent 45%), linear-gradient(155deg,#3d5c82,#2c4560 65%,#1c212c); }
 
 /* footer */
 .footer { background: linear-gradient(165deg,#0e1a30,#080b14); color:rgba(246,244,239,.8); padding:5rem 0 2rem; position:relative; }

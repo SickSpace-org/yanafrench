@@ -45,23 +45,18 @@ export default function Home() {
     <Suspense fallback={null}>
       <AuthNoticeToast param="logged_out" message="You&rsquo;ve been signed out." />
     </Suspense>
-    {/* .home: scopes the lightened color tokens in globals.css to just the
-        homepage's own sections — nav, footer and every other page keep the
-        original palette untouched. */}
-    <div className="home">
-      <Hero/>
-      <Pathways/>
-      <TefFeature/>
-      <MaxFour/>
-      <AboutYana/>
-      <PersonalityBand/>
-      <ResultsPreview/>
-      <Approach/>
-      <LanguageJourney/>
-      <ClassFormat/>
-      <BatchFinder/>
-      <ResourcesFeature/>
-      <FinalCta/>
-    </div>
+    <Hero/>
+    <Pathways/>
+    <TefFeature/>
+    <MaxFour/>
+    <AboutYana/>
+    <PersonalityBand/>
+    <ResultsPreview/>
+    <Approach/>
+    <LanguageJourney/>
+    <ClassFormat/>
+    <BatchFinder/>
+    <ResourcesFeature/>
+    <FinalCta/>
   </>;
 }
