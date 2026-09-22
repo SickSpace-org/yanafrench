@@ -14,6 +14,11 @@ export const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 // OpenGraph, JSON-LD).
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000";
 
+// Undefined (not a fallback string) when unset, since there's no sane
+// default GA4 property to fall back to — components using this should
+// just skip rendering analytics rather than send events to a fake ID.
+export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+
 export function asset(path: string) {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${basePath}${normalized}`;
