@@ -1,7 +1,6 @@
 "use client";
 
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRef } from "react";
 import { asset } from "@/lib/site";
@@ -45,26 +44,7 @@ export function Hero() {
             profiling showed a ~3s render delay from this fade-in alone). */}
         <motion.div className="hero__visual" style={{ y: imageY }} initial={false} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.1, delay: .22, ease: [0.22, 1, 0.36, 1] }}>
           <div className="hero__image-wrap">
-            {/* fill: the existing CSS already sizes .hero__image-wrap
-                (position:relative) and applies object-fit/object-position
-                via the hero__image class — fill fits that same box exactly.
-                priority preloads this + skips lazy-loading; sizes tells
-                the optimizer what to actually generate for mobile instead
-                of shipping the full desktop-sized file. In this Next.js
-                version priority and fetchPriority are decoupled props —
-                priority alone does NOT set the fetchpriority="high" HTML
-                attribute (confirmed in production HTML: the preload link
-                and <img> both lacked it despite priority being set), so
-                it needs to be passed explicitly too. */}
-            <Image
-              src={asset("/images/yana-hero.webp")}
-              alt="Yana Budhiraja seated at a desk with a laptop and French study books"
-              className="hero__image"
-              fill
-              priority
-              fetchPriority="high"
-              sizes="(max-width: 800px) 100vw, 560px"
-            />
+            <img src={asset("/images/yana-hero.webp")} alt="Yana Budhiraja seated at a desk with a laptop and French study books" className="hero__image"/>
             <div className="hero__image-label"><span>Bonjour,</span><strong>I&apos;m Yana.</strong></div>
           </div>
           <motion.div className="hero__credentials" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: .8, delay: .78 }}>
