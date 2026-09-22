@@ -2,9 +2,11 @@
 
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import type { ReactNode } from "react";
 import { Navigation } from "./Navigation";
 import { Footer } from "./Footer";
+import { GA_MEASUREMENT_ID } from "@/lib/site";
 
 // Pulls in @ai-sdk/react + ai's client runtime, which was part of every
 // page's initial JS bundle (via this chrome, rendered everywhere) despite
@@ -44,6 +46,11 @@ export function AppChrome({ children }: { children: ReactNode }) {
       <main id="main">{children}</main>
       <Footer />
       <ChatWidget />
+      {/* Public marketing pages only — deliberately excluded from the
+          bare/standalone branches above, so no analytics script loads on
+          Student Hub, Admin, or the auth screens (login, password reset,
+          etc.), and no logged-in usage data reaches GA4. */}
+      {GA_MEASUREMENT_ID && <GoogleAnalytics gaId={GA_MEASUREMENT_ID} />}
     </>
   );
 }

@@ -16,14 +16,18 @@ const isProd = process.env.NODE_ENV === "production";
 // hosts: Razorpay's checkout touches several of its own subdomains during
 // a real payment, and an incomplete enumerated list would silently break
 // checkout — the actual cost of getting this wrong.
+// GA4 (@next/third-parties/google's GoogleAnalytics, see AppChrome.tsx)
+// loads gtag.js from googletagmanager.com and sends its actual hit/event
+// beacons to google-analytics.com — both needed or the script loads but
+// every event silently fails the CSP check.
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com",
+  "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob: https://*.r2.dev https://*.razorpay.com",
   "media-src 'self' https://*.r2.dev",
-  "connect-src 'self' https://*.supabase.co https://*.razorpay.com https://api.mymemory.translated.net",
+  "connect-src 'self' https://*.supabase.co https://*.razorpay.com https://api.mymemory.translated.net https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com",
   "frame-src https://www.youtube.com https://player.vimeo.com https://*.razorpay.com",
   "frame-ancestors 'none'",
   "object-src 'none'",

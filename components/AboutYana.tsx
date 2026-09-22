@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { asset } from "@/lib/site";
 import { Arrow } from "./Arrow";
@@ -9,21 +8,7 @@ export function AboutYana() {
     <section className="section yana-section">
       <div className="container yana-section__grid">
         <Reveal className="yana-section__image-wrap">
-          {/* Below the fold — no priority, so this stays lazy-loaded and
-              excluded from the initial-load priority queue (see Hero.tsx
-              for the one image that should compete for that). width/height
-              (not fill) since .yana-section__image-wrap has no explicit
-              height of its own — its size today comes from the image's
-              own intrinsic aspect ratio via normal flow, which this
-              preserves exactly. */}
-          <Image
-            src={asset("/images/yana-editorial.webp")}
-            alt="Yana Budhiraja in a warm study setting"
-            className="yana-section__image"
-            width={1122}
-            height={1402}
-            sizes="(max-width: 800px) 100vw, 47vw"
-          />
+          <img src={asset("/images/yana-editorial.webp")} alt="Yana Budhiraja in a warm study setting" className="yana-section__image" loading="lazy"/>
           <span className="yana-section__caption">Based in Delhi · teaching online</span>
           <div className="yana-section__badge"><strong>C1</strong><span>Certified<br/>French tutor</span></div>
         </Reveal>

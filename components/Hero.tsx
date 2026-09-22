@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRef } from "react";
 import { asset } from "@/lib/site";
@@ -47,7 +48,29 @@ export function Hero() {
             profiling showed a ~3s render delay from this fade-in alone). */}
         <motion.div className="hero__visual" style={{ y: imageY }} initial={false} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.1, delay: .22, ease: [0.22, 1, 0.36, 1] }}>
           <div className="hero__image-wrap">
-            <img src={asset("/images/yana-hero.webp")} alt="Yana Budhiraja seated at a desk with a laptop and French study books" className="hero__image"/>
+            {/* width/height (not fill) this time — AboutYana's fill-adjacent
+                bug (see ad8bff6) was CSS only setting width:100% with no
+                explicit height (relying on aspect-ratio, which didn't
+                override next/image's HTML height attribute the way
+                expected). .hero__image already sets BOTH width:100% AND
+                height:100% explicitly — no ambiguity for next/image's own
+                width/height props to leak through, so this renders
+                identically to the plain <img> it replaces. priority +
+                fetchPriority="high": preloads this as the LCP image with
+                real fetch priority (priority alone doesn't set the
+                attribute in this Next.js version — see 6d39e8d). sizes:
+                mobile gets a properly-sized variant instead of the full
+                desktop file. */}
+            <Image
+              src={asset("/images/yana-hero.webp")}
+              alt="Yana Budhiraja seated at a desk with a laptop and French study books"
+              className="hero__image"
+              width={1122}
+              height={1402}
+              priority
+              fetchPriority="high"
+              sizes="(max-width: 800px) 100vw, 560px"
+            />
             <div className="hero__image-label"><span>Bonjour,</span><strong>I&apos;m Yana.</strong></div>
           </div>
           <motion.div className="hero__credentials" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: .8, delay: .78 }}>
