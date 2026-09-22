@@ -2,10 +2,17 @@ import type { Metadata } from "next";
 import { PageHero } from "@/components/PageHero";
 import { CourseCatalog } from "@/components/CourseCatalog";
 import { FinalCta } from "@/components/FinalCta";
+import { SITE_URL } from "@/lib/site";
+
+const TITLE = "French Courses for TEF, TCF, DELF & PR Prep | The Français Hub";
+const DESCRIPTION =
+  "Structured online French courses for beginners to advanced, designed around TEF Canada, TCF Canada and DELF exam requirements. Find the right batch for your PR timeline.";
 
 export const metadata: Metadata = {
-  title: "Courses",
-  description: "Explore The Français Hub's French courses — from A1 foundations to C1 mastery, TEF/TCF exam preparation, DELF certification, and orientation testing.",
+  title: { absolute: TITLE },
+  description: DESCRIPTION,
+  alternates: { canonical: `${SITE_URL}/courses` },
+  openGraph: { title: TITLE, description: DESCRIPTION, url: `${SITE_URL}/courses`, siteName: "The Français Hub", type: "website" },
 };
 
 export default function CoursesPage() {

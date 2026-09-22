@@ -7,10 +7,17 @@ import { ResourcesComingSoon } from "@/components/ResourcesComingSoon";
 import { resourcePathways, resourcesApproach } from "@/lib/data";
 import { RESOURCES_COMING_SOON } from "@/lib/config";
 import { Arrow } from "@/components/Arrow";
+import { SITE_URL } from "@/lib/site";
+
+const TITLE = "Free French Learning Resources for TEF, TCF & DELF | The Français Hub";
+const DESCRIPTION =
+  "Free guides, practice tips and study resources to help you prepare for TEF, TCF and DELF exams — from grammar basics to exam strategy.";
 
 export const metadata: Metadata = {
-  title: "Resources",
-  description: "Curated French study material by Yana Budhiraja for TEF, TCF and DELF learners — writing frameworks, speaking kits, vocabulary systems and exam-focused practice.",
+  title: { absolute: TITLE },
+  description: DESCRIPTION,
+  alternates: { canonical: `${SITE_URL}/resources` },
+  openGraph: { title: TITLE, description: DESCRIPTION, url: `${SITE_URL}/resources`, siteName: "The Français Hub", type: "website" },
 };
 
 export default function ResourcesPage() {

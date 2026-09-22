@@ -5,8 +5,18 @@ import { tefResult, tcfResult, type ResultRow } from "@/lib/data";
 import { asset } from "@/lib/site";
 import { FinalCta } from "@/components/FinalCta";
 import { ScoreRing } from "@/components/ScoreRing";
+import { SITE_URL } from "@/lib/site";
 
-export const metadata: Metadata = { title: "Student results", description: "Anonymised TEF and TCF score documents from students of The Français Hub." };
+const TITLE = "Student Results & Success Stories | The Français Hub";
+const DESCRIPTION =
+  "Real TEF, TCF and DELF results from students who trained with The Français Hub — see scores, outcomes and PR-track progress from past batches.";
+
+export const metadata: Metadata = {
+  title: { absolute: TITLE },
+  description: DESCRIPTION,
+  alternates: { canonical: `${SITE_URL}/results` },
+  openGraph: { title: TITLE, description: DESCRIPTION, url: `${SITE_URL}/results`, siteName: "The Français Hub", type: "website" },
+};
 
 function FullResult({ title, rows, image, alt, reverse }: { title:string; rows:ResultRow[]; image:string; alt:string; reverse?:boolean }) {
   return <article className={`full-result${reverse ? " full-result--reverse" : ""}`}>
