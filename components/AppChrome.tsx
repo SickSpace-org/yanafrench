@@ -1,10 +1,19 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import { Navigation } from "./Navigation";
 import { Footer } from "./Footer";
-import { ChatWidget } from "./ChatWidget";
+
+// Pulls in @ai-sdk/react + ai's client runtime, which was part of every
+// page's initial JS bundle (via this chrome, rendered everywhere) despite
+// the widget itself opening closed and most visits never touching it.
+// ssr:false + no loading fallback: it's a floating button with no
+// content/SEO value in its closed state, so deferring its chunk (and
+// skipping server-rendering it at all) doesn't change what's visible —
+// only when its JS actually loads.
+const ChatWidget = dynamic(() => import("./ChatWidget").then((m) => m.ChatWidget), { ssr: false });
 
 const STANDALONE_PREFIXES = ["/student-hub", "/admin"];
 // Auth screens render with no site chrome at all — no nav, footer or chat.

@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRef } from "react";
 import { asset } from "@/lib/site";
@@ -22,7 +23,12 @@ export function Hero() {
           <motion.p className="eyebrow" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .7, delay: .15 }}>
             The Français Hub · by Yana Budhiraja
           </motion.p>
-          <motion.h1 initial={{ opacity: 0, y: 34 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .95, delay: .24, ease: [0.22, 1, 0.36, 1] }}>
+          {/* initial={false}: this h1 is the (or a) largest-contentful-paint
+              candidate — fading it in from opacity:0 held its real paint
+              behind Framer Motion's hydrate+animate timing in production
+              profiling. Renders directly at the animate target instead,
+              same as prefers-reduced-motion already does elsewhere here. */}
+          <motion.h1 initial={false} animate={{ opacity: 1, y: 0 }} transition={{ duration: .95, delay: .24, ease: [0.22, 1, 0.36, 1] }}>
             French,<br/><em>with direction.</em>
           </motion.h1>
           <motion.p className="hero__dek" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .8, delay: .42 }}>
@@ -34,9 +40,26 @@ export function Hero() {
           </motion.div>
         </motion.div>
 
-        <motion.div className="hero__visual" style={{ y: imageY }} initial={{ opacity: 0, scale: .985 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.1, delay: .22, ease: [0.22, 1, 0.36, 1] }}>
+        {/* initial={false}: same LCP fix as the h1 above — this wraps the
+            hero photo, the site's actual measured LCP element (production
+            profiling showed a ~3s render delay from this fade-in alone). */}
+        <motion.div className="hero__visual" style={{ y: imageY }} initial={false} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1.1, delay: .22, ease: [0.22, 1, 0.36, 1] }}>
           <div className="hero__image-wrap">
-            <img src={asset("/images/yana-hero.webp")} alt="Yana Budhiraja seated at a desk with a laptop and French study books" className="hero__image"/>
+            {/* fill: the existing CSS already sizes .hero__image-wrap
+                (position:relative) and applies object-fit/object-position
+                via the hero__image class — fill fits that same box exactly.
+                priority sets fetchpriority=high and preloads this as the
+                page's LCP image instead of it competing with everything
+                else; sizes tells the optimizer what to actually generate
+                for mobile instead of shipping the full desktop-sized file. */}
+            <Image
+              src={asset("/images/yana-hero.webp")}
+              alt="Yana Budhiraja seated at a desk with a laptop and French study books"
+              className="hero__image"
+              fill
+              priority
+              sizes="(max-width: 800px) 100vw, 560px"
+            />
             <div className="hero__image-label"><span>Bonjour,</span><strong>I&apos;m Yana.</strong></div>
           </div>
           <motion.div className="hero__credentials" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: .8, delay: .78 }}>

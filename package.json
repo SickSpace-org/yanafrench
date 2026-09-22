@@ -29,5 +29,18 @@
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
     "typescript": "5.9.2"
-  }
+  },
+  "browserslist": [
+    "chrome >= 105",
+    "edge >= 105",
+    "firefox >= 104",
+    "safari >= 15.4",
+    "ios_saf >= 15.4",
+    "not dead",
+    "not op_mini all",
+    "not and_uc > 0",
+    "not and_qq > 0",
+    "not baidu > 0",
+    "not kaios > 0"
+  ]
 }

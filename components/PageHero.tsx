@@ -5,7 +5,7 @@ export function PageHero({ eyebrow, title, italic, body, trail }: { eyebrow: str
   return (
     <section className="page-hero"><div className="container page-hero__inner">
       {trail && <Breadcrumb items={trail}/>}
-      <Reveal><p className="eyebrow">{eyebrow}</p><h1>{title}{italic && <><br/><em>{italic}</em></>}</h1><p>{body}</p></Reveal>
+      <Reveal eager><p className="eyebrow">{eyebrow}</p><h1>{title}{italic && <><br/><em>{italic}</em></>}</h1><p>{body}</p></Reveal>
     </div></section>
   );
 }
