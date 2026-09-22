@@ -22,6 +22,9 @@ export function Hero() {
           <motion.p className="eyebrow" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .7, delay: .15 }}>
             The Français Hub · by Yana Budhiraja
           </motion.p>
+          <motion.div className="hero__flourish" aria-hidden="true" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .8, delay: .2 }}>
+            Une meilleure version de vous
+          </motion.div>
           {/* initial={false}: this h1 is the (or a) largest-contentful-paint
               candidate — fading it in from opacity:0 held its real paint
               behind Framer Motion's hydrate+animate timing in production
