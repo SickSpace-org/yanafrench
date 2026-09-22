@@ -6,14 +6,13 @@ import { RESOURCES_COMING_SOON } from "@/lib/config";
 // bare auth screens (login, forgot/reset-password, /auth/*) are
 // deliberately excluded, they're not content for search engines to list.
 //
-// Hardcoded to the apex domain rather than reusing NEXT_PUBLIC_SITE_URL:
-// that env var is pinned to https://www.xn--thefranaishub-ogb.com (the
-// exact origin Supabase's Auth redirect allowlist expects — see
-// app/api/auth/forgot-password/route.ts, lib/studentAccount.ts), so
-// changing it would break password-reset/setup links. The apex 308s to
-// the www origin (see Vercel → Domains), so search engines will resolve
-// these to the canonical URL either way.
-const SITE_URL = "https://xn--thefranaishub-ogb.com";
+// Same env var + fallback chain as app/api/auth/forgot-password/route.ts
+// and lib/studentAccount.ts — one source of truth for the canonical
+// origin. It's pinned to https://www.xn--thefranaishub-ogb.com (the exact
+// host Supabase's Auth redirect allowlist expects), which is also the
+// canonical www host the bare apex domain 308s to — using the apex here
+// would cost every sitemap URL a redirect hop for no reason.
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
