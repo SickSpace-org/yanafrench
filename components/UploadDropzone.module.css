@@ -13,7 +13,7 @@
 }
 
 .zone:hover, .zone:focus-visible { border-color: var(--blue); outline: none; }
-.zoneActive { border-color: var(--bordeaux); background: rgba(182,58,58,.04); }
+.zoneActive { border-color: var(--bordeaux); background: rgba(61,111,165,.04); }
 
 .zoneIcon {
   width: 34px;
@@ -66,7 +66,7 @@
 
 .statusDone { font-size: .68rem; font-weight: 700; color: var(--blue); white-space: nowrap; }
 
-.dismissBtn { border: 1px solid rgba(182,58,58,.35); background: none; color: var(--bordeaux); padding: .4rem .9rem; border-radius: 999px; font-size: .64rem; font-weight: 700; white-space: nowrap; }
+.dismissBtn { border: 1px solid rgba(182,58,58,.35); background: none; color: #B63A3A; padding: .4rem .9rem; border-radius: 999px; font-size: .64rem; font-weight: 700; white-space: nowrap; }
 .dismissBtn:hover { background: rgba(182,58,58,.06); }
 
 .errorActions { display: flex; gap: .5rem; }

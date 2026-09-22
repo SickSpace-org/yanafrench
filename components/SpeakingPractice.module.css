@@ -45,15 +45,15 @@
   gap: 3px;
 }
 
-.waveform i { width: 3px; border-radius: 999px; background: var(--bordeaux); transition: height .1s linear, opacity .3s ease; }
+.waveform i { width: 3px; border-radius: 999px; background: #B63A3A; transition: height .1s linear, opacity .3s ease; }
 
 .duration { font-family: var(--serif); font-size: 1.6rem; color: var(--blue); margin: .8rem 0 1.6rem; font-variant-numeric: tabular-nums; }
 
-.error { font-size: .76rem; color: var(--bordeaux); margin: 0 0 1rem; text-align: center; }
+.error { font-size: .76rem; color: #B63A3A; margin: 0 0 1rem; text-align: center; }
 
 .controls { display: flex; gap: .7rem; flex-wrap: wrap; justify-content: center; }
 
-.primaryButton { border: 0; background: var(--bordeaux); color: #fff; padding: .85rem 1.6rem; border-radius: 999px; font-size: .78rem; font-weight: 700; }
+.primaryButton { border: 0; background: #B63A3A; color: #fff; padding: .85rem 1.6rem; border-radius: 999px; font-size: .78rem; font-weight: 700; }
 .primaryButton:hover { background: #9c2f2f; }
 .primaryButton:disabled { opacity: .6; }
 

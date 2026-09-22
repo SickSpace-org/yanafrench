@@ -82,9 +82,9 @@
   align-items: center;
   gap: .5rem;
   align-self: flex-start;
-  border: 1px solid var(--bordeaux);
+  border: 1px solid #B63A3A;
   background: none;
-  color: var(--bordeaux);
+  color: #B63A3A;
   padding: .6rem 1.1rem;
   border-radius: 999px;
   font-size: .75rem;
@@ -92,7 +92,7 @@
 }
 .recordButton:hover { background: rgba(182,58,58,.06); }
 .recordButtonActive { background: rgba(182,58,58,.1); }
-.recDot { width: 8px; height: 8px; border-radius: 999px; background: var(--bordeaux); }
+.recDot { width: 8px; height: 8px; border-radius: 999px; background: #B63A3A; }
 .recorderHint { font-size: .74rem; color: var(--text-faint); }
 .recorderDone { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; }
 .recorderAudio { height: 32px; }
@@ -120,7 +120,7 @@
   border-radius: 999px;
 }
 .resultBadgeGood { background: rgba(60,120,80,.12); color: #2f6b47; }
-.resultBadgeBad { background: rgba(182,58,58,.1); color: var(--bordeaux); }
+.resultBadgeBad { background: rgba(182,58,58,.1); color: #B63A3A; }
 .resultPrompt { font-family: var(--serif); font-size: .98rem; color: var(--text-primary); margin: 0 0 .6rem; line-height: 1.5; }
 .resultTranscript { font-size: .78rem; font-style: italic; color: var(--text-faint); margin: 0 0 .6rem; }
 .resultNote { font-size: .78rem; color: var(--text-faint); line-height: 1.6; margin: 0 0 .4rem; }

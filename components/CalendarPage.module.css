@@ -78,8 +78,8 @@
   font-weight: 700;
   letter-spacing: .04em;
   color: var(--bordeaux);
-  border: 1px solid rgba(182,58,58,.35);
-  background: rgba(182,58,58,.08);
+  border: 1px solid rgba(61,111,165,.35);
+  background: rgba(61,111,165,.08);
   padding: .2rem .55rem;
   border-radius: 999px;
 }

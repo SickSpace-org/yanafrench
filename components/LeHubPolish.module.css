@@ -4,13 +4,13 @@
 @keyframes tfhMarquee{from{transform:translateX(0)}to{transform:translateX(-25%)}}
 
 .dashboardEyebrow{display:flex;align-items:center;gap:.7rem}
-:global(.eyebrow).dashboardEyebrow:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--bordeaux);box-shadow:0 0 0 7px rgba(182,58,58,.08);opacity:1}
+:global(.eyebrow).dashboardEyebrow:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--bordeaux);box-shadow:0 0 0 7px rgba(61,111,165,.08);opacity:1}
 .dashboardMicroRow{display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem;margin-top:2rem;max-width:560px}
 .dashboardMicro{border-top:1px solid var(--stone);padding-top:.8rem;display:flex;flex-direction:column;gap:.18rem}
 .dashboardMicro span{font-size:.5rem;letter-spacing:.15em;color:var(--bordeaux);font-weight:700}
 .dashboardMicro strong{font-family:var(--serif);font-size:1.15rem;font-weight:400;color:var(--blue)}
 .heroStageGlow{position:absolute;inset:8% -6% -8% 8%;border:1px solid rgba(31,58,95,.09);border-radius:50%;pointer-events:none;animation:breathe 7s ease-in-out infinite}
-.heroStageGlow:after{content:"";position:absolute;inset:12%;border:1px solid rgba(182,58,58,.12);border-radius:50%}
+.heroStageGlow:after{content:"";position:absolute;inset:12%;border:1px solid rgba(61,111,165,.12);border-radius:50%}
 @keyframes breathe{0%,100%{transform:scale(.98);opacity:.5}50%{transform:scale(1.03);opacity:1}}
 
 .lexiqueIntro{position:relative}
@@ -36,7 +36,7 @@
 .learningFlowTop p{max-width:520px;margin:0;color:var(--ink-soft);font-size:.9rem;line-height:1.7}
 .learningFlow{position:relative;display:grid;grid-template-columns:repeat(5,1fr);gap:.7rem}
 .learningFlow:before{content:"";position:absolute;left:5%;right:5%;top:30px;height:1px;background:rgba(31,58,95,.22)}
-.learningFlow:after{content:"";position:absolute;top:27px;left:5%;width:7px;height:7px;border-radius:50%;background:var(--bordeaux);animation:flowDot 8s linear infinite;box-shadow:0 0 0 7px rgba(182,58,58,.08)}
+.learningFlow:after{content:"";position:absolute;top:27px;left:5%;width:7px;height:7px;border-radius:50%;background:var(--bordeaux);animation:flowDot 8s linear infinite;box-shadow:0 0 0 7px rgba(61,111,165,.08)}
 @keyframes flowDot{from{left:5%}to{left:94%}}
 .flowStep{position:relative;z-index:1;padding-top:0}
 .flowIndex{width:60px;height:60px;border-radius:50%;background:var(--porcelain-2);border:1px solid rgba(31,58,95,.2);display:grid;place-items:center;font-family:var(--serif);font-size:1rem;color:var(--blue);margin-bottom:1rem;transition:background .3s ease,color .3s ease,transform .3s ease}

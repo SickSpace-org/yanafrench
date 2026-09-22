@@ -61,7 +61,7 @@
   cursor: pointer;
 }
 .lessonRow:hover { border-color: var(--hairline-ink-hover, rgba(23,25,28,.18)); }
-.lessonRowActive { border-color: var(--bordeaux); background: rgba(182,58,58,.06); color: var(--bordeaux); }
+.lessonRowActive { border-color: var(--bordeaux); background: rgba(61,111,165,.06); color: var(--bordeaux); }
 .lessonRow svg, .lessonRowActive svg { flex-shrink: 0; margin-top: .1rem; }
 
 .lessonRowText { display: flex; flex-direction: column; gap: .2rem; font-size: .82rem; line-height: 1.3; }
@@ -91,7 +91,7 @@
   justify-content: space-between;
   gap: 1rem;
   border: 1px solid var(--bordeaux);
-  background: rgba(182,58,58,.06);
+  background: rgba(61,111,165,.06);
   border-radius: var(--r-lg);
   padding: 1rem 1.3rem;
   margin-bottom: 1.4rem;
@@ -99,7 +99,7 @@
   color: var(--text-primary);
   transition: background .2s ease;
 }
-.zoomJoinBox:hover { background: rgba(182,58,58,.12); }
+.zoomJoinBox:hover { background: rgba(61,111,165,.12); }
 .zoomJoinBox span { display: block; font-size: .6rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--bordeaux); }
 .zoomJoinBox strong { font-family: var(--serif); font-weight: 400; font-size: 1.05rem; color: var(--text-primary); }
 
@@ -193,7 +193,7 @@ a.fileChip:hover { border-color: var(--bordeaux); color: var(--bordeaux); }
 }
 .statusNeutral { background: var(--porcelain-2, var(--stone)); color: var(--text-faint); }
 .statusActive { background: rgba(31,58,95,.1); color: var(--blue); }
-.statusPending { background: rgba(182,58,58,.1); color: var(--bordeaux); }
+.statusPending { background: rgba(182,58,58,.1); color: #B63A3A; }
 .statusDone { background: rgba(60,120,80,.12); color: #2f6b47; }
 
 .assignmentCard strong { display: block; font-family: var(--serif); font-weight: 400; font-size: 1.15rem; color: var(--text-primary); margin-bottom: .4rem; }

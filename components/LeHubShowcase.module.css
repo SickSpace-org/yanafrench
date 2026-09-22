@@ -120,7 +120,7 @@
 
 .screenStoryReverse .screenFrame{order:1}
 
-.screenCopy>span{font-family:var(--serif);font-size:4rem;color:rgba(182,58,58,.22);display:block;line-height:1}
+.screenCopy>span{font-family:var(--serif);font-size:4rem;color:rgba(61,111,165,.22);display:block;line-height:1}
 
 .screenCopy small{display:block;font-size:.61rem;letter-spacing:.18em;color:var(--bordeaux);font-weight:700;margin:1rem 0 1.5rem}
 

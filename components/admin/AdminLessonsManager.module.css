@@ -106,8 +106,8 @@
 }
 .publishedBadge { border-color: rgba(60,120,80,.35); background: rgba(60,120,80,.1); color: #2f6b47; }
 .publishedBadge:hover { background: rgba(60,120,80,.18); }
-.draftBadge { border-color: rgba(182,58,58,.35); background: rgba(182,58,58,.08); color: var(--bordeaux); }
-.draftBadge:hover { background: rgba(182,58,58,.16); }
+.draftBadge { border-color: rgba(61,111,165,.35); background: rgba(61,111,165,.08); color: var(--bordeaux); }
+.draftBadge:hover { background: rgba(61,111,165,.16); }
 
 .draftCard, .draftRow { opacity: .68; }
 
@@ -199,7 +199,7 @@
   transition: border-color .2s ease, background .2s ease;
 }
 .videoZone:hover, .videoZone:focus-visible { border-color: var(--blue); outline: none; }
-.videoZoneActive { border-color: var(--bordeaux); background: rgba(182,58,58,.04); }
+.videoZoneActive { border-color: var(--bordeaux); background: rgba(61,111,165,.04); }
 
 .uploadButton {
   display: inline-flex;
@@ -271,7 +271,7 @@
   box-shadow: var(--shadow-lift);
 }
 
-.deleteCourse { align-self: flex-start; border: 1px solid rgba(182,58,58,.35); background: none; color: var(--bordeaux); padding: .5rem 1rem; border-radius: 999px; font-size: .68rem; font-weight: 700; }
+.deleteCourse { align-self: flex-start; border: 1px solid rgba(182,58,58,.35); background: none; color: #B63A3A; padding: .5rem 1rem; border-radius: 999px; font-size: .68rem; font-weight: 700; }
 .deleteCourse:hover { background: rgba(182,58,58,.06); }
 
 /* Recordings / Resources */
@@ -345,7 +345,7 @@
 .rowLink { font-size: .68rem; font-weight: 700; color: var(--text-primary); cursor: pointer; border-bottom: 1px solid var(--ink); white-space: nowrap; }
 .rowLink:hover { color: var(--blue); border-color: var(--blue); }
 
-.remove { border: 1px solid rgba(182,58,58,.35); background: none; color: var(--bordeaux); padding: .5rem 1rem; border-radius: 999px; font-size: .68rem; font-weight: 700; white-space: nowrap; }
+.remove { border: 1px solid rgba(182,58,58,.35); background: none; color: #B63A3A; padding: .5rem 1rem; border-radius: 999px; font-size: .68rem; font-weight: 700; white-space: nowrap; }
 .remove:hover { background: rgba(182,58,58,.06); }
 
 /* Assignments */

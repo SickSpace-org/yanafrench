@@ -106,7 +106,7 @@
 }
 .error {
   background: rgba(182, 58, 58, 0.1);
-  color: var(--bordeaux);
+  color: #B63A3A;
   border: 1px solid rgba(182, 58, 58, 0.25);
 }
 .notice {

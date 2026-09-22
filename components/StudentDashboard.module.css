@@ -87,7 +87,7 @@
 .cardProgress { align-items: center; text-align: center; gap: .3rem; padding-top: 1.7rem; padding-bottom: 1.7rem; }
 
 .ring { position: relative; display: grid; place-items: center; }
-.ring svg { width: 132px; transform: rotate(-90deg); filter: drop-shadow(0 6px 16px rgba(182,58,58,.14)); }
+.ring svg { width: 132px; transform: rotate(-90deg); filter: drop-shadow(0 6px 16px rgba(61,111,165,.14)); }
 .ringTrack, .ringValue { fill: none; stroke-width: 7; }
 .ringTrack { stroke: var(--porcelain-2); }
 .ringValue { stroke: var(--bordeaux); stroke-linecap: round; }
