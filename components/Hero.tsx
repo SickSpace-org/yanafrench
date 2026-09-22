@@ -48,16 +48,21 @@ export function Hero() {
             {/* fill: the existing CSS already sizes .hero__image-wrap
                 (position:relative) and applies object-fit/object-position
                 via the hero__image class — fill fits that same box exactly.
-                priority sets fetchpriority=high and preloads this as the
-                page's LCP image instead of it competing with everything
-                else; sizes tells the optimizer what to actually generate
-                for mobile instead of shipping the full desktop-sized file. */}
+                priority preloads this + skips lazy-loading; sizes tells
+                the optimizer what to actually generate for mobile instead
+                of shipping the full desktop-sized file. In this Next.js
+                version priority and fetchPriority are decoupled props —
+                priority alone does NOT set the fetchpriority="high" HTML
+                attribute (confirmed in production HTML: the preload link
+                and <img> both lacked it despite priority being set), so
+                it needs to be passed explicitly too. */}
             <Image
               src={asset("/images/yana-hero.webp")}
               alt="Yana Budhiraja seated at a desk with a laptop and French study books"
               className="hero__image"
               fill
               priority
+              fetchPriority="high"
               sizes="(max-width: 800px) 100vw, 560px"
             />
             <div className="hero__image-label"><span>Bonjour,</span><strong>I&apos;m Yana.</strong></div>
