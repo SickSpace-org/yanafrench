@@ -29,7 +29,12 @@ export function CourseCatalog() {
   return (
     <section className="section course-catalog">
       <div className="container">
-        <Reveal className="section-head">
+        {/* eager: this h2 is directly below PageHero with nothing tall
+            between them, so it's above the fold on load — measured as this
+            page's actual LCP element (1.8s render delay from the
+            whileInView fade-in before this fix, same issue PageHero's own
+            heading had — see components/Reveal.tsx). */}
+        <Reveal className="section-head" eager>
           <p className="eyebrow">Explore Our Courses</p>
           <h2>Choose the right <em>French program.</em></h2>
           <p className="course-catalog__subtitle">
