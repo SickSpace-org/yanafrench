@@ -166,19 +166,19 @@
 
 .lessonActive b,.lessonActive small,.lessonActive>span{color:rgba(255,255,255,.67)!important}
 
-.workspaceSection{background:var(--blue);color:var(--porcelain);padding:clamp(7rem,12vw,13rem) 0}
+.workspaceSection{background:var(--porcelain-2);border-top:1px solid var(--stone);color:var(--text-primary);padding:clamp(7rem,12vw,13rem) 0}
 
 .workspaceIntro{display:grid;grid-template-columns:1fr .6fr;gap:4rem;align-items:end;margin-bottom:5rem}
 
-.workspaceIntro h2,.lexiqueCopy h2{color:var(--porcelain)}
+.workspaceIntro h2,.lexiqueCopy h2{color:var(--blue)}
 
-.workspaceIntro h2 em,.lexiqueCopy h2 em{color:#c87a87}
+.workspaceIntro h2 em,.lexiqueCopy h2 em{color:var(--bordeaux)}
 
-.workspaceIntro>p{line-height:1.9;color:rgba(245,242,236,.7);max-width:520px}
+.workspaceIntro>p{line-height:1.9;color:var(--ink-soft);max-width:520px}
 
 .workspaceFrame{width:min(100%,1150px);margin:0 auto}
 
-.workspaceFrame>.productWindow{min-width:850px;box-shadow:0 35px 90px rgba(0,0,0,.25)}
+.workspaceFrame>.productWindow{min-width:850px;box-shadow:0 35px 90px rgba(31,58,95,.12)}
 
 .workspaceCanvas{padding:2.4rem;color:var(--ink);min-height:450px}
 
@@ -222,19 +222,19 @@
 
 .redoCard button:hover{transform:translateY(-2px);background:var(--blue)}
 
-.practiceTypes{display:grid;grid-template-columns:repeat(6,1fr);margin-top:2.5rem;border-top:1px solid rgba(245,242,236,.18);border-bottom:1px solid rgba(245,242,236,.18)}
+.practiceTypes{display:grid;grid-template-columns:repeat(6,1fr);margin-top:2.5rem;border-top:1px solid var(--stone);border-bottom:1px solid var(--stone);color:var(--blue)}
 
-.practiceTypes span{padding:1rem .3rem;text-align:center;font-size:.58rem;letter-spacing:.1em;border-right:1px solid rgba(245,242,236,.12)}
+.practiceTypes span{padding:1rem .3rem;text-align:center;font-size:.58rem;letter-spacing:.1em;border-right:1px solid var(--stone)}
 
 .practiceTypes span:last-child{border-right:0}
 
-.lexiqueSection{background:#111c29;color:var(--porcelain);padding:clamp(8rem,14vw,15rem) 0}
+.lexiqueSection{background:var(--stone-wash);border-top:1px solid var(--stone);color:var(--text-primary);padding:clamp(8rem,14vw,15rem) 0}
 
 .lexiqueGrid{display:grid;grid-template-columns:.8fr 1.2fr;gap:clamp(3rem,8vw,10rem);align-items:center}
 
-.lexiqueCopy>p:last-of-type{line-height:1.85;color:rgba(245,242,236,.66);max-width:530px;margin-top:2rem}
+.lexiqueCopy>p:last-of-type{line-height:1.85;color:var(--ink-soft);max-width:530px;margin-top:2rem}
 
-.lexiqueCard{background:var(--porcelain);color:var(--ink);padding:2rem;border-radius:var(--r-lg);max-width:650px;margin-left:auto;box-shadow:0 45px 100px rgba(0,0,0,.26)}
+.lexiqueCard{background:var(--porcelain);color:var(--ink);padding:2rem;border-radius:var(--r-lg);max-width:650px;margin-left:auto;box-shadow:var(--shadow-lift);border:1px solid var(--hairline-ink)}
 
 .lexiqueTop,.lexiqueBottom{display:flex;justify-content:space-between;align-items:center;font-size:.52rem;letter-spacing:.14em;color:#777}
 
@@ -290,17 +290,17 @@
 
 .humanCopy>span{font-size:.6rem;color:var(--bordeaux);letter-spacing:.1em}
 
-.finalSection{padding:clamp(8rem,13vw,14rem) 0;background:var(--blue);color:var(--porcelain)}
+.finalSection{padding:clamp(8rem,13vw,14rem) 0;background:var(--porcelain-2);border-top:1px solid var(--stone);color:var(--text-primary)}
 
 .finalInner{text-align:center;max-width:1050px;margin:0 auto}
 
-.finalInner>span{display:block;font-size:.55rem;letter-spacing:.18em;color:rgba(245,242,236,.6);margin-bottom:2rem}
+.finalInner>span{display:block;font-size:.55rem;letter-spacing:.18em;color:var(--text-faint);margin-bottom:2rem}
 
-.finalInner h2{color:var(--porcelain)}
+.finalInner h2{color:var(--blue)}
 
-.finalInner h2 em{color:#d78b98}
+.finalInner h2 em{color:var(--bordeaux)}
 
-.finalInner p{max-width:620px;margin:2rem auto;line-height:1.8;color:rgba(245,242,236,.68)}
+.finalInner p{max-width:620px;margin:2rem auto;line-height:1.8;color:var(--ink-soft)}
 
 
 @media(max-width:1180px){

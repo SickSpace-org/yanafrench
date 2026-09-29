@@ -291,7 +291,7 @@ export function LeHubShowcase() {
       <section id="lexique" className={styles.lexiqueSection}>
         <div className={`container ${styles.lexiqueGrid}`}>
           <motion.div className={`${styles.lexiqueCopy} ${polish.lexiqueIntro}`} {...reveal}>
-            <p className="eyebrow eyebrow--light">Meet Lexique</p>
+            <p className="eyebrow">Meet Lexique</p>
             <h2>Not just translation.<br/><em>Understanding.</em></h2>
             <p>A word becomes pronunciation, conjugation, context, an example, and something worth revisiting later.</p>
             <div className={polish.lexiqueFeatureGrid}>
@@ -340,7 +340,7 @@ export function LeHubShowcase() {
       <section className={styles.workspaceSection}>
         <div className="container">
           <motion.div className={styles.workspaceIntro} {...reveal}>
-            <div><p className="eyebrow eyebrow--light">The workspace</p><h2>Practice goes in.<br/><em>Yana comes back.</em></h2></div>
+            <div><p className="eyebrow">The workspace</p><h2>Practice goes in.<br/><em>Yana comes back.</em></h2></div>
             <p>Write it. Upload it. Record it. Yana can mark it, comment on it, leave a voice note, or ask you to try again. The technology extends the teaching — it never replaces it.</p>
           </motion.div>
           <motion.div className={`${styles.workspaceFrame} ${polish.workspaceFrameRefined}`} initial={{opacity:0,y:36,scale:.975}} whileInView={{opacity:1,y:0,scale:1}} viewport={{once:false,margin:"-12%"}} transition={{duration:.85,ease:[.22,1,.36,1]}}><WorkspaceScreen /></motion.div>

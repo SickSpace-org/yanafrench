@@ -53,7 +53,7 @@ export default function ResourcesPage() {
     <section className="section resource-approach">
       <div className="container">
         <Reveal className="section-head">
-          <p className="eyebrow eyebrow--light">The TFH approach</p>
+          <p className="eyebrow">The TFH approach</p>
           <h2>Made with the same<br/><em>intention as class.</em></h2>
         </Reveal>
         <div className="resource-approach__grid">
@@ -75,7 +75,7 @@ export default function ResourcesPage() {
     <section className="resource-cta">
       <div className="container resource-cta__inner">
         <Reveal>
-          <p className="eyebrow eyebrow--light">Learn with Yana</p>
+          <p className="eyebrow">Learn with Yana</p>
           <h2>Resources go further<br/><em>with personal guidance.</em></h2>
           <p className="resource-cta__lead">Personalised French learning and exam preparation, built around you.</p>
           <Link href="/#programs" className="button button--accent">Explore The Français Hub <Arrow/></Link>

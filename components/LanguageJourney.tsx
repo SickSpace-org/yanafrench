@@ -28,7 +28,7 @@ export function LanguageJourney() {
   return (
     <section className="language-journey" ref={ref}>
       <div className="language-journey__sticky">
-        <motion.p className="eyebrow eyebrow--light" animate={{ opacity: reduce ? 1 : eyebrowVisible ? 1 : 0 }} transition={{ duration: .45, ease: "easeOut" }}>The shift that matters</motion.p>
+        <motion.p className="eyebrow" animate={{ opacity: reduce ? 1 : eyebrowVisible ? 1 : 0 }} transition={{ duration: .45, ease: "easeOut" }}>The shift that matters</motion.p>
         <div className="language-journey__stage">
           {lines.map((line, i) => <motion.p key={line} style={styles[i]} className={i === 3 ? "is-final" : ""}>{line}</motion.p>)}
         </div>
