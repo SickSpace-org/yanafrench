@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { usePortalState } from "@/lib/usePortalState";
 import { formatDays, formatTime } from "@/lib/batchData";
 import { formatIndiaDate } from "@/lib/emiData";
-import { JOIN_WINDOW_MINUTES, type AttendanceStatus, type SessionStatus } from "@/lib/attendanceData";
+import { JOIN_EARLY_MINUTES, JOIN_WINDOW_MINUTES, type AttendanceStatus, type SessionStatus } from "@/lib/attendanceData";
 import { AdminShell } from "../AdminShell";
 import styles from "./AdminLessonsManager.module.css";
 import leadStyles from "./AdminLeadsPanel.module.css";
@@ -93,7 +93,7 @@ export function AdminAttendancePage() {
       <div className={styles.head}>
         <small>ADMIN</small>
         <h1>Attendance.</h1>
-        <p>Students are marked present automatically when they click Join class within {JOIN_WINDOW_MINUTES} minutes of the class start, absent otherwise. Override anyone by hand — a manual mark always wins.</p>
+        <p>Students are marked present automatically when they click Join class from {JOIN_EARLY_MINUTES} minutes before the class until {JOIN_WINDOW_MINUTES} minutes after it starts, absent otherwise. Override anyone by hand — a manual mark always wins.</p>
       </div>
 
       {!loaded ? (
@@ -124,7 +124,7 @@ export function AdminAttendancePage() {
 
           {batch && (
             <p className={styles.tabHint}>
-              {formatDays(batch.days)} · {formatTime(batch.start_time)}–{formatTime(batch.end_time)} · auto-present window {formatTime(batch.start_time)} + {JOIN_WINDOW_MINUTES} min
+              {formatDays(batch.days)} · {formatTime(batch.start_time)}–{formatTime(batch.end_time)} · auto-present window {JOIN_EARLY_MINUTES} min before to {JOIN_WINDOW_MINUTES} min after {formatTime(batch.start_time)}
             </p>
           )}
 

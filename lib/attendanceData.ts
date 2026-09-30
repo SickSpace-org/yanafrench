@@ -2,7 +2,7 @@
 // the admin Attendance page and the student's Attendance page.
 //   - A class session exists on every batch weekday between the batch's
 //     start_date and end_date, at the batch's start_time (India time).
-//   - Clicking "Join class" from the class's start time until 15 minutes
+//   - Clicking "Join class" from 5 minutes before the class starts until 15 minutes
 //     after it marks the student present automatically.
 //   - Once that window has closed with no join, the student is absent.
 //   - An admin can mark present/absent by hand at any time; a manual mark
@@ -12,6 +12,8 @@ import { addDays, todayInIndia } from "./emiData";
 import type { Batch } from "./batchData";
 
 export const JOIN_WINDOW_MINUTES = 15;
+// Joining up to this many minutes before the start also counts as present.
+export const JOIN_EARLY_MINUTES = 5;
 
 // Every "Join class" button links here (app/api/attendance/join): it
 // records attendance, then forwards to the class meeting link.
@@ -77,6 +79,10 @@ export function joinWindowEnd(batch: Pick<Batch, "start_time">, date: string): n
   return sessionStart(batch, date) + JOIN_WINDOW_MINUTES * 60_000;
 }
 
+export function joinWindowStart(batch: Pick<Batch, "start_time">, date: string): number {
+  return sessionStart(batch, date) - JOIN_EARLY_MINUTES * 60_000;
+}
+
 export function hasSessionOn(batch: Pick<Batch, "days" | "start_date" | "end_date">, date: string): boolean {
   if (!batch.days.includes(weekdayCode(date))) return false;
   if (batch.start_date && date < batch.start_date) return false;
@@ -97,7 +103,7 @@ export function sessionDates(batch: Pick<Batch, "days" | "start_date" | "end_dat
 export function openSessionDate(batch: Pick<Batch, "days" | "start_date" | "end_date" | "start_time">, now: number = Date.now()): string | null {
   const today = todayInIndia(new Date(now));
   if (!hasSessionOn(batch, today)) return null;
-  const start = sessionStart(batch, today);
+  const start = joinWindowStart(batch, today);
   return now >= start && now <= joinWindowEnd(batch, today) ? today : null;
 }
 
@@ -108,7 +114,7 @@ export function resolveSessionStatus(
   now: number = Date.now()
 ): SessionStatus {
   if (record) return record.status;
-  if (now < sessionStart(batch, date)) return "upcoming";
+  if (now < joinWindowStart(batch, date)) return "upcoming";
   if (now <= joinWindowEnd(batch, date)) return "open";
   return "absent";
 }

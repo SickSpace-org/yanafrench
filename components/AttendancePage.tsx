@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatIndiaDate } from "@/lib/emiData";
-import { JOIN_WINDOW_MINUTES, type SessionStatus } from "@/lib/attendanceData";
+import { JOIN_EARLY_MINUTES, JOIN_WINDOW_MINUTES, type SessionStatus } from "@/lib/attendanceData";
 import { DashboardShell } from "./DashboardShell";
 import styles from "./AttendancePage.module.css";
 
@@ -11,7 +11,8 @@ type Session = { batchId: string; batchName: string; course: string; date: strin
 const LABELS: Record<SessionStatus, string> = { present: "Present", absent: "Absent", open: "Join now", upcoming: "Upcoming" };
 
 // The student's own class attendance. Present is recorded automatically
-// when they click "Join class" within the first 15 minutes of a class;
+// when they click "Join class" from 5 minutes before a class until 15
+// minutes after it starts;
 // the teacher can also mark it by hand.
 export function AttendancePage() {
   const [sessions, setSessions] = useState<Session[] | null>(null);
@@ -32,7 +33,7 @@ export function AttendancePage() {
       <div className={styles.head}>
         <small>YOUR CLASSES</small>
         <h1>Attendance.</h1>
-        <p>You&rsquo;re marked present automatically when you click <strong>Join class</strong> within the first {JOIN_WINDOW_MINUTES} minutes of a class.</p>
+        <p>You&rsquo;re marked present automatically when you click <strong>Join class</strong> from {JOIN_EARLY_MINUTES} minutes before a class until {JOIN_WINDOW_MINUTES} minutes after it starts.</p>
       </div>
 
       {sessions === null ? (
