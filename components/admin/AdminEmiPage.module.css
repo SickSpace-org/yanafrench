@@ -1,0 +1,28 @@
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: .8rem;
+  margin-bottom: 1.2rem;
+}
+.stat {
+  border: 1px solid var(--hairline-ink);
+  border-radius: var(--r-lg);
+  padding: .9rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.stat span { font-family: var(--serif); font-size: 1.5rem; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text-primary); }
+.stat span.alert { color: #B63A3A; }
+
+.name { color: var(--text-primary); font-weight: 600; margin-bottom: .2rem; }
+.nextDate { color: var(--text-primary); font-weight: 600; white-space: nowrap; }
+
+.schedule { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .25rem; font-size: .74rem; }
+.schedule li { display: grid; grid-template-columns: 1.6rem 5.6rem 5rem auto; gap: .5rem; color: var(--text-muted); white-space: nowrap; }
+.schedule li.paid { color: var(--status-available); }
