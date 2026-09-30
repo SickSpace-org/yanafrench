@@ -1,0 +1,33 @@
+.list { display: flex; flex-direction: column; gap: 1.2rem; }
+
+.group {
+  border: 1px solid var(--hairline-ink);
+  border-radius: var(--r-lg);
+  padding: 1.2rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+}
+
+.groupHead { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: .6rem; }
+.groupTitle { margin: 0; font-family: var(--serif); font-size: 1.1rem; font-weight: 400; color: var(--text-primary); display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.groupMeta { font-size: .72rem; color: var(--text-muted); }
+.count { font-size: .72rem; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
+
+.students { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.student {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .3rem 1rem;
+  padding: .6rem 0;
+  border-top: 1px solid var(--stone);
+  font-size: .82rem;
+}
+.student:first-child { border-top: 0; }
+.studentName { color: var(--text-primary); font-weight: 600; }
+.studentContact { display: flex; gap: 1rem; flex-wrap: wrap; font-size: .76rem; }
+.studentContact a { color: var(--blue); }
+
+.emptyGroup { margin: 0; font-size: .78rem; color: var(--text-faint); }
