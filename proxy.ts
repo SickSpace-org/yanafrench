@@ -13,6 +13,12 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { resolveSession, redirectPreservingSession } from "@/lib/supabase/proxy";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { isStudentHubLocked } from "@/lib/emi";
+
+// The single page a student can reach while their hub is locked for an
+// overdue EMI (see lib/emiData.ts).
+const PAY_EMI_PATH = "/student-hub/pay-emi";
 
 const AUTH_PATHS = ["/login", "/forgot-password", "/reset-password", "/auth"];
 
@@ -67,6 +73,15 @@ export async function proxy(request: NextRequest) {
   if (!userId) return loginRedirect(request, response);
   if (role !== "student" && role !== "admin") {
     return loginRedirect(request, response);
+  }
+  // EMI lock: more than 5 days past an unpaid installment's due date, every
+  // student-hub page redirects to the pay-now page until it's paid. Admins
+  // previewing the hub are never locked.
+  if (role === "student" && pathname !== PAY_EMI_PATH) {
+    const admin = getSupabaseAdmin();
+    if (admin && (await isStudentHubLocked(admin, userId))) {
+      return redirectPreservingSession(new URL(PAY_EMI_PATH, request.url), response);
+    }
   }
   response.headers.set("Cache-Control", "no-store");
   return response;

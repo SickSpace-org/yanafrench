@@ -10,6 +10,7 @@ import {
 } from "@/lib/courseCatalogData";
 import { CURRENT_LEVELS, LEARNING_MODES, type CurrentLevel, type LearningMode } from "@/lib/courseLeadData";
 import { formatRupees } from "@/lib/formatCurrency";
+import { EMI_INSTALLMENT_COUNT, EMI_UPFRONT_PERCENT, emiAvailableFor, splitEmi, type PaymentPlan } from "@/lib/emiData";
 import { createCourseOrder, openCourseCheckout, AlreadyEnrolledError, type RazorpaySuccessResponse } from "@/lib/coursePayment";
 import { WhatsAppLink } from "./WhatsAppLink";
 import { PhoneNumberInput, isValidPhoneNumber } from "./PhoneNumberInput";
@@ -33,6 +34,7 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
   const [phase, setPhase] = useState<Phase>("form");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [plan, setPlan] = useState<PaymentPlan>("full");
   const pendingRef = useRef<{ leadId: string } | null>(null);
   // Guards against onDismiss re-opening the double-charge "Try Again" path
   // when Razorpay's ondismiss fires after a successful payment has already
@@ -43,6 +45,12 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
   const title = enrollableTitle(enrollable);
   const priceInPaise = enrollablePriceInPaise(enrollable);
   const productId = enrollableProductId(enrollable);
+  // EMI: 30% now, the rest in 3 monthly installments (see lib/emiData.ts).
+  // The server re-derives this same split — nothing here sets the charge.
+  const emiOffered = emiAvailableFor(enrollable);
+  const emiSplit = splitEmi(priceInPaise);
+  const payNowInPaise = plan === "emi" ? emiSplit.upfront : priceInPaise;
+  const payNowLabel = plan === "emi" ? `Pay now (${EMI_UPFRONT_PERCENT}%)` : "Course Fee";
 
   useEffect(() => {
     document.body.classList.add("enroll-modal-open");
@@ -113,6 +121,7 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
         email: email.trim(),
         phone: phone.trim(),
         productId,
+        plan,
       });
 
       await openCourseCheckout(
@@ -185,6 +194,31 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
               <span><small>Course Fee</small>{formatRupees(priceInPaise)}</span>
             </div>
 
+            {emiOffered && (
+              <fieldset className={styles.planPicker}>
+                <legend>Payment plan</legend>
+                <label className={plan === "full" ? styles.planOptionActive : styles.planOption}>
+                  <input type="radio" name="plan" value="full" checked={plan === "full"} onChange={() => setPlan("full")} />
+                  <span>
+                    <strong>Pay in full</strong>
+                    <small>{formatRupees(priceInPaise)} now</small>
+                  </span>
+                </label>
+                <label className={plan === "emi" ? styles.planOptionActive : styles.planOption}>
+                  <input type="radio" name="plan" value="emi" checked={plan === "emi"} onChange={() => setPlan("emi")} />
+                  <span>
+                    <strong>Pay in EMIs</strong>
+                    <small>
+                      {formatRupees(emiSplit.upfront)} now ({EMI_UPFRONT_PERCENT}%), then {EMI_INSTALLMENT_COUNT} monthly EMIs of{" "}
+                      {emiSplit.installments.every((a) => a === emiSplit.installments[0])
+                        ? formatRupees(emiSplit.installments[0])
+                        : emiSplit.installments.map(formatRupees).join(" / ")}
+                    </small>
+                  </span>
+                </label>
+              </fieldset>
+            )}
+
             <form className={enrollStyles.form} onSubmit={handleFormSubmit} noValidate>
               <label>
                 <span>Full name *</span>
@@ -247,8 +281,13 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
             <h3>{title}</h3>
             <div className={styles.summaryBox}>
               <span><small>Student</small>{name}</span>
-              <span><small>Course Fee</small>{formatRupees(priceInPaise)}</span>
+              <span><small>{payNowLabel}</small>{formatRupees(payNowInPaise)}</span>
             </div>
+            {plan === "emi" && (
+              <p className={enrollStyles.batchMeta}>
+                Then {EMI_INSTALLMENT_COUNT} monthly EMIs of {emiSplit.installments.map(formatRupees).join(" / ")} — pay each from your Student Hub.
+              </p>
+            )}
             <p className={styles.secureNote}>🔒 Secure payment via Razorpay</p>
             {error && <p className={styles.formError}>{error}</p>}
             <button type="button" className={enrollStyles.submit} onClick={startPayment}>Pay Now</button>
@@ -260,7 +299,7 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
           <div className={enrollStyles.success}>
             <div className={enrollStyles.batchTag}>Processing</div>
             <h3>Opening secure payment…</h3>
-            <p className={enrollStyles.batchMeta}>Complete the {formatRupees(priceInPaise)} payment in the Razorpay window. Don&apos;t close this tab.</p>
+            <p className={enrollStyles.batchMeta}>Complete the {formatRupees(payNowInPaise)} payment in the Razorpay window. Don&apos;t close this tab.</p>
           </div>
         )}
 
@@ -271,8 +310,13 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
             <div className={styles.summaryBox}>
               <span><small>Course</small>{title}</span>
               <span><small>Student</small>{name}</span>
-              <span><small>Amount Paid</small>{formatRupees(priceInPaise)}</span>
+              <span><small>Amount Paid</small>{formatRupees(payNowInPaise)}</span>
             </div>
+            {plan === "emi" && (
+              <p className={enrollStyles.batchMeta}>
+                Your remaining {EMI_INSTALLMENT_COUNT} EMIs are scheduled monthly — you&apos;ll see the dates and can pay them from your Student Hub, and we&apos;ll email you a reminder 5 days before each one.
+              </p>
+            )}
             <p className={enrollStyles.batchMeta}>Your enrollment has been successfully submitted. We&apos;ll reach out on {phone} or {email} to get you started.</p>
             <div className={enrollStyles.fieldRow}>
               <button type="button" className={enrollStyles.submit} onClick={onClose}>Back to Courses</button>

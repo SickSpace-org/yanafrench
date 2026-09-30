@@ -3,6 +3,7 @@ import { authErrorResponse, requireAdmin } from "@/lib/auth";
 import { studentFromRow, type StudentRow } from "@/lib/studentData";
 import { batchEnrollmentFromRow, type BatchEnrollmentRow } from "@/lib/batchEnrollmentData";
 import { courseEnrollmentFromRow, type CourseEnrollmentRow } from "@/lib/courseEnrollmentData";
+import { emiInstallmentFromRow, type EmiInstallmentRow } from "@/lib/emiData";
 
 // GET: the roster of confirmed, paying students for Admin → Students,
 // newest first, each with every batch/course enrollment they hold — one
@@ -19,10 +20,11 @@ export async function GET() {
   const supabase = getSupabaseAdmin();
   if (!supabase) return Response.json([]);
 
-  const [{ data: students, error }, { data: batchRows }, { data: courseRows }] = await Promise.all([
+  const [{ data: students, error }, { data: batchRows }, { data: courseRows }, { data: emiRows }] = await Promise.all([
     supabase.from("students").select("*").order("enrolled_at", { ascending: false }),
     supabase.from("batch_enrollments").select("*"),
     supabase.from("course_enrollments").select("*"),
+    supabase.from("emi_installments").select("*").order("due_date", { ascending: true }),
   ]);
   if (error) {
     console.error("Failed to list students", error);
@@ -42,13 +44,21 @@ export async function GET() {
     coursesByStudent.set(row.student_id, list);
   }
 
-  const result = (students as StudentRow[]).map((row) =>
-    studentFromRow(
+  const emiByStudent = new Map<string, EmiInstallmentRow[]>();
+  for (const row of (emiRows as EmiInstallmentRow[]) ?? []) {
+    const list = emiByStudent.get(row.student_id) ?? [];
+    list.push(row);
+    emiByStudent.set(row.student_id, list);
+  }
+
+  const result = (students as StudentRow[]).map((row) => ({
+    ...studentFromRow(
       row,
       (batchesByStudent.get(row.id) ?? []).map(batchEnrollmentFromRow),
       (coursesByStudent.get(row.id) ?? []).map(courseEnrollmentFromRow)
-    )
-  );
+    ),
+    emiInstallments: (emiByStudent.get(row.id) ?? []).map(emiInstallmentFromRow),
+  }));
 
   return Response.json(result);
 }

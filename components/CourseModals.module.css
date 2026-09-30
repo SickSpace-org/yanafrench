@@ -49,3 +49,13 @@
 .formError { margin: -.3rem 0 0; padding: .7rem .9rem; border-radius: 8px; background: #fbe9e7; color: #9c2f2f; font-size: .74rem; line-height: 1.5; }
 
 .secureNote { display: flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--text-muted); margin: 0 0 1.4rem; }
+
+/* Payment plan picker (pay in full vs EMI) — see lib/emiData.ts */
+.planPicker { border: 0; padding: 0; margin: -.6rem 0 1.5rem; display: flex; flex-direction: column; gap: .6rem; }
+.planPicker legend { font-size: .58rem; text-transform: uppercase; letter-spacing: .1em; font-weight: 700; color: var(--text-faint); margin-bottom: .5rem; padding: 0; }
+.planOption, .planOptionActive { display: flex; align-items: flex-start; gap: .7rem; padding: .85rem 1rem; border-radius: var(--r-md); border: 1px solid var(--hairline-ink); cursor: pointer; }
+.planOptionActive { border-color: var(--blue); background: rgba(31,58,95,.05); }
+.planOption input, .planOptionActive input { margin-top: .2rem; accent-color: var(--blue); }
+.planOption span, .planOptionActive span { display: flex; flex-direction: column; gap: .2rem; }
+.planOption strong, .planOptionActive strong { font-size: .85rem; color: var(--text-primary); }
+.planOption small, .planOptionActive small { font-size: .72rem; color: var(--text-muted); line-height: 1.4; }

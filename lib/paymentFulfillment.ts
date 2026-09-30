@@ -12,6 +12,8 @@ import { resolveStudentIdentity } from "./enrollment";
 import { writeJson } from "./r2";
 import { applyPortalAction, PORTAL_STATE_KEY } from "./portalState";
 import { readPortalState } from "./portalStateServer";
+import { createInstallmentsForEnrollment } from "./emi";
+import { enrollablePriceInPaise, findEnrollableByProductId } from "./courseCatalogData";
 
 function newEnrollmentId(): string {
   return `enroll-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
@@ -170,20 +172,40 @@ export async function fulfillCoursePayment(
     phone: payment.phone,
   });
 
+  const enrollmentId = newEnrollmentId();
+  const enrolledAt = new Date().toISOString();
   const { error } = await supabase.from("course_enrollments").insert({
-    id: newEnrollmentId(),
+    id: enrollmentId,
     student_id: studentId,
     lead_id: leadId || payment.leadId,
     payment_id: payment.id,
     product_id: payment.productId,
     product_title: payment.productTitle,
     status: "active",
-    enrolled_at: new Date().toISOString(),
+    enrolled_at: enrolledAt,
   });
   if (error?.code === "23505") {
     console.warn(`[paymentFulfillment] Duplicate enrollment race for payment ${payment.id} (${payment.email}, product ${payment.productId}) — already enrolled, no second row created.`);
   } else if (error) {
     console.error("Failed to insert course enrollment for payment", payment.id, error);
+  }
+
+  // The upfront part of an EMI purchase — schedule the 3 monthly
+  // installments against the product's full catalog price (never the
+  // amount charged, which was only the 30%).
+  if (!error && payment.plan === "emi") {
+    const enrollable = findEnrollableByProductId(payment.productId);
+    if (enrollable) {
+      await createInstallmentsForEnrollment(supabase, {
+        studentId,
+        courseEnrollmentId: enrollmentId,
+        productTitle: payment.productTitle,
+        totalPaise: enrollablePriceInPaise(enrollable),
+        enrolledAt,
+      });
+    } else {
+      console.error("EMI payment for unknown product — no installments scheduled", payment.id, payment.productId);
+    }
   }
 
   return { fulfilled: true };

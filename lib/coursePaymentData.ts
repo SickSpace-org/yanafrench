@@ -3,6 +3,8 @@
 // independent of the CourseLead it came from. Mirrors lib/paymentData.ts's
 // shape but is kept fully separate from the batch system's Payment type.
 
+import type { PaymentPlan } from "./emiData";
+
 export type CoursePaymentStatus = "created" | "paid" | "failed";
 
 export type CoursePayment = {
@@ -16,6 +18,9 @@ export type CoursePayment = {
   amount: number; // paise
   currency: string;
   status: CoursePaymentStatus;
+  // "emi" = this was the 30% upfront part; fulfillment then schedules the
+  // 3 monthly installments (see lib/emiData.ts).
+  plan: PaymentPlan;
   razorpayPaymentId?: string | null;
   createdAt: string;
   paidAt?: string | null;
@@ -32,6 +37,7 @@ export type CoursePaymentRow = {
   amount: number;
   currency: string;
   status: CoursePaymentStatus;
+  plan: PaymentPlan | null;
   razorpay_payment_id: string | null;
   created_at: string;
   paid_at: string | null;
@@ -49,6 +55,7 @@ export function coursePaymentFromRow(row: CoursePaymentRow): CoursePayment {
     amount: row.amount,
     currency: row.currency,
     status: row.status,
+    plan: row.plan === "emi" ? "emi" : "full",
     razorpayPaymentId: row.razorpay_payment_id,
     createdAt: row.created_at,
     paidAt: row.paid_at,
@@ -67,6 +74,7 @@ export function coursePaymentToRow(payment: CoursePayment): CoursePaymentRow {
     amount: payment.amount,
     currency: payment.currency,
     status: payment.status,
+    plan: payment.plan,
     razorpay_payment_id: payment.razorpayPaymentId ?? null,
     created_at: payment.createdAt,
     paid_at: payment.paidAt ?? null,

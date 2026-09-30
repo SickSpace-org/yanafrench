@@ -14,6 +14,7 @@
 
 import type { BatchEnrollment } from "./batchEnrollmentData";
 import type { CourseEnrollment } from "./courseEnrollmentData";
+import type { EmiInstallment } from "./emiData";
 
 export type Student = {
   id: string;
@@ -30,6 +31,10 @@ export type Student = {
   avatarUrl?: string | null;
   batchEnrollments: BatchEnrollment[];
   courseEnrollments: CourseEnrollment[];
+  // EMI schedule for any course enrollments bought on the EMI plan — only
+  // attached by the admin roster (app/api/students); the student's own hub
+  // reads it separately from app/api/student/emi.
+  emiInstallments?: EmiInstallment[];
 };
 
 // snake_case row shape as stored in the Supabase `students` table. The

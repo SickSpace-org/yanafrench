@@ -11,6 +11,7 @@ import { useStudentProfile, displayName } from "@/lib/useStudentProfile";
 import { generateClassEvents } from "@/lib/batchData";
 import { site } from "@/lib/site";
 import { DashboardShell } from "./DashboardShell";
+import { EmiPaymentsCard } from "./EmiPaymentsCard";
 import styles from "./StudentDashboard.module.css";
 
 const streak = 12;
@@ -68,6 +69,8 @@ export function StudentDashboard() {
         <small>BONJOUR, {name.toUpperCase()}</small>
         <h1>Your French,<br /><em>moving forward.</em></h1>
       </div>
+
+      {profile.kind === "student" && <EmiPaymentsCard student={profile.student} />}
 
       <div className={styles.grid}>
         <div className={styles.card}>

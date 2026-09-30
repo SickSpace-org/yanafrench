@@ -29,6 +29,7 @@ export async function createCourseOrder(input: {
   email: string;
   phone: string;
   productId: string;
+  plan?: "full" | "emi";
 }): Promise<CourseOrder> {
   const res = await fetch("/api/course-payment/create-order", {
     method: "POST",

@@ -1,7 +1,35 @@
 "use client";
 
 import type { Student } from "@/lib/studentData";
+import { formatRupees } from "@/lib/formatCurrency";
+import { daysOverdue, formatIndiaDate, isInstallmentLocking, isoToIndiaDate, nextPendingInstallment, todayInIndia, type EmiInstallment } from "@/lib/emiData";
 import styles from "./AdminLeadsPanel.module.css";
+
+function enrolledOn(iso: string) {
+  return <span className={styles.time}>Enrolled {formatIndiaDate(isoToIndiaDate(iso))}</span>;
+}
+
+// One-line EMI status for a course enrollment bought on the EMI plan.
+function EmiStatus({ plan }: { plan: EmiInstallment[] }) {
+  const today = todayInIndia();
+  const paid = plan.filter((i) => i.status === "paid").length;
+  const next = nextPendingInstallment(plan);
+  if (!next) return <span className={styles.muted}>EMI {paid}/{plan.length} paid · fully paid</span>;
+  const d = daysOverdue(next.dueDate, today);
+  const locked = isInstallmentLocking(next, today);
+  return (
+    <span style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: ".4rem" }}>
+      <span className={styles.muted}>
+        EMI {paid}/{plan.length} paid · next {formatRupees(next.amount)} due {formatIndiaDate(next.dueDate)}
+      </span>
+      {locked ? (
+        <span className={`${styles.payment} ${styles.payment_pending}`}>Overdue {d}d · hub locked</span>
+      ) : d >= 0 ? (
+        <span className={`${styles.payment} ${styles.payment_pending}`}>{d === 0 ? "Due today" : `Overdue ${d}d`}</span>
+      ) : null}
+    </span>
+  );
+}
 
 function formatWhen(iso: string) {
   const date = new Date(iso);
@@ -63,19 +91,29 @@ export function AdminStudentsPanel({
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: ".45rem" }}>
                     {s.batchEnrollments.map((e) => (
-                      <div key={e.id} style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
-                        <span className={styles.course}>{e.course}</span>
-                        <span>{e.batchName}</span>
-                        <button type="button" className={styles.remove} onClick={() => onRemoveEnrollment("batch", e.id)}>Remove</button>
+                      <div key={e.id} style={{ display: "flex", flexDirection: "column", gap: ".2rem" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
+                          <span className={styles.course}>{e.course}</span>
+                          <span>{e.batchName}</span>
+                          <button type="button" className={styles.remove} onClick={() => onRemoveEnrollment("batch", e.id)}>Remove</button>
+                        </div>
+                        {enrolledOn(e.enrolledAt)}
                       </div>
                     ))}
-                    {s.courseEnrollments.map((e) => (
-                      <div key={e.id} style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
-                        <span className={styles.course}>Course</span>
-                        <span>{e.productTitle}</span>
-                        <button type="button" className={styles.remove} onClick={() => onRemoveEnrollment("course", e.id)}>Remove</button>
-                      </div>
-                    ))}
+                    {s.courseEnrollments.map((e) => {
+                      const plan = (s.emiInstallments ?? []).filter((i) => i.courseEnrollmentId === e.id);
+                      return (
+                        <div key={e.id} style={{ display: "flex", flexDirection: "column", gap: ".2rem" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: ".5rem" }}>
+                            <span className={styles.course}>{plan.length > 0 ? "Course · EMI" : "Course"}</span>
+                            <span>{e.productTitle}</span>
+                            <button type="button" className={styles.remove} onClick={() => onRemoveEnrollment("course", e.id)}>Remove</button>
+                          </div>
+                          {enrolledOn(e.enrolledAt)}
+                          {plan.length > 0 && <EmiStatus plan={plan} />}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </td>

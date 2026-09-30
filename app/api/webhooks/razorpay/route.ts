@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { fulfillBatchPayment, fulfillCoursePayment } from "@/lib/paymentFulfillment";
+import { fulfillEmiPayment } from "@/lib/emi";
 
 // Server-to-server confirmation from Razorpay — closes the gap where the
 // browser-callback verify routes never run at all (the visitor closes the
@@ -110,6 +111,17 @@ export async function POST(req: Request) {
       if (updated?.lead_id) {
         await supabase.from("course_leads").update({ payment_status: "failed" }).eq("id", updated.lead_id);
       }
+    }
+    return Response.json({ ok: true });
+  }
+
+  // "Pay next EMI" orders from the student hub (see app/api/emi).
+  const { data: emiPayment } = await supabase.from("emi_payments").select("id").eq("id", orderId).maybeSingle();
+  if (emiPayment) {
+    if (eventType === "payment.captured") {
+      await fulfillEmiPayment(supabase, orderId, paymentId);
+    } else {
+      await supabase.from("emi_payments").update({ status: "failed" }).eq("id", orderId).eq("status", "created");
     }
     return Response.json({ ok: true });
   }

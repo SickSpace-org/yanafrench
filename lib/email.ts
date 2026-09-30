@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import type { EmiReminderKind } from "./emiData";
 
 // Transactional email only (password-setup links). Same "missing config ->
 // skip, don't throw" convention as lib/r2.ts / getSupabaseAdmin — a student
@@ -50,4 +51,52 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
     `Someone requested a password reset for this Français Hub account.\n\nSet a new password here:\n${resetUrl}\n\nThis link is one-time use and expires after a while. If you didn't request this, you can ignore this email.`,
     `<p>Someone requested a password reset for this Français Hub account.</p><p>Set a new password here:</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>This link is one-time use and expires after a while. If you didn't request this, you can ignore this email.</p>`
   );
+}
+
+// EMI reminders, sent by the daily cron (app/api/cron/emi-reminders) —
+// see lib/emiData.ts's reminderForToday for which kind goes out when.
+export async function sendEmiReminderEmail(
+  to: string,
+  input: {
+    name: string;
+    kind: EmiReminderKind;
+    productTitle: string;
+    installmentNo: number;
+    installmentCount: number;
+    amount: string; // already formatted, e.g. "₹19,833"
+    dueDate: string; // already formatted, e.g. "3 Oct 2026"
+    lockDate: string; // already formatted
+    payUrl: string;
+  }
+): Promise<boolean> {
+  const first = input.name.split(" ")[0] || "there";
+  const what = `EMI ${input.installmentNo} of ${input.installmentCount} for ${input.productTitle} (${input.amount})`;
+
+  let subject: string;
+  let lines: string[];
+  if (input.kind === "pre5") {
+    subject = `Your EMI of ${input.amount} is due on ${input.dueDate}`;
+    lines = [`Hi ${first},`, `A friendly reminder: your ${what} is due on ${input.dueDate} — 5 days from now.`, `You can pay it any time from your Student Hub.`];
+  } else if (input.kind === "due") {
+    subject = `Your EMI of ${input.amount} is due today`;
+    lines = [`Hi ${first},`, `Your ${what} is due today, ${input.dueDate}.`, `Please pay it from your Student Hub. If it isn't paid by ${input.lockDate}, your Student Hub will be locked until it is.`];
+  } else if (input.kind === "locked") {
+    subject = "Your Student Hub is locked — EMI overdue";
+    lines = [`Hi ${first},`, `Your ${what} was due on ${input.dueDate} and is still unpaid, so your Student Hub has been locked.`, `Pay the EMI to unlock it instantly — your lessons, progress and everything else are waiting for you.`];
+  } else {
+    const daysLeft = Number(input.kind.slice(5));
+    const remaining = 5 - daysLeft;
+    subject = remaining === 0 ? "Last day to pay your EMI before your Student Hub is locked" : `EMI overdue — pay now or your Student Hub will be locked`;
+    lines = [
+      `Hi ${first},`,
+      `Your ${what} was due on ${input.dueDate} and hasn't been paid yet.`,
+      remaining === 0
+        ? `Today is the last day to pay. From tomorrow (${input.lockDate}) your Student Hub will be locked until the EMI is paid.`
+        : `Please pay your EMI now or your Student Hub will be locked on ${input.lockDate} (${remaining + 1} days from now).`,
+    ];
+  }
+
+  const text = `${lines.join("\n\n")}\n\nPay your EMI: ${input.payUrl}\n\n— The Français Hub`;
+  const html = `${lines.map((l) => `<p>${l}</p>`).join("")}<p><a href="${input.payUrl}" style="display:inline-block;padding:10px 18px;background:#1F3A5F;color:#fff;border-radius:999px;text-decoration:none;font-weight:700">Pay your EMI</a></p><p>— The Français Hub</p>`;
+  return sendEmail(to, subject, text, html);
 }
