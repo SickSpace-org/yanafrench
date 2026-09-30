@@ -12,6 +12,7 @@ import styles from "./DashboardShell.module.css";
 const navItems: { type: string; label: string; href?: string }[] = [
   { type: "dashboard", label: "Dashboard", href: "/student-hub" },
   { type: "lessons", label: "Lessons", href: "/student-hub/lessons" },
+  { type: "homework", label: "Homework", href: "/student-hub/homework" },
   { type: "speaking", label: "Speaking Practice", href: "/student-hub/speaking" },
   { type: "vocabulary", label: "Vocabulary", href: "/student-hub/vocabulary" },
   { type: "progress", label: "Progress", href: "/student-hub/progress" },
@@ -26,6 +27,7 @@ function NavIcon({ type }: { type: string }) {
   switch (type) {
     case "dashboard": return <svg {...props}><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.4"/><rect x="13" y="3.5" width="7.5" height="4.5" rx="1.4"/><rect x="13" y="10.5" width="7.5" height="10" rx="1.4"/><rect x="3.5" y="13.5" width="7.5" height="7" rx="1.4"/></svg>;
     case "lessons": return <svg {...props}><path d="M4 4.5h11.5L20 9v10.5H4z"/><path d="M15.5 4.5V9H20"/><path d="M7.5 13h9M7.5 16.2h6"/></svg>;
+    case "homework": return <svg {...props}><path d="M6 3.5h9l3.5 3.5v13.5H6z"/><path d="M15 3.5V7h3.5"/><path d="m9 13.5 2 2 4-4"/></svg>;
     case "speaking": return <svg {...props}><rect x="9" y="3.5" width="6" height="10.5" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0"/><path d="M12 18v3"/></svg>;
     case "vocabulary": return <svg {...props}><path d="M5 4.5h14v13H9l-4 3.5z"/><path d="M8.5 9h7M8.5 12h4.5"/></svg>;
     case "progress": return <svg {...props}><path d="M4 20V10M11 20V4M18 20v-6.5"/></svg>;
