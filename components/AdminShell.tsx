@@ -11,6 +11,7 @@ const navItems = [
   { label: "Lessons", href: "/admin" },
   { label: "Batches", href: "/admin/batches" },
   { label: "Groups", href: "/admin/groups" },
+  { label: "Attendance", href: "/admin/attendance" },
   { label: "Enrollments", href: "/admin/enrollments" },
   { label: "Payments", href: "/admin/payments" },
   { label: "Students", href: "/admin/students" },

@@ -9,6 +9,7 @@ import { useQuizState } from "@/lib/useQuizState";
 import { usePortalState } from "@/lib/usePortalState";
 import { useStudentProfile, displayName } from "@/lib/useStudentProfile";
 import { generateClassEvents } from "@/lib/batchData";
+import { JOIN_CLASS_URL } from "@/lib/attendanceData";
 import { site } from "@/lib/site";
 import { DashboardShell } from "./DashboardShell";
 import { EmiPaymentsCard } from "./EmiPaymentsCard";
@@ -83,7 +84,7 @@ export function StudentDashboard() {
               <small className={styles.cardMeta}>{nextClass.time}</small>
               <div className={styles.teacherLine}><i /> With {site.tutor}</div>
               {zoomLink ? (
-                <a href={zoomLink} target="_blank" rel="noreferrer" className={styles.cardCtaSolid}>Join class</a>
+                <a href={JOIN_CLASS_URL} target="_blank" rel="noreferrer" className={styles.cardCtaSolid}>Join class</a>
               ) : (
                 <button type="button" className={styles.cardCtaSolid} disabled>Link coming soon</button>
               )}

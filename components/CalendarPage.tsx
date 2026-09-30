@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { generateClassEvents, formatTime, DAY_LABELS, type Batch, type BatchCourse } from "@/lib/batchData";
 import { usePortalState } from "@/lib/usePortalState";
+import { JOIN_CLASS_URL } from "@/lib/attendanceData";
 import { useStudentProfile } from "@/lib/useStudentProfile";
 import { DashboardShell } from "./DashboardShell";
 import styles from "./CalendarPage.module.css";
@@ -32,7 +33,7 @@ function BatchCard({ batch, zoomLink, isYours }: { batch: Batch; zoomLink: strin
           Next class: {next.date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
         </small>
       )}
-      {zoomLink && <a href={zoomLink} target="_blank" rel="noreferrer" className={styles.joinLink}>Join class →</a>}
+      {zoomLink && <a href={JOIN_CLASS_URL} target="_blank" rel="noreferrer" className={styles.joinLink}>Join class →</a>}
     </div>
   );
 }

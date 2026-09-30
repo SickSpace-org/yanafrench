@@ -16,6 +16,7 @@ const navItems: { type: string; label: string; href?: string }[] = [
   { type: "vocabulary", label: "Vocabulary", href: "/student-hub/vocabulary" },
   { type: "progress", label: "Progress", href: "/student-hub/progress" },
   { type: "calendar", label: "Calendar", href: "/student-hub/calendar" },
+  { type: "attendance", label: "Attendance", href: "/student-hub/attendance" },
   { type: "messages", label: "Messages", href: "/student-hub/messages" },
   { type: "settings", label: "Settings", href: "/student-hub/settings" },
 ];
@@ -29,6 +30,7 @@ function NavIcon({ type }: { type: string }) {
     case "vocabulary": return <svg {...props}><path d="M5 4.5h14v13H9l-4 3.5z"/><path d="M8.5 9h7M8.5 12h4.5"/></svg>;
     case "progress": return <svg {...props}><path d="M4 20V10M11 20V4M18 20v-6.5"/></svg>;
     case "calendar": return <svg {...props}><rect x="3.5" y="5" width="17" height="15.5" rx="1.6"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>;
+    case "attendance": return <svg {...props}><rect x="3.5" y="5" width="17" height="15.5" rx="1.6"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="m8.5 14.5 2.3 2.3 4.7-4.7"/></svg>;
     case "messages": return <svg {...props}><path d="M4 5.5h16v11H10l-4.5 3.5v-3.5H4z"/></svg>;
     default: return <svg {...props}><circle cx="12" cy="12" r="2.6"/><path d="M12 3.5v2.4M12 18v2.5M20.5 12h-2.4M5.9 12H3.5M17.7 6.3l-1.7 1.7M8 16l-1.7 1.7M17.7 17.7 16 16M8 8 6.3 6.3"/></svg>;
   }

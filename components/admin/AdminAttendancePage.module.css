@@ -1,0 +1,19 @@
+.controls { display: flex; flex-wrap: wrap; gap: 1rem; }
+.controls label { display: flex; flex-direction: column; gap: .35rem; min-width: 200px; flex: 1 1 220px; max-width: 340px; }
+.controls span { font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--text-faint); }
+.controls select { padding: .6rem .7rem; border: 1px solid var(--hairline-ink); border-radius: var(--r-md); background: var(--card-surface, #fff); font-size: .82rem; color: var(--text-primary); }
+
+.summary { margin: 0; font-size: .82rem; color: var(--text-muted); }
+.summary strong { color: var(--text-primary); }
+
+.chip { display: inline-block; padding: .2rem .55rem; border-radius: 999px; font-size: .62rem; font-weight: 700; letter-spacing: .04em; white-space: nowrap; }
+.chip_present { background: rgba(63,138,99,.12); color: #2f6b47; }
+.chip_absent { background: rgba(182,58,58,.1); color: #B63A3A; }
+.chip_open { background: rgba(31,58,95,.1); color: var(--blue); }
+.chip_upcoming { background: rgba(23,25,28,.06); color: var(--text-faint); }
+
+.markButtons { display: flex; gap: .4rem; }
+.markButton, .markPresentActive, .markAbsentActive { border: 1px solid var(--hairline-ink); background: none; padding: .35rem .8rem; border-radius: 999px; font-size: .68rem; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+.markPresentActive { border-color: rgba(63,138,99,.5); background: rgba(63,138,99,.12); color: #2f6b47; }
+.markAbsentActive { border-color: rgba(182,58,58,.45); background: rgba(182,58,58,.1); color: #B63A3A; }
+.markButton:disabled, .markPresentActive:disabled, .markAbsentActive:disabled { opacity: .6; cursor: default; }

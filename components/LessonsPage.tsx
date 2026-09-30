@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { CourseItem } from "@/lib/courseCatalog";
 import type { Recording } from "@/lib/recordingData";
 import { usePortalState } from "@/lib/usePortalState";
+import { JOIN_CLASS_URL } from "@/lib/attendanceData";
 import { useQuizState } from "@/lib/useQuizState";
 import { DashboardShell } from "./DashboardShell";
 import { IconPlay, IconVideoFrame } from "./Icons";
@@ -227,7 +228,7 @@ export function LessonsPage() {
       {activeTab === "Recordings" && (
         <>
           {zoomLink && (
-            <a href={zoomLink} target="_blank" rel="noreferrer" className={styles.zoomJoinBox}>
+            <a href={JOIN_CLASS_URL} target="_blank" rel="noreferrer" className={styles.zoomJoinBox}>
               <span>Live Zoom Class</span>
               <strong>Join meeting →</strong>
             </a>
