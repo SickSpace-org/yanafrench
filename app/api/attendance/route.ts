@@ -3,13 +3,16 @@ import { authErrorResponse, requireAdmin } from "@/lib/auth";
 import { readPortalState } from "@/lib/portalStateServer";
 import { setManualAttendance } from "@/lib/attendance";
 import { addDays, isoToIndiaDate, todayInIndia } from "@/lib/emiData";
-import { attendanceFromRow, hasSessionOn, resolveSessionStatus, sessionDates, type AttendanceRow } from "@/lib/attendanceData";
+import { attendanceFromRow, hasSessionOn, resolveSessionStatus, sessionDates, type AttendanceRow, type AttendanceSource, type SessionStatus } from "@/lib/attendanceData";
 
-// Admin → Attendance.
-// GET ?batchId=X             → the batch's class dates (last 60 days + next 7)
-// GET ?batchId=X&date=D      → every student enrolled in X by D, with their
-//                              attendance for that class (live — the page polls)
+// Admin → Attendance register.
+// GET ?batchId=X → the batch's class dates (last 30 days up to today, newest
+//                  first) and, for every student enrolled in X, a P/A cell per
+//                  date (live — the page polls). A cell is null for classes
+//                  held before that student enrolled.
 // POST { studentId, batchId, date, status } → manual present/absent
+const REGISTER_DAYS = 30;
+
 export async function GET(req: Request) {
   try {
     await requireAdmin();
@@ -19,45 +22,42 @@ export async function GET(req: Request) {
   const supabase = getSupabaseAdmin();
   if (!supabase) return new Response("Supabase isn't configured.", { status: 501 });
 
-  const url = new URL(req.url);
-  const batchId = url.searchParams.get("batchId");
-  const date = url.searchParams.get("date");
+  const batchId = new URL(req.url).searchParams.get("batchId");
   const state = await readPortalState();
   const batch = state.batches.find((b) => b.id === batchId);
   if (!batch) return new Response("Unknown batch.", { status: 404 });
 
   const today = todayInIndia();
-  if (!date) {
-    return Response.json({ today, dates: sessionDates(batch, addDays(today, -60), addDays(today, 7)) });
-  }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !hasSessionOn(batch, date)) {
-    return new Response("No class on that date.", { status: 400 });
-  }
+  const dates = sessionDates(batch, addDays(today, -REGISTER_DAYS), today);
 
   const [{ data: enrollments }, { data: records }] = await Promise.all([
-    supabase.from("batch_enrollments").select("student_id, enrolled_at, students(id, name, email, phone)").eq("batch_id", batch.id).eq("status", "active"),
-    supabase.from("attendance").select("*").eq("batch_id", batch.id).eq("class_date", date),
+    supabase.from("batch_enrollments").select("student_id, enrolled_at, students(id, name, email)").eq("batch_id", batch.id).eq("status", "active"),
+    dates.length
+      ? supabase.from("attendance").select("*").eq("batch_id", batch.id).gte("class_date", dates[dates.length - 1]).lte("class_date", today)
+      : Promise.resolve({ data: [] }),
   ]);
-  const byStudent = new Map(((records as AttendanceRow[]) ?? []).map((r) => [r.student_id, attendanceFromRow(r)]));
+  const byKey = new Map(((records as AttendanceRow[]) ?? []).map((r) => [`${r.student_id}|${r.class_date}`, attendanceFromRow(r)]));
 
-  type EnrollmentJoin = { student_id: string; enrolled_at: string; students: { id: string; name: string; email: string; phone: string } | null };
+  type EnrollmentJoin = { student_id: string; enrolled_at: string; students: { id: string; name: string; email: string } | null };
+  const now = Date.now();
   const students = ((enrollments as unknown as EnrollmentJoin[]) ?? [])
-    // Only students who were already enrolled on that class date.
-    .filter((e) => e.students && isoToIndiaDate(e.enrolled_at) <= date)
+    .filter((e) => e.students)
     .map((e) => {
-      const rec = byStudent.get(e.student_id);
-      return {
-        studentId: e.student_id,
-        name: e.students!.name,
-        email: e.students!.email,
-        status: resolveSessionStatus(batch, date, rec),
-        source: rec?.source ?? null,
-        markedAt: rec?.markedAt ?? null,
-      };
+      const enrolled = isoToIndiaDate(e.enrolled_at);
+      const cells: Record<string, { status: SessionStatus; source: AttendanceSource | null; markedAt: string | null } | null> = {};
+      for (const date of dates) {
+        if (date < enrolled) {
+          cells[date] = null;
+          continue;
+        }
+        const rec = byKey.get(`${e.student_id}|${date}`);
+        cells[date] = { status: resolveSessionStatus(batch, date, rec, now), source: rec?.source ?? null, markedAt: rec?.markedAt ?? null };
+      }
+      return { studentId: e.student_id, name: e.students!.name, email: e.students!.email, cells };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  return Response.json({ today, date, students });
+  return Response.json({ today, dates, students });
 }
 
 export async function POST(req: Request) {
