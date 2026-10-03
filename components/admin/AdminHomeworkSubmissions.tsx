@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatIndiaDate, isoToIndiaDate } from "@/lib/emiData";
-import type { Homework, HomeworkSubmission } from "@/lib/homeworkData";
+import type { Homework, HomeworkFeedback, HomeworkSubmission, HomeworkVerdict } from "@/lib/homeworkData";
 import { HomeworkCard } from "../HomeworkCard";
 import { FeedbackSummary, TaskFeedback } from "../HomeworkFeedback";
 import card from "../HomeworkCard.module.css";
@@ -13,6 +13,19 @@ import own from "./AdminHomeworkPage.module.css";
 type Row = { studentId: string; name: string; email: string; inBatch: boolean; submission: HomeworkSubmission | null };
 
 const POLL_MS = 10_000;
+
+const MARKS: Partial<Record<HomeworkVerdict, { symbol: string; title: string }>> = {
+  correct: { symbol: "✓", title: "Correct" },
+  partly: { symbol: "≈", title: "Almost — small mistake" },
+  incorrect: { symbol: "✗", title: "Wrong" },
+  open: { symbol: "✎", title: "Free writing — see the note" },
+};
+
+// Green for 80%+, red under 50%, grey in between.
+function scoreClass(f: HomeworkFeedback) {
+  const pct = f.correct / f.total;
+  return pct >= 0.8 ? leadStyles.payment_paid : pct < 0.5 ? leadStyles.payment_pending : leadStyles.payment_failed;
+}
 
 function formatWhen(iso: string) {
   return `${formatIndiaDate(isoToIndiaDate(iso))}, ${new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }).format(new Date(iso))}`;
@@ -96,7 +109,11 @@ export function AdminHomeworkSubmissions({ homeworkId, onClose }: { homeworkId: 
                     <strong>{s.name}</strong>
                     <small>{s.inBatch ? s.email : "No longer in this batch"}</small>
                   </span>
-                  {s.submission ? (
+                  {s.submission?.feedback && s.submission.feedback.total > 0 ? (
+                    <span className={`${leadStyles.payment} ${scoreClass(s.submission.feedback)}`}>
+                      {s.submission.feedback.correct}/{s.submission.feedback.total}
+                    </span>
+                  ) : s.submission ? (
                     <span className={`${leadStyles.payment} ${leadStyles.payment_paid}`}>Submitted</span>
                   ) : (
                     <span className={`${leadStyles.payment} ${leadStyles.payment_failed}`}>Not yet</span>
@@ -115,19 +132,35 @@ export function AdminHomeworkSubmissions({ homeworkId, onClose }: { homeworkId: 
                 dueDate={data.homework.dueDate}
                 actions={
                   <span className={leadStyles.time}>
+                    {current.submission.feedback && current.submission.feedback.total > 0 && (
+                      <strong>
+                        {current.submission.feedback.correct}/{current.submission.feedback.total} correct ·{" "}
+                      </strong>
+                    )}
                     {current.name} · {formatWhen(current.submission.updatedAt)}
                     {current.submission.updatedAt !== current.submission.submittedAt ? " (resubmitted)" : ""}
                   </span>
                 }
                 renderTask={(s, t) => {
                   const answer = current.submission!.answers[s]?.[t];
-                  return answer ? (
+                  const item = current.submission!.feedback?.items[s]?.[t];
+                  const mark = item ? MARKS[item.verdict] : undefined;
+                  return (
                     <>
-                      <div className={card.answer}>{answer}</div>
-                      <TaskFeedback item={current.submission!.feedback?.items[s]?.[t]} />
+                      {answer ? (
+                        <div className={card.answerMarked}>
+                          <div className={`${card.answer} ${item ? card[`answer_${item.verdict}`] ?? "" : ""}`}>{answer}</div>
+                          {mark && (
+                            <span className={`${card.mark} ${card[`mark_${item!.verdict}`]}`} title={mark.title}>
+                              {mark.symbol}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className={card.noAnswer}>No answer</span>
+                      )}
+                      <TaskFeedback item={item} />
                     </>
-                  ) : (
-                    <span className={card.noAnswer}>No answer</span>
                   );
                 }}
               >

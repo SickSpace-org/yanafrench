@@ -46,6 +46,17 @@
 
 /* Submitted answer (admin view) */
 .answer { border-left: 2px solid var(--blue); padding: .35rem .7rem; background: rgba(31,58,95,.05); border-radius: 0 8px 8px 0; font-size: .8rem; color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* Answer marked by the check (admin view): coloured edge + ✓ / ✗ mark */
+.answerMarked { display: flex; align-items: flex-start; gap: .55rem; }
+.answerMarked .answer { flex: 1; }
+.mark { flex: none; width: 1.5rem; height: 1.5rem; border-radius: 50%; display: grid; place-items: center; font-size: .8rem; font-weight: 700; color: #fff; margin-top: .1rem; }
+.mark_correct { background: #2f6b47; }
+.mark_partly { background: #c48a1e; }
+.mark_incorrect { background: #B63A3A; }
+.mark_open { background: var(--blue); }
+.answer_correct { border-left-color: #2f6b47; background: rgba(47,107,71,.07); }
+.answer_partly { border-left-color: #c48a1e; background: rgba(196,138,30,.08); }
+.answer_incorrect { border-left-color: #B63A3A; background: rgba(182,58,58,.07); }
 .noAnswer { font-size: .74rem; color: var(--text-faint); font-style: italic; }
 
 .submit { border: 0; background: var(--blue); color: #fff; padding: .7rem 1.3rem; border-radius: 999px; font-size: .72rem; font-weight: 700; cursor: pointer; }
