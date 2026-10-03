@@ -110,7 +110,7 @@ function HomeworkItem({ hw, preview, today }: { hw: StudentHomework; preview: bo
         <span className={dirty ? card.status : card.statusDone}>
           {dirty
             ? "You've changed your answers — resubmit to send the new version and get it checked again."
-            : `Submitted ${formatWhen(submission.updatedAt)}${submission.updatedAt !== submission.submittedAt ? " (updated)" : ""}${submission.feedback ? " · checked by AI" : ""}`}
+            : `Submitted ${formatWhen(submission.updatedAt)}${submission.updatedAt !== submission.submittedAt ? " (updated)" : ""}`}
         </span>
       ) : (
         <span className={card.status}>Answer what you can — you can edit and resubmit any time.</span>
@@ -144,7 +144,7 @@ export function HomeworkPage() {
         <small>YOUR CLASSES</small>
         <h1>Homework.</h1>
         <p>
-          Homework from your teacher for your batch, newest first. Type your answers under each task and submit — the AI checks them straight away and shows you what to fix. You can edit and resubmit any time.
+          Homework from your teacher for your batch, newest first. Type your answers under each task and submit — they’re checked straight away and you’ll see what to fix. You can edit and resubmit any time.
           {homework && homework.length > 0 && !preview ? ` ${pending === 0 ? "All caught up!" : `${pending} still to submit.`}` : ""}
         </p>
       </div>
