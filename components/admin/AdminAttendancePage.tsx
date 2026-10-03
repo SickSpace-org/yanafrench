@@ -112,7 +112,7 @@ function ClassLinkEditor({ batchId }: { batchId: string }) {
         {message?.text ??
           (saved
             ? "Students in this batch see this link on their dashboard, and Join class opens it."
-            : "No link yet — students in this batch get the general Zoom link (Admin → Lessons) until you add one.")}
+            : "No link yet — students in this batch see \"Link coming soon\" until you add one.")}
       </p>
     </div>
   );

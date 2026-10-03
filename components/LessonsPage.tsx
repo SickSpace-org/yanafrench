@@ -5,6 +5,7 @@ import type { CourseItem } from "@/lib/courseCatalog";
 import type { Recording } from "@/lib/recordingData";
 import { usePortalState } from "@/lib/usePortalState";
 import { JOIN_CLASS_URL } from "@/lib/attendanceData";
+import { useClassLinks } from "@/lib/useClassLinks";
 import { useQuizState } from "@/lib/useQuizState";
 import { DashboardShell } from "./DashboardShell";
 import { IconPlay, IconVideoFrame } from "./Icons";
@@ -152,9 +153,11 @@ function RecordingsPlaylist({ recordings }: { recordings: Recording[] }) {
 
 export function LessonsPage() {
   const [activeTab, setActiveTab] = useState<Tab>("Course");
+  // Shown only when one of the student's batches has a class link
+  // (Admin → Attendance); Join class picks the right one.
+  const hasClassLink = Object.keys(useClassLinks()).length > 0;
   const {
     loaded,
-    zoomLink,
     courses: allCourses,
     recordings: allRecordings,
     resources: allResources,
@@ -227,7 +230,7 @@ export function LessonsPage() {
 
       {activeTab === "Recordings" && (
         <>
-          {zoomLink && (
+          {hasClassLink && (
             <a href={JOIN_CLASS_URL} target="_blank" rel="noreferrer" className={styles.zoomJoinBox}>
               <span>Live Zoom Class</span>
               <strong>Join meeting →</strong>

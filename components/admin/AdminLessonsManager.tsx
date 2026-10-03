@@ -308,8 +308,6 @@ export function AdminLessonsManager() {
   const [activeTab, setActiveTab] = useState<Tab>("Course");
   const {
     loaded,
-    zoomLink,
-    setZoomLink,
     courses,
     addCourse,
     removeCourse,
@@ -657,18 +655,6 @@ export function AdminLessonsManager() {
                 ))}
               </div>
             </div>
-
-            <aside className={styles.zoomBox}>
-              <span className={styles.sectionLabel}>ZOOM MEETING LINK</span>
-              <p className={styles.tabHint}>Students see a "Join meeting" link on the Recordings tab. Update it anytime — e.g. before each live class.</p>
-              <input
-                key={zoomLink}
-                className={styles.zoomInput}
-                defaultValue={zoomLink}
-                placeholder="https://zoom.us/j/…"
-                onBlur={(e) => e.target.value !== zoomLink && setZoomLink(e.target.value.trim())}
-              />
-            </aside>
           </div>
         </div>
       )}

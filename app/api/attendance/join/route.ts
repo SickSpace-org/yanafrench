@@ -10,14 +10,14 @@ import { getClassLinks, viewerBatchIds } from "@/lib/classLinks";
 // falls inside a class's join window — see lib/attendanceData.ts), then
 // forwards to the class link: ?batch=X's own link (Admin → Attendance) if
 // the viewer is in that batch, else the batch whose class is on right now,
-// else any of their batches with a link, else the global Zoom link.
+// else any of their batches with a link, else the student's calendar.
 // Recording is best-effort: a failure here must never stop a student from
 // getting into their class.
 export async function GET(req: Request) {
   const state = await readPortalState();
   const fallback = new URL("/student-hub/calendar", req.url).toString();
   const requested = new URL(req.url).searchParams.get("batch");
-  let meetingLink = state.zoomLink?.trim() || null;
+  let meetingLink: string | null = null;
 
   try {
     const viewer = await getViewer();

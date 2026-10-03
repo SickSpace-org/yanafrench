@@ -146,7 +146,7 @@ export function CalendarPage() {
           <h2>Your batches</h2>
           {visibleBatches.length > 0 ? (
             <div className={styles.list}>
-              {visibleBatches.map((b) => <BatchCard key={b.id} batch={b} zoomLink={zoomLink} isYours={isMine(b)} link={classLinks[b.id] || zoomLink} />)}
+              {visibleBatches.map((b) => <BatchCard key={b.id} batch={b} zoomLink={zoomLink} isYours={isMine(b)} link={classLinks[b.id] ?? ""} />)}
             </div>
           ) : (
             <div className={styles.empty}>

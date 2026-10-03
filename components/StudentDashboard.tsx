@@ -64,8 +64,8 @@ export function StudentDashboard() {
     .filter((e): e is NonNullable<typeof e> => Boolean(e))
     .sort((a, b) => a.date.getTime() - b.date.getTime());
   const nextClass = myUpcomingClasses[0] ?? null;
-  // The batch's own link (Admin → Attendance), else the general Zoom link.
-  const nextClassLink = nextClass ? classLinks[nextClass.batchId] || zoomLink : "";
+  // The batch's own link, set in Admin → Attendance.
+  const nextClassLink = nextClass ? classLinks[nextClass.batchId] ?? "" : "";
   const moreUpcomingCount = Math.max(0, myUpcomingClasses.length - 1);
 
   return (
