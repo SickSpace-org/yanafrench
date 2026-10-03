@@ -132,7 +132,7 @@ export function AdminHomeworkPage() {
       <div className={styles.head}>
         <small>ADMIN</small>
         <h1>Homework.</h1>
-        <p>Paste your homework in any rough form — the AI turns it into a clean homework sheet. Check it, pick the batches, and send. Students see it straight away under Homework in their hub.</p>
+        <p>Tell the AI what homework you want — or paste your own in any rough form — and it makes a clean homework sheet. Check it, pick the batches, and send. Students see it straight away under Homework in their hub.</p>
       </div>
 
       <div className={own.layout}>
@@ -140,12 +140,12 @@ export function AdminHomeworkPage() {
           <div className={styles.form}>
             <h2>1. Your homework text</h2>
             <label className={styles.fullWidth}>
-              <span>Paste everything — exercises, sentences, word lists, instructions</span>
+              <span>Describe the homework you want (type, topic, level, how many questions) — or paste your own exercises</span>
               <textarea
                 className={own.source}
                 value={sourceText}
                 onChange={(e) => setSourceText(e.target.value)}
-                placeholder={"e.g.\nconjugate in passé composé: manger, aller, finir, prendre (je, tu, il, nous)\ntranslate: I went to the market yesterday / We ate at a restaurant\nwrite 5 lines about your weekend using passé composé\ndue monday"}
+                placeholder={"e.g. 10 fill-in-the-blank sentences on the passé composé for A2, then 3 sentences to translate into French\n\nor paste your own:\nconjugate in passé composé: manger, aller, finir, prendre (je, tu, il, nous)\ntranslate: I went to the market yesterday / We ate at a restaurant\nwrite 5 lines about your weekend using passé composé\ndue monday"}
               />
             </label>
             <div className={own.buttons}>
