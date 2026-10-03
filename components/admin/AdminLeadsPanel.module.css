@@ -89,3 +89,26 @@
 
 .action:hover { text-decoration: underline; }
 .action:disabled { color: var(--text-faint); cursor: default; text-decoration: none; }
+
+/* Admin → Enrollments: "Payment received" button + inline confirm panel */
+.received {
+  border: 0;
+  background: var(--status-available, #3f8a63);
+  color: #fff;
+  padding: .45rem .8rem;
+  border-radius: 999px;
+  font-size: .68rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.received:disabled { opacity: .55; cursor: default; }
+.actions { display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; }
+.confirmRow td { background: rgba(63,138,99,.05); }
+.confirmBox { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .8rem 1rem; }
+.confirmBox label { display: flex; flex-direction: column; gap: .25rem; font-size: .62rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; }
+.confirmBox input, .confirmBox select { font: inherit; font-size: .82rem; text-transform: none; letter-spacing: 0; padding: .45rem .6rem; border: 1px solid var(--hairline-ink, var(--stone)); border-radius: 8px; background: var(--porcelain, #fff); color: var(--text-primary); min-width: 9rem; }
+.confirmNote { flex-basis: 100%; margin: 0; font-size: .74rem; color: var(--text-muted); }
+.confirmError { flex-basis: 100%; margin: 0; font-size: .74rem; font-weight: 700; color: #B63A3A; }
+.banner { margin: 0 0 1rem; padding: .7rem .9rem; border-radius: 10px; background: rgba(63,138,99,.1); color: var(--status-available, #2f6b47); font-size: .78rem; font-weight: 700; }
+.method { font-size: .62rem; font-weight: 700; letter-spacing: .04em; color: var(--text-muted); text-transform: uppercase; }

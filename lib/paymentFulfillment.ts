@@ -56,7 +56,7 @@ export type FulfillResult =
 export async function fulfillBatchPayment(
   supabase: SupabaseClient,
   orderId: string,
-  razorpayPaymentId: string,
+  razorpayPaymentId: string | null,
   leadIdOverride?: string | null
 ): Promise<FulfillResult> {
   const { data: paymentRow } = await supabase.from("payments").select("*").eq("id", orderId).maybeSingle();
@@ -135,7 +135,7 @@ export async function fulfillBatchPayment(
 export async function fulfillCoursePayment(
   supabase: SupabaseClient,
   orderId: string,
-  razorpayPaymentId: string,
+  razorpayPaymentId: string | null,
   leadIdOverride?: string | null
 ): Promise<FulfillResult> {
   const { data: paymentRow } = await supabase.from("course_payments").select("*").eq("id", orderId).maybeSingle();

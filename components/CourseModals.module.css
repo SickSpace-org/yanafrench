@@ -59,3 +59,6 @@
 .planOption span, .planOptionActive span { display: flex; flex-direction: column; gap: .2rem; }
 .planOption strong, .planOptionActive strong { font-size: .85rem; color: var(--text-primary); }
 .planOption small, .planOptionActive small { font-size: .72rem; color: var(--text-muted); line-height: 1.4; }
+
+.inlineLink { display: inline-flex; align-items: center; gap: .2rem; color: var(--blue); font-weight: 700; text-decoration: underline; }
+.inlineLink svg { width: .7em; height: .7em; }

@@ -47,7 +47,7 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
     return counts;
   }, [courseBatches]);
 
-  function handleEnrollSubmit(batch: Batch, details: EnrollDetails) {
+  async function handleEnrollSubmit(batch: Batch, details: EnrollDetails) {
     const lead: Lead = {
       id: `lead-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       name: details.name,
@@ -61,15 +61,14 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
       createdAt: new Date().toISOString(),
       paymentStatus: "pending",
     };
-    // Fire-and-forget, same as the old optimistic addLead — the id is
-    // generated client-side so it's available immediately for the payment
-    // step without waiting on this request.
-    fetch("/api/leads", {
+    // Saves the enquiry and emails the student a confirmation (see
+    // app/api/leads) — EnrollModal shows an error if this fails.
+    const res = await fetch("/api/leads", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(lead),
-    }).catch(() => {});
-    return lead.id;
+    });
+    if (!res.ok) throw new Error(await res.text());
   }
 
   return (

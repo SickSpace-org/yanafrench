@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   enrollableProductId,
   enrollableTitle,
@@ -11,7 +11,7 @@ import {
 import { CURRENT_LEVELS, LEARNING_MODES, type CurrentLevel, type LearningMode } from "@/lib/courseLeadData";
 import { formatRupees } from "@/lib/formatCurrency";
 import { EMI_INSTALLMENT_COUNT, EMI_UPFRONT_PERCENT, emiAvailableFor, splitEmi, type PaymentPlan } from "@/lib/emiData";
-import { createCourseOrder, openCourseCheckout, AlreadyEnrolledError, type RazorpaySuccessResponse } from "@/lib/coursePayment";
+import { whatsappDisplay } from "@/lib/site";
 import { WhatsAppLink } from "./WhatsAppLink";
 import { PhoneNumberInput, isValidPhoneNumber } from "./PhoneNumberInput";
 import enrollStyles from "./EnrollModal.module.css";
@@ -19,7 +19,7 @@ import styles from "./CourseModals.module.css";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-type Phase = "form" | "payment" | "processing" | "paid" | "payment_failed" | "verify_failed" | "already_enrolled";
+type Phase = "form" | "submitted";
 type FieldErrors = Partial<Record<"name" | "email" | "phone", string>>;
 
 export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrollable; onClose: () => void }) {
@@ -35,27 +35,21 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [plan, setPlan] = useState<PaymentPlan>("full");
-  const pendingRef = useRef<{ leadId: string } | null>(null);
-  // Guards against onDismiss re-opening the double-charge "Try Again" path
-  // when Razorpay's ondismiss fires after a successful payment has already
-  // been captured (a race with the async onSuccess below). Must be a ref,
-  // not state, so it's readable synchronously inside the Razorpay callbacks.
-  const settledRef = useRef(false);
 
   const title = enrollableTitle(enrollable);
   const priceInPaise = enrollablePriceInPaise(enrollable);
   const productId = enrollableProductId(enrollable);
-  // EMI: 30% now, the rest in 3 monthly installments (see lib/emiData.ts).
-  // The server re-derives this same split — nothing here sets the charge.
+  // EMI: 30% to start, the rest in 3 monthly installments (see
+  // lib/emiData.ts). There's no online payment — the plan is the student's
+  // preference; Yana confirms payment by hand in Admin → Enrollments.
   const emiOffered = emiAvailableFor(enrollable);
   const emiSplit = splitEmi(priceInPaise);
-  const payNowInPaise = plan === "emi" ? emiSplit.upfront : priceInPaise;
-  const payNowLabel = plan === "emi" ? `Pay now (${EMI_UPFRONT_PERCENT}%)` : "Course Fee";
+  const whatsappMessage = `Hi Yana! I'd like to know more about ${title}.`;
 
   useEffect(() => {
     document.body.classList.add("enroll-modal-open");
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && phase !== "processing") onClose();
+      if (e.key === "Escape") onClose();
     }
     window.addEventListener("keydown", onKey);
     return () => {
@@ -95,68 +89,15 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
           currentLevel: currentLevel || undefined,
           preferredMode: preferredMode || undefined,
           message: message.trim(),
+          plan: emiOffered ? plan : "full",
         }),
       });
       if (!res.ok) throw new Error();
-      const { leadId } = (await res.json()) as { leadId: string };
-      pendingRef.current = { leadId };
-      setPhase("payment");
+      setPhase("submitted");
     } catch {
       setError("Couldn't save your enrollment. Please try again.");
     } finally {
       setSubmitting(false);
-    }
-  }
-
-  async function startPayment() {
-    if (!pendingRef.current) return;
-    settledRef.current = false;
-    setPhase("processing");
-    setError(null);
-
-    try {
-      const order = await createCourseOrder({
-        leadId: pendingRef.current.leadId,
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        productId,
-        plan,
-      });
-
-      await openCourseCheckout(
-        order,
-        { name: name.trim(), email: email.trim(), phone: phone.trim() },
-        {
-          onSuccess: async (response: RazorpaySuccessResponse) => {
-            settledRef.current = true;
-            try {
-              const verifyRes = await fetch("/api/course-payment/verify", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...response, leadId: pendingRef.current?.leadId }),
-              });
-              if (!verifyRes.ok) throw new Error();
-              setPhase("paid");
-            } catch {
-              setError("Payment went through, but we couldn't confirm it automatically — we'll verify manually.");
-              setPhase("verify_failed");
-            }
-          },
-          onDismiss: () => {
-            if (settledRef.current) return;
-            setError("Payment wasn't completed. Your enrollment is still saved — you can try paying again.");
-            setPhase("payment_failed");
-          },
-        }
-      );
-    } catch (err) {
-      if (err instanceof AlreadyEnrolledError) {
-        setPhase("already_enrolled");
-        return;
-      }
-      setError(err instanceof Error ? err.message : "Something went wrong starting the payment.");
-      setPhase("payment_failed");
     }
   }
 
@@ -166,7 +107,7 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      onClick={phase === "processing" ? undefined : onClose}
+      onClick={onClose}
     >
       <motion.div
         className={enrollStyles.card}
@@ -179,15 +120,13 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
         aria-modal="true"
         aria-label="Enroll for a course"
       >
-        {phase !== "processing" && (
-          <button type="button" className={enrollStyles.close} onClick={onClose} aria-label="Close">×</button>
-        )}
+        <button type="button" className={enrollStyles.close} onClick={onClose} aria-label="Close">×</button>
 
         {phase === "form" && (
           <>
             <div className={enrollStyles.batchTag}>Enroll now</div>
             <h3>Tell us about yourself.</h3>
-            <p className={enrollStyles.batchMeta}>A few details, then continue to payment to secure your seat.</p>
+            <p className={enrollStyles.batchMeta}>Send your details and Yana will get in touch to confirm your seat and share the payment details.</p>
 
             <div className={styles.summaryBox}>
               <span><small>Selected Course</small>{title}</span>
@@ -196,12 +135,12 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
 
             {emiOffered && (
               <fieldset className={styles.planPicker}>
-                <legend>Payment plan</legend>
+                <legend>Preferred payment plan</legend>
                 <label className={plan === "full" ? styles.planOptionActive : styles.planOption}>
                   <input type="radio" name="plan" value="full" checked={plan === "full"} onChange={() => setPlan("full")} />
                   <span>
                     <strong>Pay in full</strong>
-                    <small>{formatRupees(priceInPaise)} now</small>
+                    <small>{formatRupees(priceInPaise)}</small>
                   </span>
                 </label>
                 <label className={plan === "emi" ? styles.planOptionActive : styles.planOption}>
@@ -209,7 +148,7 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
                   <span>
                     <strong>Pay in EMIs</strong>
                     <small>
-                      {formatRupees(emiSplit.upfront)} now ({EMI_UPFRONT_PERCENT}%), then {EMI_INSTALLMENT_COUNT} monthly EMIs of{" "}
+                      {formatRupees(emiSplit.upfront)} to start ({EMI_UPFRONT_PERCENT}%), then {EMI_INSTALLMENT_COUNT} monthly EMIs of{" "}
                       {emiSplit.installments.every((a) => a === emiSplit.installments[0])
                         ? formatRupees(emiSplit.installments[0])
                         : emiSplit.installments.map(formatRupees).join(" / ")}
@@ -269,97 +208,32 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
               {error && <p className={styles.formError}>{error}</p>}
 
               <button type="submit" className={enrollStyles.submit} disabled={submitting}>
-                {submitting ? "Saving…" : "Continue to Payment"}
+                {submitting ? "Sending…" : "Submit enrollment"}
               </button>
+              <p className={styles.secureNote}>
+                Questions first? WhatsApp Yana at{" "}
+                <WhatsAppLink className={styles.inlineLink} message={whatsappMessage}>{whatsappDisplay}</WhatsAppLink>
+              </p>
             </form>
           </>
         )}
 
-        {phase === "payment" && (
+        {phase === "submitted" && (
           <div className={enrollStyles.success}>
-            <div className={enrollStyles.batchTag}>Complete Your Enrollment</div>
-            <h3>{title}</h3>
-            <div className={styles.summaryBox}>
-              <span><small>Student</small>{name}</span>
-              <span><small>{payNowLabel}</small>{formatRupees(payNowInPaise)}</span>
-            </div>
-            {plan === "emi" && (
-              <p className={enrollStyles.batchMeta}>
-                Then {EMI_INSTALLMENT_COUNT} monthly EMIs of {emiSplit.installments.map(formatRupees).join(" / ")} — pay each from your Student Hub.
-              </p>
-            )}
-            <p className={styles.secureNote}>🔒 Secure payment via Razorpay</p>
-            {error && <p className={styles.formError}>{error}</p>}
-            <button type="button" className={enrollStyles.submit} onClick={startPayment}>Pay Now</button>
-            <button type="button" className={enrollStyles.secondary} onClick={() => { setError(null); setPhase("form"); }}>Back to Enrollment</button>
-          </div>
-        )}
-
-        {phase === "processing" && (
-          <div className={enrollStyles.success}>
-            <div className={enrollStyles.batchTag}>Processing</div>
-            <h3>Opening secure payment…</h3>
-            <p className={enrollStyles.batchMeta}>Complete the {formatRupees(payNowInPaise)} payment in the Razorpay window. Don&apos;t close this tab.</p>
-          </div>
-        )}
-
-        {phase === "paid" && (
-          <div className={enrollStyles.success}>
-            <div className={enrollStyles.batchTag}>Enrollment Successful 🎉</div>
+            <div className={enrollStyles.batchTag}>Enrollment received 🎉</div>
             <h3>Thanks, {name.split(" ")[0]}!</h3>
             <div className={styles.summaryBox}>
               <span><small>Course</small>{title}</span>
-              <span><small>Student</small>{name}</span>
-              <span><small>Amount Paid</small>{formatRupees(payNowInPaise)}</span>
+              <span><small>Course Fee</small>{formatRupees(priceInPaise)}</span>
+              {emiOffered && <span><small>Preferred plan</small>{plan === "emi" ? `EMI — ${formatRupees(emiSplit.upfront)} to start, then ${EMI_INSTALLMENT_COUNT} monthly payments` : "Pay in full"}</span>}
             </div>
-            {plan === "emi" && (
-              <p className={enrollStyles.batchMeta}>
-                Your remaining {EMI_INSTALLMENT_COUNT} EMIs are scheduled monthly — you&apos;ll see the dates and can pay them from your Student Hub, and we&apos;ll email you a reminder 5 days before each one.
-              </p>
-            )}
-            <p className={enrollStyles.batchMeta}>Your enrollment has been successfully submitted. We&apos;ll reach out on {phone} or {email} to get you started.</p>
-            <div className={enrollStyles.fieldRow}>
-              <button type="button" className={enrollStyles.submit} onClick={onClose}>Back to Courses</button>
-              <WhatsAppLink className={enrollStyles.secondary} message={`Hi! I just enrolled in ${title} and would like to know the next steps.`}>Contact The Français Hub</WhatsAppLink>
-            </div>
-          </div>
-        )}
-
-        {phase === "payment_failed" && (
-          <div className={enrollStyles.success}>
-            <div className={enrollStyles.batchTag}>Payment Unsuccessful</div>
-            <h3>Your payment couldn&apos;t be completed.</h3>
-            <p className={enrollStyles.batchMeta}>{error}</p>
-            <div className={enrollStyles.fieldRow}>
-              <button type="button" className={enrollStyles.submit} onClick={startPayment}>Try Again</button>
-              <button type="button" className={enrollStyles.secondary} onClick={() => { setError(null); setPhase("form"); }}>Back to Enrollment</button>
-            </div>
-          </div>
-        )}
-
-        {phase === "already_enrolled" && (
-          <div className={enrollStyles.success}>
-            <div className={enrollStyles.batchTag}>Already Enrolled</div>
-            <h3>Looks like you&apos;re already enrolled in this course.</h3>
             <p className={enrollStyles.batchMeta}>
-              {email || "This email"} already has an active enrollment for {title}. If that doesn&apos;t look right,
-              message us directly.
+              We&apos;ve emailed a confirmation to {email}. Yana will contact you on {phone} to confirm your seat and share the payment details.
+              For more info, message her on WhatsApp at {whatsappDisplay}.
             </p>
             <div className={enrollStyles.fieldRow}>
-              <WhatsAppLink className={enrollStyles.submit} message={`Hi! I tried to enroll in ${title} again (${email}) and it says I'm already enrolled — could you check?`}>Contact The Français Hub</WhatsAppLink>
-              <button type="button" className={enrollStyles.secondary} onClick={onClose}>Close</button>
-            </div>
-          </div>
-        )}
-
-        {phase === "verify_failed" && (
-          <div className={enrollStyles.success}>
-            <div className={enrollStyles.batchTag}>Payment Received</div>
-            <h3>We couldn&apos;t confirm your payment automatically.</h3>
-            <p className={enrollStyles.batchMeta}>{error}</p>
-            <div className={enrollStyles.fieldRow}>
-              <WhatsAppLink className={enrollStyles.submit} message={`Hi! I just paid for ${title} but the confirmation didn't go through automatically. Can you please verify my payment?`}>Contact The Français Hub</WhatsAppLink>
-              <button type="button" className={enrollStyles.secondary} onClick={onClose}>Close</button>
+              <WhatsAppLink className={enrollStyles.submit} message={`Hi Yana! I just enrolled in ${title} on the website (${email}). Could you share the next steps?`}>Chat with Yana on WhatsApp</WhatsAppLink>
+              <button type="button" className={enrollStyles.secondary} onClick={onClose}>Back to Courses</button>
             </div>
           </div>
         )}

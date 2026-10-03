@@ -27,3 +27,6 @@ export function asset(path: string) {
 export function whatsappUrl(message = "Hi Yana! I found The Français Hub website and I'd like to know more about your French classes.") {
   return `https://wa.me/${site.phone}?text=${encodeURIComponent(message)}`;
 }
+
+// Yana's WhatsApp number as people read it, e.g. "+91 98704 16446".
+export const whatsappDisplay = `+${site.phone.slice(0, 2)} ${site.phone.slice(2, 7)} ${site.phone.slice(7)}`;

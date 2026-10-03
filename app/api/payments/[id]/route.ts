@@ -13,7 +13,13 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!supabase) return new Response("Supabase isn't configured.", { status: 501 });
 
   const { id } = await params;
-  const { error } = await supabase.from("payments").delete().eq("id", id);
+  // Ids are unique across both tables (Razorpay order ids / manual-…), so
+  // deleting from both removes the one row wherever it lives.
+  const [{ error: batchErr }, { error: courseErr }] = await Promise.all([
+    supabase.from("payments").delete().eq("id", id),
+    supabase.from("course_payments").delete().eq("id", id),
+  ]);
+  const error = batchErr || courseErr;
   if (error) {
     console.error("Failed to delete payment", id, error);
     return new Response("Failed to delete payment.", { status: 500 });

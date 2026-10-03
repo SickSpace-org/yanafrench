@@ -1,6 +1,6 @@
 "use client";
 
-import type { Payment } from "@/lib/paymentData";
+import type { AdminPayment } from "@/lib/enrollmentRequestData";
 import styles from "./AdminLeadsPanel.module.css";
 
 function formatWhen(iso?: string | null) {
@@ -11,22 +11,20 @@ function formatWhen(iso?: string | null) {
 }
 
 function formatAmount(paise: number, currency: string) {
-  return `${currency === "INR" ? "₹" : currency + " "}${(paise / 100).toFixed(2)}`;
+  return `${currency === "INR" ? "₹" : currency + " "}${(paise / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 }
 
-const STATUS_LABELS: Record<Payment["status"], string> = {
-  created: "Awaiting payment",
+const STATUS_LABELS: Record<AdminPayment["status"], string> = {
+  created: "Not completed",
   paid: "Paid",
   failed: "Failed",
 };
 
-// Every Razorpay checkout attempt from the enroll form (see
-// app/api/payment/create-order and app/api/payment/verify) — full account
-// detail per transaction, including ones that never completed, so nothing
-// gets lost between "visitor started paying" and "payment confirmed."
-export function AdminPaymentsPanel({ payments, onRemove }: { payments: Payment[]; onRemove: (id: string) => void }) {
+// Admin → Payments: payments confirmed by hand in Admin → Enrollments,
+// plus older online (Razorpay) ones — batch and course together.
+export function AdminPaymentsPanel({ payments, onRemove }: { payments: AdminPayment[]; onRemove: (id: string) => void }) {
   if (payments.length === 0) {
-    return <div className={styles.empty}>No payment attempts yet.</div>;
+    return <div className={styles.empty}>No payments yet — confirm one from Enrollments once you&rsquo;ve received it.</div>;
   }
 
   return (
@@ -36,13 +34,10 @@ export function AdminPaymentsPanel({ payments, onRemove }: { payments: Payment[]
           <tr>
             <th>Name</th>
             <th>Contact</th>
-            <th>Course &amp; batch</th>
+            <th>Course</th>
             <th>Amount</th>
             <th>Status</th>
-            <th>Order ID</th>
-            <th>Payment ID</th>
-            <th>Created</th>
-            <th>Paid</th>
+            <th>Received</th>
             <th />
           </tr>
         </thead>
@@ -55,19 +50,20 @@ export function AdminPaymentsPanel({ payments, onRemove }: { payments: Payment[]
                 <a href={`mailto:${p.email}`}>{p.email}</a>
               </td>
               <td>
-                <span className={styles.course}>{p.course}</span>
-                <div>{p.batchName}</div>
+                <span className={styles.course}>{p.kind === "batch" ? p.title : "Course"}</span>
+                <div>{p.kind === "batch" ? p.detail : p.title}</div>
               </td>
-              <td>{formatAmount(p.amount, p.currency)}</td>
               <td>
-                <span className={`${styles.payment} ${styles[`payment_${p.status === "created" ? "pending" : p.status}`] || ""}`}>
+                {formatAmount(p.amount, p.currency)}
+                <div className={styles.muted}>{p.plan === "emi" ? "EMI — first payment" : "Full payment"}</div>
+              </td>
+              <td>
+                <span className={`${styles.payment} ${styles[`payment_${p.status === "created" ? "failed" : p.status === "failed" ? "pending" : "paid"}`]}`}>
                   {STATUS_LABELS[p.status]}
                 </span>
+                <div className={styles.method}>{p.method === "manual" ? "Confirmed by admin" : "Online (Razorpay)"}</div>
               </td>
-              <td className={styles.mono}>{p.id}</td>
-              <td className={styles.mono}>{p.razorpayPaymentId || <span className={styles.muted}>—</span>}</td>
-              <td className={styles.time}>{formatWhen(p.createdAt)}</td>
-              <td className={styles.time}>{formatWhen(p.paidAt)}</td>
+              <td className={styles.time}>{formatWhen(p.paidAt ?? p.createdAt)}</td>
               <td>
                 <button type="button" className={styles.remove} onClick={() => onRemove(p.id)}>Remove</button>
               </td>

@@ -100,3 +100,39 @@ export async function sendEmiReminderEmail(
   const html = `${lines.map((l) => `<p>${l}</p>`).join("")}<p><a href="${input.payUrl}" style="display:inline-block;padding:10px 18px;background:#1F3A5F;color:#fff;border-radius:999px;text-decoration:none;font-weight:700">Pay your EMI</a></p><p>— The Français Hub</p>`;
   return sendEmail(to, subject, text, html);
 }
+
+// Sent the moment someone submits an enroll form on the website (batch or
+// course) — confirms what they asked for and points them at Yana on
+// WhatsApp, since payment is arranged with her directly.
+export async function sendEnrollmentReceivedEmail(
+  to: string,
+  input: {
+    name: string;
+    courseTitle: string;
+    details: string[]; // already formatted lines, e.g. "Schedule: Mon/Wed · 7:00 PM"
+    whatsappUrl: string;
+    whatsappNumber: string; // display form, e.g. "+91 98704 16446"
+  }
+): Promise<boolean> {
+  const first = input.name.split(" ")[0] || "there";
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const intro = `Thank you for enrolling in ${input.courseTitle} at The Français Hub! We've received your details.`;
+  const next = "Yana will get in touch with you shortly to confirm your seat and share the payment details. Once your payment is confirmed, you'll get your Student Hub login by email.";
+  const ask = `Questions, or want to get started sooner? Message Yana on WhatsApp: ${input.whatsappNumber}`;
+
+  const text = [`Hi ${first},`, intro, input.details.join("\n"), next, `${ask}\n${input.whatsappUrl}`, "À bientôt !\n— The Français Hub"].join("\n\n");
+  const html =
+    `<p>Hi ${esc(first)},</p><p>${esc(intro)}</p>` +
+    `<table style="border-collapse:collapse;margin:8px 0 16px">${input.details
+      .map((line) => {
+        const [label, ...rest] = line.split(": ");
+        return rest.length
+          ? `<tr><td style="padding:4px 14px 4px 0;color:#666">${esc(label)}</td><td style="padding:4px 0;font-weight:700">${esc(rest.join(": "))}</td></tr>`
+          : `<tr><td colspan="2" style="padding:4px 0">${esc(line)}</td></tr>`;
+      })
+      .join("")}</table>` +
+    `<p>${esc(next)}</p>` +
+    `<p><a href="${input.whatsappUrl}" style="display:inline-block;padding:10px 18px;background:#25D366;color:#fff;border-radius:999px;text-decoration:none;font-weight:700">Message Yana on WhatsApp</a></p>` +
+    `<p style="color:#666">WhatsApp: ${esc(input.whatsappNumber)}</p><p>À bientôt !<br>— The Français Hub</p>`;
+  return sendEmail(to, `We've received your enrollment — ${input.courseTitle}`, text, html);
+}

@@ -1,20 +1,14 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { formatTime, statusText, type Batch, type BatchCourse } from "@/lib/batchData";
 import { CURRENT_LEVELS, type CurrentLevel } from "@/lib/leadData";
-import { loadRazorpayScript } from "@/lib/loadRazorpayScript";
-import { site, whatsappUrl } from "@/lib/site";
+import { site, whatsappDisplay, whatsappUrl } from "@/lib/site";
 import { PhoneNumberInput, isValidPhoneNumber } from "./PhoneNumberInput";
 import styles from "./EnrollModal.module.css";
 
 const COURSES: BatchCourse[] = ["TEF", "TCF", "DELF"];
-
-// Flat test-mode price for every batch — matches ENROLLMENT_FEE_PAISE in
-// app/api/payment/create-order/route.ts, which is the value actually
-// charged (the server never trusts an amount from the client).
-const ENROLLMENT_FEE_LABEL = "₹1";
 
 function canSelect(batch: Batch) {
   return (batch.status !== "full" && batch.seats_remaining > 0) || batch.status === "waitlist";
@@ -28,13 +22,7 @@ export type EnrollDetails = {
   notes: string;
 };
 
-type Phase = "form" | "processing" | "paid" | "payment_failed" | "already_enrolled";
-
-type RazorpaySuccessResponse = {
-  razorpay_order_id: string;
-  razorpay_payment_id: string;
-  razorpay_signature: string;
-};
+type Phase = "form" | "submitted";
 
 export function EnrollModal({
   batches,
@@ -45,8 +33,8 @@ export function EnrollModal({
   batches: Batch[];
   initialBatch: Batch;
   onClose: () => void;
-  // Persists the lead and returns its id, used to tie the payment back to it.
-  onSubmit: (batch: Batch, details: EnrollDetails) => string;
+  // Saves the enquiry (which also emails the student); rejects on failure.
+  onSubmit: (batch: Batch, details: EnrollDetails) => Promise<void>;
 }) {
   const [course, setCourse] = useState<BatchCourse>(initialBatch.course);
   const [batchId, setBatchId] = useState(initialBatch.id);
@@ -57,13 +45,13 @@ export function EnrollModal({
   const [notes, setNotes] = useState("");
   const [phase, setPhase] = useState<Phase>("form");
   const [error, setError] = useState<string | null>(null);
-  const pendingRef = useRef<{ batch: Batch; leadId: string } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submittedBatch, setSubmittedBatch] = useState<Batch | null>(null);
+  const tutor = site.tutor.split(" ")[0];
 
   // The site nav is a fixed, high-z-index pill that otherwise sits on top
-  // of this modal (and, worse, on top of Razorpay's own checkout overlay
-  // once payment opens — the whole point of hiding it), blocking the close
-  // controls of whichever is on top. Hidden for as long as this modal is
-  // mounted, regardless of phase.
+  // of this modal, blocking its close control. Hidden for as long as this
+  // modal is mounted, regardless of phase.
   useEffect(() => {
     document.body.classList.add("enroll-modal-open");
     return () => document.body.classList.remove("enroll-modal-open");
@@ -85,98 +73,20 @@ export function EnrollModal({
     setBatchId(firstOfCourse?.id ?? "");
   }
 
-  async function startPayment(target: Batch, leadId: string) {
-    setPhase("processing");
-    setError(null);
-    pendingRef.current = { batch: target, leadId };
-
-    try {
-      const scriptOk = await loadRazorpayScript();
-      if (!scriptOk || !window.Razorpay) {
-        throw new Error("Couldn't load the payment widget. Check your connection and try again.");
-      }
-
-      const orderRes = await fetch("/api/payment/create-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          leadId,
-          name,
-          email,
-          phone,
-          course: target.course,
-          batchId: target.id,
-          batchName: target.name,
-        }),
-      });
-      if (orderRes.status === 409) {
-        setPhase("already_enrolled");
-        return;
-      }
-      if (!orderRes.ok) throw new Error("Couldn't start the payment. Please try again.");
-      const order = await orderRes.json();
-
-      const razorpay = new window.Razorpay({
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: order.amount,
-        currency: order.currency,
-        order_id: order.orderId,
-        name: "The Français Hub",
-        description: `${target.course} enrollment · ${target.name}`,
-        prefill: { name, email, contact: phone },
-        // Explicitly opt every method category in — Razorpay's default
-        // checkout otherwise sometimes narrows to just Card on a fresh test
-        // account. UPI is what actually surfaces Google Pay / PhonePe /
-        // Paytm as tappable options on a mobile browser (via UPI intent);
-        // on desktop, UPI renders as a QR code / "enter UPI ID" instead of
-        // named app icons — that's Razorpay's own behavior, not something
-        // this config can change.
-        method: {
-          upi: true,
-          card: true,
-          netbanking: true,
-          wallet: true,
-          paylater: true,
-        },
-        theme: { color: "#1F3A5F" },
-        handler: async (response: RazorpaySuccessResponse) => {
-          try {
-            const verifyRes = await fetch("/api/payment/verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ ...response, leadId }),
-            });
-            if (!verifyRes.ok) throw new Error();
-            setPhase("paid");
-          } catch {
-            setError("Payment went through, but we couldn't confirm it automatically — Yana will verify manually.");
-            setPhase("payment_failed");
-          }
-        },
-        modal: {
-          ondismiss: () => {
-            setError("Payment wasn't completed. Your enrollment inquiry is still saved — Yana can follow up, or you can try paying again.");
-            setPhase("payment_failed");
-          },
-        },
-      });
-      razorpay.open();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong starting the payment.");
-      setPhase("payment_failed");
-    }
-  }
-
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!batch || !name.trim() || !phone.trim() || !email.trim() || !isValidPhoneNumber(phone)) return;
-    const leadId = onSubmit(batch, { name: name.trim(), phone: phone.trim(), email: email.trim(), currentLevel, notes: notes.trim() });
-    startPayment(batch, leadId);
-  }
-
-  function retryPayment() {
-    if (!pendingRef.current) return;
-    startPayment(pendingRef.current.batch, pendingRef.current.leadId);
+    setSubmitting(true);
+    setError(null);
+    try {
+      await onSubmit(batch, { name: name.trim(), phone: phone.trim(), email: email.trim(), currentLevel, notes: notes.trim() });
+      setSubmittedBatch(batch);
+      setPhase("submitted");
+    } catch {
+      setError("Couldn't send your enrollment. Please try again, or message Yana on WhatsApp.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -186,7 +96,7 @@ export function EnrollModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={phase === "processing" ? undefined : onClose}
+        onClick={onClose}
       >
         <motion.div
           className={styles.card}
@@ -199,59 +109,27 @@ export function EnrollModal({
           aria-modal="true"
           aria-label="Enroll for a batch"
         >
-          {phase !== "processing" && (
-            <button type="button" className={styles.close} onClick={onClose} aria-label="Close">×</button>
-          )}
+          <button type="button" className={styles.close} onClick={onClose} aria-label="Close">×</button>
 
-          {phase === "paid" && (
+          {phase === "submitted" && (
             <div className={styles.success}>
-              <div className={styles.batchTag}>Payment received</div>
+              <div className={styles.batchTag}>Enrollment received</div>
               <h3>Thanks, {name.split(" ")[0]}!</h3>
               <p className={styles.batchMeta}>
-                Your {ENROLLMENT_FEE_LABEL} enrollment payment for the {pendingRef.current?.batch.course} batch is confirmed. Yana will personally reach out on {phone} or {email} to finalize your seat.
+                Your enrollment for the {submittedBatch?.course} · {submittedBatch?.name} batch is in. We&apos;ve emailed a confirmation to {email}.
+                {" "}{tutor} will contact you on {phone} to confirm your seat and share the payment details.
               </p>
-              <button type="button" className={styles.submit} onClick={onClose}>Done</button>
-            </div>
-          )}
-
-          {phase === "processing" && (
-            <div className={styles.success}>
-              <div className={styles.batchTag}>Processing</div>
-              <h3>Opening secure payment…</h3>
-              <p className={styles.batchMeta}>Complete the {ENROLLMENT_FEE_LABEL} payment in the Razorpay window. Don&apos;t close this tab.</p>
-            </div>
-          )}
-
-          {phase === "payment_failed" && (
-            <div className={styles.success}>
-              <div className={styles.batchTag}>Payment not completed</div>
-              <h3>Your enquiry is still saved.</h3>
-              <p className={styles.batchMeta}>{error}</p>
-              <div className={styles.fieldRow}>
-                <button type="button" className={styles.submit} onClick={retryPayment}>Try payment again</button>
-                <button type="button" className={styles.secondary} onClick={onClose}>I&apos;ll pay later</button>
-              </div>
-            </div>
-          )}
-
-          {phase === "already_enrolled" && (
-            <div className={styles.success}>
-              <div className={styles.batchTag}>Already enrolled</div>
-              <h3>Looks like you&apos;re already in this batch.</h3>
-              <p className={styles.batchMeta}>
-                {email || "This email"} is already enrolled in {pendingRef.current?.batch.name ?? "this batch"}. If that
-                doesn&apos;t look right, message {site.tutor.split(" ")[0]} directly.
-              </p>
+              <p className={styles.batchMeta}>For more info, message {tutor} on WhatsApp at {whatsappDisplay}.</p>
               <div className={styles.fieldRow}>
                 <a
-                  href={whatsappUrl(`Hi ${site.tutor.split(" ")[0]}, I tried to enroll in ${pendingRef.current?.batch.name ?? "a batch"} again (${email}) and it says I'm already enrolled — could you check?`)}
+                  href={whatsappUrl(`Hi ${tutor}! I just enrolled in the ${submittedBatch?.course} ${submittedBatch?.name ?? ""} batch on the website (${email}). Could you share the next steps?`)}
                   target="_blank"
                   rel="noreferrer"
                   className={styles.submit}
                 >
-                  Message {site.tutor.split(" ")[0]}
+                  Chat with {tutor} on WhatsApp
                 </a>
-                <button type="button" className={styles.secondary} onClick={onClose}>Close</button>
+                <button type="button" className={styles.secondary} onClick={onClose}>Done</button>
               </div>
             </div>
           )}
@@ -260,7 +138,10 @@ export function EnrollModal({
             <>
               <div className={styles.batchTag}>Enroll now</div>
               <h3>Tell Yana about yourself.</h3>
-              <p className={styles.batchMeta}>A {ENROLLMENT_FEE_LABEL} test payment confirms your enrollment inquiry via Razorpay — Yana still confirms your seat personally.</p>
+              <p className={styles.batchMeta}>
+                Send your details and {tutor} will get in touch to confirm your seat and share the payment details. Questions first? WhatsApp{" "}
+                <a href={whatsappUrl()} target="_blank" rel="noreferrer">{whatsappDisplay}</a>.
+              </p>
 
               <form className={styles.form} onSubmit={handleSubmit}>
                 <div className={styles.fieldRow}>
@@ -326,8 +207,10 @@ export function EnrollModal({
                   />
                 </label>
 
-                <button type="submit" className={styles.submit} disabled={!batch}>
-                  Pay {ENROLLMENT_FEE_LABEL} &amp; submit
+                {error && <p className={styles.batchMeta} role="alert">{error}</p>}
+
+                <button type="submit" className={styles.submit} disabled={!batch || submitting}>
+                  {submitting ? "Sending…" : "Submit enrollment"}
                 </button>
               </form>
             </>
