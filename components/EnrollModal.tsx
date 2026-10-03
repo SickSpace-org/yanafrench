@@ -6,6 +6,7 @@ import { formatTime, statusText, type Batch, type BatchCourse } from "@/lib/batc
 import { CURRENT_LEVELS, type CurrentLevel } from "@/lib/leadData";
 import { site, whatsappDisplay, whatsappUrl } from "@/lib/site";
 import { PhoneNumberInput, isValidPhoneNumber } from "./PhoneNumberInput";
+import { WhatsAppCountdown } from "./WhatsAppCountdown";
 import styles from "./EnrollModal.module.css";
 
 const COURSES: BatchCourse[] = ["TEF", "TCF", "DELF"];
@@ -119,18 +120,10 @@ export function EnrollModal({
                 Your enrollment for the {submittedBatch?.course} · {submittedBatch?.name} batch is in. We&apos;ve emailed a confirmation to {email}.
                 {" "}{tutor} will contact you on {phone} to confirm your seat and share the payment details.
               </p>
-              <p className={styles.batchMeta}>For more info, message {tutor} on WhatsApp at {whatsappDisplay}.</p>
-              <div className={styles.fieldRow}>
-                <a
-                  href={whatsappUrl(`Hi ${tutor}! I just enrolled in the ${submittedBatch?.course} ${submittedBatch?.name ?? ""} batch on the website (${email}). Could you share the next steps?`)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={styles.submit}
-                >
-                  Chat with {tutor} on WhatsApp
-                </a>
-                <button type="button" className={styles.secondary} onClick={onClose}>Done</button>
-              </div>
+              <WhatsAppCountdown
+                message={`Hi ${tutor}! I just enrolled in the ${submittedBatch?.course} ${submittedBatch?.name ?? ""} batch on the website (${email}). Could you share the next steps?`}
+              />
+              <button type="button" className={styles.secondary} onClick={onClose}>Done</button>
             </div>
           )}
 

@@ -13,6 +13,7 @@ import { formatRupees } from "@/lib/formatCurrency";
 import { EMI_INSTALLMENT_COUNT, EMI_UPFRONT_PERCENT, emiAvailableFor, splitEmi, type PaymentPlan } from "@/lib/emiData";
 import { whatsappDisplay } from "@/lib/site";
 import { WhatsAppLink } from "./WhatsAppLink";
+import { WhatsAppCountdown } from "./WhatsAppCountdown";
 import { PhoneNumberInput, isValidPhoneNumber } from "./PhoneNumberInput";
 import enrollStyles from "./EnrollModal.module.css";
 import styles from "./CourseModals.module.css";
@@ -229,12 +230,9 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
             </div>
             <p className={enrollStyles.batchMeta}>
               We&apos;ve emailed a confirmation to {email}. Yana will contact you on {phone} to confirm your seat and share the payment details.
-              For more info, message her on WhatsApp at {whatsappDisplay}.
             </p>
-            <div className={enrollStyles.fieldRow}>
-              <WhatsAppLink className={enrollStyles.submit} message={`Hi Yana! I just enrolled in ${title} on the website (${email}). Could you share the next steps?`}>Chat with Yana on WhatsApp</WhatsAppLink>
-              <button type="button" className={enrollStyles.secondary} onClick={onClose}>Back to Courses</button>
-            </div>
+            <WhatsAppCountdown message={`Hi Yana! I just enrolled in ${title} on the website (${email}). Could you share the next steps?`} />
+            <button type="button" className={enrollStyles.secondary} onClick={onClose}>Back to Courses</button>
           </div>
         )}
       </motion.div>
