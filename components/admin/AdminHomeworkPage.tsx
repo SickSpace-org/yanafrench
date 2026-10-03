@@ -6,6 +6,7 @@ import { usePortalState } from "@/lib/usePortalState";
 import type { Homework, HomeworkDraft } from "@/lib/homeworkData";
 import { HomeworkCard } from "../HomeworkCard";
 import { AdminShell } from "../AdminShell";
+import { AdminHomeworkSubmissions } from "./AdminHomeworkSubmissions";
 import styles from "./AdminLessonsManager.module.css";
 import leadStyles from "./AdminLeadsPanel.module.css";
 import own from "./AdminHomeworkPage.module.css";
@@ -13,6 +14,8 @@ import own from "./AdminHomeworkPage.module.css";
 // Sections are edited as a heading + one task per line, and turned back
 // into the structured shape for the preview and for sending.
 type EditableSection = { heading: string; tasksText: string };
+
+type SentHomework = Homework & { submittedCount: number; recipientCount: number };
 
 function toEditable(draft: HomeworkDraft): EditableSection[] {
   return draft.sections.map((s) => ({ heading: s.heading, tasksText: s.tasks.join("\n") }));
@@ -33,7 +36,8 @@ function toDraft(title: string, intro: string, sections: EditableSection[]): Hom
 // those batches sees it right away under Student hub → Homework.
 export function AdminHomeworkPage() {
   const { loaded: batchesLoaded, batches } = usePortalState();
-  const { items: sent, loaded: sentLoaded, remove, refresh } = useAdminCollection<Homework>("/api/homework");
+  const { items: sent, loaded: sentLoaded, remove, refresh } = useAdminCollection<SentHomework>("/api/homework");
+  const [openSubmissions, setOpenSubmissions] = useState<string | null>(null);
 
   const [sourceText, setSourceText] = useState("");
   const [generating, setGenerating] = useState(false);
@@ -252,28 +256,45 @@ export function AdminHomeworkPage() {
         ) : sent.length === 0 ? (
           <div className={leadStyles.empty}>Nothing sent yet.</div>
         ) : (
-          <div className={own.sentList}>
-            {sent.map((hw) => (
-              <HomeworkCard
-                key={hw.id}
-                homework={hw}
-                dueDate={hw.dueDate}
-                sentAt={hw.createdAt}
-                batches={hw.batchIds.map(batchName)}
-                actions={
-                  <button
-                    type="button"
-                    className={styles.remove}
-                    onClick={() => {
-                      if (window.confirm(`Delete "${hw.title}"? Students will no longer see it.`)) remove(hw.id);
-                    }}
-                  >
-                    Delete
-                  </button>
-                }
-              />
-            ))}
-          </div>
+          <>
+            {openSubmissions && sent.some((hw) => hw.id === openSubmissions) && (
+              <AdminHomeworkSubmissions homeworkId={openSubmissions} onClose={() => setOpenSubmissions(null)} />
+            )}
+            <div className={own.sentList}>
+              {sent.map((hw) => (
+                <HomeworkCard
+                  key={hw.id}
+                  homework={hw}
+                  dueDate={hw.dueDate}
+                  sentAt={hw.createdAt}
+                  batches={hw.batchIds.map(batchName)}
+                  actions={
+                    <>
+                      <button
+                        type="button"
+                        className={own.subsButton}
+                        onClick={() => setOpenSubmissions(hw.id)}
+                      >
+                        Submissions {hw.submittedCount}/{hw.recipientCount}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.remove}
+                        onClick={() => {
+                          if (window.confirm(`Delete "${hw.title}"? Students will no longer see it, and their submitted answers will be deleted too.`)) {
+                            if (openSubmissions === hw.id) setOpenSubmissions(null);
+                            remove(hw.id);
+                          }
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  }
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </AdminShell>

@@ -1,12 +1,13 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { authErrorResponse, requireStudent, type Viewer } from "@/lib/auth";
 import { readPortalState } from "@/lib/portalStateServer";
-import { homeworkFromRow, type HomeworkRow } from "@/lib/homeworkData";
+import { homeworkFromRow, homeworkSubmissionFromRow, type HomeworkRow, type HomeworkSubmissionRow } from "@/lib/homeworkData";
+import { studentHomeworkAccess } from "@/lib/homework";
 
 // The signed-in student's homework, for /student-hub/homework: everything
 // sent to a batch they're actively enrolled in, newest first, each tagged
-// with the batch name(s) it came through. An admin previewing the hub sees
-// all homework so they can check how it looks.
+// with the batch name(s) it came through and their own submission (if
+// any). An admin previewing the hub sees all homework, never submissions.
 export async function GET() {
   let viewer: Viewer;
   try {
@@ -18,27 +19,28 @@ export async function GET() {
   const supabase = getSupabaseAdmin();
   if (!supabase) return new Response("Supabase isn't configured.", { status: 501 });
 
-  let batchIds: string[] | null = null;
-  if (viewer.role !== "admin") {
-    const { data: student } = await supabase.from("students").select("id").eq("user_id", viewer.userId).maybeSingle();
-    if (!student) return Response.json({ homework: [] });
-    const { data: enrollments } = await supabase.from("batch_enrollments").select("batch_id").eq("student_id", student.id).eq("status", "active");
-    batchIds = [...new Set((enrollments ?? []).map((e) => e.batch_id as string))];
-    if (batchIds.length === 0) return Response.json({ homework: [] });
-  }
+  const access = await studentHomeworkAccess(supabase, viewer);
+  if (!access) return Response.json({ homework: [], preview: false });
+  const { studentId, batchIds } = access;
 
   let query = supabase.from("homework").select("*").order("created_at", { ascending: false });
   if (batchIds) query = query.overlaps("batch_ids", batchIds);
-  const [{ data, error }, state] = await Promise.all([query, readPortalState()]);
+  const [{ data, error }, { data: subRows }, state] = await Promise.all([
+    query,
+    studentId ? supabase.from("homework_submissions").select("*").eq("student_id", studentId) : Promise.resolve({ data: [] }),
+    readPortalState(),
+  ]);
   if (error) {
     console.error("Failed to load student homework", error);
-    return Response.json({ homework: [] });
+    return Response.json({ homework: [], preview: !studentId });
   }
 
+  const submissions = new Map(((subRows as HomeworkSubmissionRow[]) ?? []).map((r) => [r.homework_id, homeworkSubmissionFromRow(r)]));
   const names = new Map(state.batches.map((b) => [b.id, `${b.course} · ${b.name}`]));
   const homework = ((data as HomeworkRow[]) ?? []).map((row) => {
     const hw = homeworkFromRow(row);
-    const mine = batchIds ? hw.batchIds.filter((id) => batchIds!.includes(id)) : hw.batchIds;
+    const mine = batchIds ? hw.batchIds.filter((id) => batchIds.includes(id)) : hw.batchIds;
+    const sub = submissions.get(hw.id);
     return {
       id: hw.id,
       title: hw.title,
@@ -47,7 +49,8 @@ export async function GET() {
       dueDate: hw.dueDate,
       createdAt: hw.createdAt,
       batches: mine.map((id) => names.get(id)).filter(Boolean),
+      submission: sub ? { answers: sub.answers, submittedAt: sub.submittedAt, updatedAt: sub.updatedAt } : null,
     };
   });
-  return Response.json({ homework });
+  return Response.json({ homework, preview: !studentId });
 }

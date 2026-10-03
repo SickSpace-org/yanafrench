@@ -12,12 +12,19 @@ export function HomeworkCard({
   sentAt,
   batches,
   actions,
+  renderTask,
+  children,
 }: {
   homework: HomeworkDraft;
   dueDate?: string | null;
   sentAt?: string | null;
   batches?: string[];
   actions?: ReactNode;
+  // Rendered under each task — the student's answer box, or their answer
+  // in Admin → Homework's submissions view.
+  renderTask?: (sectionIndex: number, taskIndex: number) => ReactNode;
+  // Footer below the last section (e.g. the Submit button).
+  children?: ReactNode;
 }) {
   const meta = [sentAt ? `Set ${formatIndiaDate(isoToIndiaDate(sentAt))}` : null, batches?.length ? batches.join(", ") : null].filter(Boolean).join(" · ");
 
@@ -42,11 +49,16 @@ export function HomeworkCard({
           {section.heading && <h3>{section.heading}</h3>}
           <ol>
             {section.tasks.map((task, j) => (
-              <li key={j}>{task}</li>
+              <li key={j}>
+                {task}
+                {renderTask && <div className={styles.taskExtra}>{renderTask(i, j)}</div>}
+              </li>
             ))}
           </ol>
         </section>
       ))}
+
+      {children && <footer className={styles.footer}>{children}</footer>}
     </article>
   );
 }

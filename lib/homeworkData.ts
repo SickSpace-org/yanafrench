@@ -46,6 +46,53 @@ export function homeworkFromRow(row: HomeworkRow): Homework {
   };
 }
 
+// A student's answers, shaped like the homework: answers[section][task].
+export type HomeworkAnswers = string[][];
+
+export type HomeworkSubmission = {
+  id: string;
+  homeworkId: string;
+  studentId: string;
+  answers: HomeworkAnswers;
+  submittedAt: string;
+  updatedAt: string;
+};
+
+export type HomeworkSubmissionRow = {
+  id: string;
+  homework_id: string;
+  student_id: string;
+  answers: HomeworkAnswers | null;
+  submitted_at: string;
+  updated_at: string;
+};
+
+export function homeworkSubmissionFromRow(row: HomeworkSubmissionRow): HomeworkSubmission {
+  return {
+    id: row.id,
+    homeworkId: row.homework_id,
+    studentId: row.student_id,
+    answers: row.answers ?? [],
+    submittedAt: row.submitted_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export const MAX_ANSWER_LENGTH = 5000;
+
+// Fits whatever the browser sent onto the homework's exact shape — one
+// trimmed string per task, extra entries dropped, missing ones empty — so
+// answers[s][t] always lines up with sections[s].tasks[t]. Returns null
+// if every answer is blank.
+export function cleanHomeworkAnswers(sections: HomeworkSection[], input: unknown): HomeworkAnswers | null {
+  const raw = Array.isArray(input) ? input : [];
+  const answers = sections.map((section, s) => {
+    const row = Array.isArray(raw[s]) ? raw[s] : [];
+    return section.tasks.map((_, t) => (typeof row[t] === "string" ? row[t].trim().slice(0, MAX_ANSWER_LENGTH) : ""));
+  });
+  return answers.some((row) => row.some(Boolean)) ? answers : null;
+}
+
 // Drops empty tasks/sections and trims everything, so what's stored is
 // exactly what students see. Returns null if nothing meaningful is left.
 export function cleanHomeworkDraft(input: unknown): HomeworkDraft | null {

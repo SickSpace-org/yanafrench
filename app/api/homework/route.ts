@@ -22,12 +22,32 @@ async function guard() {
 export async function GET() {
   const { supabase, error } = await guard();
   if (!supabase) return error;
-  const { data, error: dbError } = await supabase.from("homework").select("*").order("created_at", { ascending: false });
+  const [{ data, error: dbError }, { data: subs }, { data: enrollments }] = await Promise.all([
+    supabase.from("homework").select("*").order("created_at", { ascending: false }),
+    supabase.from("homework_submissions").select("homework_id"),
+    supabase.from("batch_enrollments").select("student_id, batch_id").eq("status", "active"),
+  ]);
   if (dbError) {
     console.error("Failed to list homework", dbError);
     return Response.json([]);
   }
-  return Response.json(((data as HomeworkRow[]) ?? []).map(homeworkFromRow));
+
+  const submittedBy = new Map<string, number>();
+  for (const s of subs ?? []) submittedBy.set(s.homework_id, (submittedBy.get(s.homework_id) ?? 0) + 1);
+  const studentsInBatch = new Map<string, Set<string>>();
+  for (const e of enrollments ?? []) {
+    const set = studentsInBatch.get(e.batch_id) ?? new Set<string>();
+    set.add(e.student_id);
+    studentsInBatch.set(e.batch_id, set);
+  }
+
+  return Response.json(
+    ((data as HomeworkRow[]) ?? []).map((row) => {
+      const hw = homeworkFromRow(row);
+      const recipients = new Set(hw.batchIds.flatMap((b) => [...(studentsInBatch.get(b) ?? [])]));
+      return { ...hw, submittedCount: submittedBy.get(hw.id) ?? 0, recipientCount: recipients.size };
+    })
+  );
 }
 
 export async function POST(req: Request) {
