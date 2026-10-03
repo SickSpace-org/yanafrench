@@ -40,3 +40,9 @@
 .payBig { display: block; border: 0; background: var(--blue); color: #fff; padding: .9rem 1.4rem; border-radius: 999px; font-size: .85rem; font-weight: 700; cursor: pointer; width: 100%; text-decoration: none; }
 .payBig:disabled { opacity: .6; cursor: default; }
 .signOut { border: 0; background: none; color: var(--text-faint); font-size: .72rem; cursor: pointer; text-decoration: underline; }
+
+/* Locked page: "waiting for Yana" line with a pulsing dot */
+.waiting { display: flex; align-items: center; justify-content: center; gap: .5rem; font-size: .76rem !important; }
+.waiting i { width: .5rem; height: .5rem; border-radius: 50%; background: #25d366; animation: waitPulse 1.4s ease-in-out infinite; flex: none; }
+@keyframes waitPulse { 0%, 100% { opacity: .35; transform: scale(.85); } 50% { opacity: 1; transform: scale(1.15); } }
+@media (prefers-reduced-motion: reduce) { .waiting i { animation: none; } }

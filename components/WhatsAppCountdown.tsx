@@ -11,21 +11,35 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 // Shown on the enroll forms' thank-you screen: counts down 3 seconds, then
 // opens Yana's WhatsApp chat (same tab — a new tab opened from a timer,
 // with no click behind it, gets blocked as a popup). "Stay here" cancels.
-export function WhatsAppCountdown({ message }: { message: string }) {
+// autoStart={false} skips straight to the plain button (e.g. the student
+// already went to WhatsApp once and came back); onOpen runs just before
+// the automatic redirect.
+export function WhatsAppCountdown({
+  message,
+  autoStart = true,
+  hint = "Your enrollment message is ready to send.",
+  onOpen,
+}: {
+  message: string;
+  autoStart?: boolean;
+  hint?: string;
+  onOpen?: () => void;
+}) {
   const [left, setLeft] = useState(SECONDS);
-  const [cancelled, setCancelled] = useState(false);
+  const [cancelled, setCancelled] = useState(!autoStart);
   const href = whatsappUrl(message);
   const tutor = site.tutor.split(" ")[0];
 
   useEffect(() => {
     if (cancelled) return;
     if (left <= 0) {
+      onOpen?.();
       window.location.assign(href);
       return;
     }
     const timer = setTimeout(() => setLeft((n) => n - 1), 1000);
     return () => clearTimeout(timer);
-  }, [left, cancelled, href]);
+  }, [left, cancelled, href, onOpen]);
 
   if (cancelled) {
     return (
@@ -53,7 +67,7 @@ export function WhatsAppCountdown({ message }: { message: string }) {
       </div>
       <div className={styles.text}>
         <strong>{left > 0 ? `Opening ${tutor}'s WhatsApp in ${left}…` : `Opening ${tutor}'s WhatsApp…`}</strong>
-        <span>Your enrollment message is ready to send.</span>
+        <span>{hint}</span>
         <div className={styles.links}>
           <a href={href}>Open now</a>
           <button type="button" onClick={() => setCancelled(true)}>
