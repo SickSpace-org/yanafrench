@@ -20,11 +20,13 @@ export async function GET() {
   const supabase = getSupabaseAdmin();
   if (!supabase) return Response.json([]);
 
-  const [{ data: students, error }, { data: batchRows }, { data: courseRows }, { data: emiRows }] = await Promise.all([
+  const [{ data: students, error }, { data: batchRows }, { data: courseRows }, { data: emiRows }, { data: batchPays }, { data: coursePays }] = await Promise.all([
     supabase.from("students").select("*").order("enrolled_at", { ascending: false }),
     supabase.from("batch_enrollments").select("*"),
     supabase.from("course_enrollments").select("*"),
     supabase.from("emi_installments").select("*").order("due_date", { ascending: true }),
+    supabase.from("payments").select("id, amount").eq("status", "paid"),
+    supabase.from("course_payments").select("id, amount").eq("status", "paid"),
   ]);
   if (error) {
     console.error("Failed to list students", error);
@@ -51,6 +53,19 @@ export async function GET() {
     emiByStudent.set(row.student_id, list);
   }
 
+  // Total paid per student: each enrollment's first payment (confirmed by
+  // the admin, or online for older ones) + every EMI paid since.
+  const paidById = new Map<string, number>();
+  for (const p of [...(batchPays ?? []), ...(coursePays ?? [])]) paidById.set(p.id as string, p.amount as number);
+  function totalPaidPaise(studentId: string) {
+    const firsts = [...(batchesByStudent.get(studentId) ?? []), ...(coursesByStudent.get(studentId) ?? [])].reduce(
+      (sum, e) => sum + (paidById.get(e.payment_id) ?? 0),
+      0
+    );
+    const emis = (emiByStudent.get(studentId) ?? []).filter((i) => i.status === "paid").reduce((sum, i) => sum + i.amount, 0);
+    return firsts + emis;
+  }
+
   const result = (students as StudentRow[]).map((row) => ({
     ...studentFromRow(
       row,
@@ -58,6 +73,7 @@ export async function GET() {
       (coursesByStudent.get(row.id) ?? []).map(courseEnrollmentFromRow)
     ),
     emiInstallments: (emiByStudent.get(row.id) ?? []).map(emiInstallmentFromRow),
+    totalPaidPaise: totalPaidPaise(row.id),
   }));
 
   return Response.json(result);

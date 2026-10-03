@@ -35,6 +35,9 @@ export type Student = {
   // attached by the admin roster (app/api/students); the student's own hub
   // reads it separately from app/api/student/emi.
   emiInstallments?: EmiInstallment[];
+  // Everything this student has paid (first payments + EMIs) — also only
+  // attached by app/api/students.
+  totalPaidPaise?: number;
 };
 
 // snake_case row shape as stored in the Supabase `students` table. The

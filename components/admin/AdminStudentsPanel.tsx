@@ -72,6 +72,7 @@ export function AdminStudentsPanel({
             <th>Name</th>
             <th>Contact</th>
             <th>Enrollments</th>
+            <th>Total paid</th>
             <th>First enrolled</th>
             <th>Login</th>
             <th />
@@ -116,6 +117,13 @@ export function AdminStudentsPanel({
                     })}
                   </div>
                 )}
+              </td>
+              <td>
+                <strong style={{ whiteSpace: "nowrap" }}>{formatRupees(s.totalPaidPaise ?? 0)}</strong>
+                {(() => {
+                  const owed = (s.emiInstallments ?? []).filter((i) => i.status === "pending").reduce((sum, i) => sum + i.amount, 0);
+                  return owed > 0 ? <div className={styles.muted} style={{ whiteSpace: "nowrap" }}>{formatRupees(owed)} still due in EMIs</div> : null;
+                })()}
               </td>
               <td className={styles.time}>{formatWhen(s.enrolledAt)}</td>
               <td>
