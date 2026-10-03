@@ -9,8 +9,9 @@ import { useQuizState } from "@/lib/useQuizState";
 import { usePortalState } from "@/lib/usePortalState";
 import { useStudentProfile, displayName } from "@/lib/useStudentProfile";
 import { generateClassEvents } from "@/lib/batchData";
-import { JOIN_CLASS_URL } from "@/lib/attendanceData";
+import { joinClassUrl, useClassLinks } from "@/lib/useClassLinks";
 import { site } from "@/lib/site";
+import { ClassLinkLine } from "./ClassLinkLine";
 import { DashboardShell } from "./DashboardShell";
 import { EmiPaymentsCard } from "./EmiPaymentsCard";
 import styles from "./StudentDashboard.module.css";
@@ -42,6 +43,7 @@ function ProgressRing({ value }: { value: number }) {
 
 export function StudentDashboard() {
   const { wordOfWeek, teacherNote, batches, zoomLink } = usePortalState();
+  const classLinks = useClassLinks();
   const { level: currentLevelCode, sessions: quizSessions } = useQuizState();
   const profile = useStudentProfile();
   const name = displayName(profile) || "there";
@@ -62,6 +64,8 @@ export function StudentDashboard() {
     .filter((e): e is NonNullable<typeof e> => Boolean(e))
     .sort((a, b) => a.date.getTime() - b.date.getTime());
   const nextClass = myUpcomingClasses[0] ?? null;
+  // The batch's own link (Admin → Attendance), else the general Zoom link.
+  const nextClassLink = nextClass ? classLinks[nextClass.batchId] || zoomLink : "";
   const moreUpcomingCount = Math.max(0, myUpcomingClasses.length - 1);
 
   return (
@@ -83,8 +87,11 @@ export function StudentDashboard() {
               </strong>
               <small className={styles.cardMeta}>{nextClass.time}</small>
               <div className={styles.teacherLine}><i /> With {site.tutor}</div>
-              {zoomLink ? (
-                <a href={JOIN_CLASS_URL} target="_blank" rel="noreferrer" className={styles.cardCtaSolid}>Join class</a>
+              {nextClassLink ? (
+                <>
+                  <a href={joinClassUrl(nextClass.batchId)} target="_blank" rel="noreferrer" className={styles.cardCtaSolid}>Join class</a>
+                  <ClassLinkLine url={nextClassLink} />
+                </>
               ) : (
                 <button type="button" className={styles.cardCtaSolid} disabled>Link coming soon</button>
               )}

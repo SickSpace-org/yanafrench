@@ -33,3 +33,16 @@
 .cellUpcoming { background: rgba(23,25,28,.05); color: var(--text-faint); }
 .manual { border-color: currentColor; }
 .register button:disabled { opacity: .6; cursor: default; }
+
+/* Per-batch class link */
+.linkBox { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .6rem .8rem; padding: 1rem 1.1rem; border: 1px solid var(--hairline-ink); border-radius: var(--r-lg); background: var(--card-surface, #fff); }
+.linkBox label { display: flex; flex-direction: column; gap: .35rem; flex: 1 1 320px; min-width: 0; }
+.linkBox span { font-size: .58rem; letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--text-faint); }
+.linkBox input { padding: .6rem .7rem; border: 1px solid var(--hairline-ink); border-radius: var(--r-md); background: var(--card-surface, #fff); font-size: .82rem; color: var(--text-primary); min-width: 0; }
+.linkBox input:focus { outline: none; border-color: var(--blue); }
+.linkSave { border: 0; background: var(--blue); color: #fff; padding: .65rem 1.1rem; border-radius: 999px; font-size: .72rem; font-weight: 700; cursor: pointer; }
+.linkSave:disabled { opacity: .5; cursor: default; }
+.linkRemove { border: 0; background: none; color: var(--bordeaux); font-size: .72rem; font-weight: 700; cursor: pointer; padding: .65rem .2rem; }
+.linkHint, .linkOk, .linkError { flex-basis: 100%; margin: 0; font-size: .72rem; color: var(--text-muted); }
+.linkOk { color: #2f6b47; font-weight: 700; }
+.linkError { color: #B63A3A; font-weight: 700; }

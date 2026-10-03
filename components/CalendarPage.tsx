@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { generateClassEvents, formatTime, DAY_LABELS, type Batch, type BatchCourse } from "@/lib/batchData";
 import { usePortalState } from "@/lib/usePortalState";
-import { JOIN_CLASS_URL } from "@/lib/attendanceData";
+import { joinClassUrl, useClassLinks } from "@/lib/useClassLinks";
+import { ClassLinkLine } from "./ClassLinkLine";
 import { useStudentProfile } from "@/lib/useStudentProfile";
 import { DashboardShell } from "./DashboardShell";
 import styles from "./CalendarPage.module.css";
@@ -15,7 +16,7 @@ function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-function BatchCard({ batch, zoomLink, isYours }: { batch: Batch; zoomLink: string; isYours: boolean }) {
+function BatchCard({ batch, zoomLink, isYours, link }: { batch: Batch; zoomLink: string; isYours: boolean; link: string }) {
   const next = useMemo(() => generateClassEvents(batch, zoomLink, 30)[0] ?? null, [batch, zoomLink]);
 
   return (
@@ -33,13 +34,19 @@ function BatchCard({ batch, zoomLink, isYours }: { batch: Batch; zoomLink: strin
           Next class: {next.date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
         </small>
       )}
-      {zoomLink && <a href={JOIN_CLASS_URL} target="_blank" rel="noreferrer" className={styles.joinLink}>Join class →</a>}
+      {link && (
+        <>
+          <a href={joinClassUrl(batch.id)} target="_blank" rel="noreferrer" className={styles.joinLink}>Join class →</a>
+          {isYours && <ClassLinkLine url={link} />}
+        </>
+      )}
     </div>
   );
 }
 
 export function CalendarPage() {
   const { batches, zoomLink } = usePortalState();
+  const classLinks = useClassLinks();
   const profile = useStudentProfile();
   // A real student's own enrolled batches (see lib/batchEnrollmentData.ts —
   // one person can hold more than one) — falls back to the admin's
@@ -139,7 +146,7 @@ export function CalendarPage() {
           <h2>Your batches</h2>
           {visibleBatches.length > 0 ? (
             <div className={styles.list}>
-              {visibleBatches.map((b) => <BatchCard key={b.id} batch={b} zoomLink={zoomLink} isYours={isMine(b)} />)}
+              {visibleBatches.map((b) => <BatchCard key={b.id} batch={b} zoomLink={zoomLink} isYours={isMine(b)} link={classLinks[b.id] || zoomLink} />)}
             </div>
           ) : (
             <div className={styles.empty}>

@@ -38,6 +38,86 @@ function cellTitle(name: string, date: string, cell: Cell) {
   return `${name} · ${date}: ${what}${how}. Click to mark ${cell.status === "present" ? "absent" : "present"}.`;
 }
 
+// The selected batch's class link (Zoom / Meet / …) — only students in
+// this batch see it, on their dashboard and behind "Join class".
+function ClassLinkEditor({ batchId }: { batchId: string }) {
+  const [saved, setSaved] = useState<string | null | undefined>(undefined);
+  const [value, setValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSaved(undefined);
+    setMessage(null);
+    fetch(`/api/class-links?batchId=${encodeURIComponent(batchId)}`, { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : { url: null }))
+      .then((data) => {
+        if (cancelled) return;
+        setSaved(data.url ?? null);
+        setValue(data.url ?? "");
+      })
+      .catch(() => !cancelled && setSaved(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [batchId]);
+
+  async function save(url: string) {
+    setSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/class-links", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ batchId, url }),
+      });
+      if (!res.ok) throw new Error((await res.text()) || "Couldn't save the link.");
+      const data = (await res.json()) as { url: string | null };
+      setSaved(data.url);
+      setValue(data.url ?? "");
+      setMessage({ ok: true, text: data.url ? "Saved — students in this batch can see it now." : "Link removed." });
+    } catch (err) {
+      setMessage({ ok: false, text: err instanceof Error ? err.message : "Couldn't save the link." });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const dirty = saved !== undefined && value.trim() !== (saved ?? "");
+
+  return (
+    <div className={own.linkBox}>
+      <label>
+        <span>Class link for this batch</span>
+        <input
+          type="url"
+          inputMode="url"
+          placeholder={saved === undefined ? "Loading…" : "Paste the Zoom / Google Meet link"}
+          value={value}
+          disabled={saved === undefined || saving}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && dirty && save(value)}
+        />
+      </label>
+      <button type="button" className={own.linkSave} disabled={!dirty || saving} onClick={() => save(value)}>
+        {saving ? "Saving…" : "Save link"}
+      </button>
+      {saved && !dirty && (
+        <button type="button" className={own.linkRemove} disabled={saving} onClick={() => save("")}>
+          Remove
+        </button>
+      )}
+      <p className={message ? (message.ok ? own.linkOk : own.linkError) : own.linkHint}>
+        {message?.text ??
+          (saved
+            ? "Students in this batch see this link on their dashboard, and Join class opens it."
+            : "No link yet — students in this batch get the general Zoom link (Admin → Lessons) until you add one.")}
+      </p>
+    </div>
+  );
+}
+
 // Attendance register for one batch: students down the side, class dates
 // across the top (today first), P / A in each cell — updated live as
 // students click "Join class". Click any cell to flip it between P and A;
@@ -123,6 +203,8 @@ export function AdminAttendancePage() {
               </select>
             </label>
           </div>
+
+          {batchId && <ClassLinkEditor batchId={batchId} />}
 
           {batch && (
             <p className={styles.tabHint}>
