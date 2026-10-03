@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useAdminCollection } from "@/lib/useAdminCollection";
 import { formatRupees } from "@/lib/formatCurrency";
 import {
@@ -74,8 +74,66 @@ function NextStatus({ next, today }: { next: EmiInstallment | null; today: strin
   return <span className={leadStyles.time}>in {-d} {d === -1 ? "day" : "days"}</span>;
 }
 
+// One line of a plan's schedule, with the admin's manual controls: "Mark
+// paid" (confirm step, since it's money) and "Undo" for a manual mark.
+function InstallmentLine({ inst, onChanged }: { inst: EmiInstallment; onChanged: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function send(action: "paid" | "unpaid") {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/emi/installments/${encodeURIComponent(inst.id)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) throw new Error((await res.text()) || "Something went wrong.");
+      setConfirming(false);
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const paid = inst.status === "paid";
+  return (
+    <li className={paid ? emiStyles.paid : undefined}>
+      <span>#{inst.installmentNo}</span>
+      <span>{formatIndiaDate(inst.dueDate)}</span>
+      <span>{formatRupees(inst.amount)}</span>
+      <span>{paid && inst.paidAt ? `Paid ${formatIndiaDate(isoToIndiaDate(inst.paidAt))}` : paid ? "Paid" : "Pending"}</span>
+      <span className={emiStyles.lineActions}>
+        {paid ? (
+          <button type="button" className={emiStyles.undo} disabled={saving} onClick={() => send("unpaid")} title="Undo a payment you marked by hand">
+            {saving ? "…" : "Undo"}
+          </button>
+        ) : confirming ? (
+          <>
+            <button type="button" className={emiStyles.markPaid} disabled={saving} onClick={() => send("paid")}>
+              {saving ? "Saving…" : `Confirm ${formatRupees(inst.amount)} received`}
+            </button>
+            <button type="button" className={emiStyles.undo} disabled={saving} onClick={() => setConfirming(false)}>
+              Cancel
+            </button>
+          </>
+        ) : (
+          <button type="button" className={emiStyles.markPaid} onClick={() => setConfirming(true)}>
+            Mark paid
+          </button>
+        )}
+      </span>
+      {error && <span className={emiStyles.lineError}>{error}</span>}
+    </li>
+  );
+}
+
 export function AdminEmiPage() {
-  const { items: students, loaded } = useAdminCollection<Student>("/api/students");
+  const { items: students, loaded, refresh } = useAdminCollection<Student>("/api/students");
   const plans = useMemo(() => buildPlans(students), [students]);
   const today = todayInIndia();
 
@@ -95,7 +153,10 @@ export function AdminEmiPage() {
       <div className={styles.head}>
         <small>ADMIN</small>
         <h1>EMI.</h1>
-        <p>Students paying in installments — what they&rsquo;ve paid, and when their next payment is due.</p>
+        <p>
+          Students paying in installments — what they&rsquo;ve paid, and when their next payment is due. Got an EMI by bank transfer, UPI
+          or cash? Press &ldquo;Mark paid&rdquo; next to it — if their Student Hub was locked, it unlocks straight away.
+        </p>
       </div>
 
       {!loaded ? (
@@ -159,12 +220,7 @@ export function AdminEmiPage() {
                         <td>
                           <ul className={emiStyles.schedule}>
                             {p.installments.map((i) => (
-                              <li key={i.id} className={i.status === "paid" ? emiStyles.paid : undefined}>
-                                <span>#{i.installmentNo}</span>
-                                <span>{formatIndiaDate(i.dueDate)}</span>
-                                <span>{formatRupees(i.amount)}</span>
-                                <span>{i.status === "paid" && i.paidAt ? `Paid ${formatIndiaDate(isoToIndiaDate(i.paidAt))}` : i.status === "paid" ? "Paid" : "Pending"}</span>
-                              </li>
+                              <InstallmentLine key={i.id} inst={i} onChanged={refresh} />
                             ))}
                           </ul>
                         </td>
