@@ -49,7 +49,7 @@ export async function GET() {
       dueDate: hw.dueDate,
       createdAt: hw.createdAt,
       batches: mine.map((id) => names.get(id)).filter(Boolean),
-      submission: sub ? { answers: sub.answers, submittedAt: sub.submittedAt, updatedAt: sub.updatedAt } : null,
+      submission: sub ? { answers: sub.answers, feedback: sub.feedback, submittedAt: sub.submittedAt, updatedAt: sub.updatedAt } : null,
     };
   });
   return Response.json({ homework, preview: !studentId });

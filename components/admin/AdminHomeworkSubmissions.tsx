@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { formatIndiaDate, isoToIndiaDate } from "@/lib/emiData";
 import type { Homework, HomeworkSubmission } from "@/lib/homeworkData";
 import { HomeworkCard } from "../HomeworkCard";
+import { FeedbackSummary, TaskFeedback } from "../HomeworkFeedback";
 import card from "../HomeworkCard.module.css";
 import styles from "./AdminLessonsManager.module.css";
 import leadStyles from "./AdminLeadsPanel.module.css";
@@ -120,9 +121,18 @@ export function AdminHomeworkSubmissions({ homeworkId, onClose }: { homeworkId: 
                 }
                 renderTask={(s, t) => {
                   const answer = current.submission!.answers[s]?.[t];
-                  return answer ? <div className={card.answer}>{answer}</div> : <span className={card.noAnswer}>No answer</span>;
+                  return answer ? (
+                    <>
+                      <div className={card.answer}>{answer}</div>
+                      <TaskFeedback item={current.submission!.feedback?.items[s]?.[t]} />
+                    </>
+                  ) : (
+                    <span className={card.noAnswer}>No answer</span>
+                  );
                 }}
-              />
+              >
+                {current.submission.feedback && <FeedbackSummary feedback={current.submission.feedback} />}
+              </HomeworkCard>
             )}
           </div>
         </div>

@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { daysOverdue, formatIndiaDate, isoToIndiaDate, todayInIndia } from "@/lib/emiData";
-import type { HomeworkAnswers, HomeworkSection } from "@/lib/homeworkData";
+import type { HomeworkAnswers, HomeworkFeedback, HomeworkSection } from "@/lib/homeworkData";
 import { DashboardShell } from "./DashboardShell";
 import { HomeworkCard } from "./HomeworkCard";
+import { FeedbackSummary, TaskFeedback } from "./HomeworkFeedback";
 import styles from "./AttendancePage.module.css";
 import card from "./HomeworkCard.module.css";
 
-type Submission = { answers: HomeworkAnswers; submittedAt: string; updatedAt: string };
+type Submission = { answers: HomeworkAnswers; feedback: HomeworkFeedback | null; submittedAt: string; updatedAt: string };
 
 type StudentHomework = {
   id: string;
@@ -82,19 +83,24 @@ function HomeworkItem({ hw, preview, today }: { hw: StudentHomework; preview: bo
       batches={hw.batches}
       actions={chip}
       renderTask={(s, t) => (
-        <textarea
-          className={card.answerInput}
-          aria-label={`Answer for ${hw.sections[s].heading || `section ${s + 1}`}, task ${t + 1}`}
-          placeholder="Your answer…"
-          rows={Math.min(8, Math.max(1, answers[s][t].split("\n").length))}
-          value={answers[s][t]}
-          disabled={preview || saving}
-          onChange={(e) => setAnswer(s, t, e.target.value)}
-        />
+        <>
+          <textarea
+            className={card.answerInput}
+            aria-label={`Answer for ${hw.sections[s].heading || `section ${s + 1}`}, task ${t + 1}`}
+            placeholder="Your answer…"
+            rows={Math.min(8, Math.max(1, answers[s][t].split("\n").length))}
+            value={answers[s][t]}
+            disabled={preview || saving}
+            onChange={(e) => setAnswer(s, t, e.target.value)}
+          />
+          {/* Only while the answer is still the one that was checked. */}
+          {answers[s][t] === savedAnswers[s][t] && <TaskFeedback item={submission?.feedback?.items[s]?.[t]} />}
+        </>
       )}
     >
+      {submission?.feedback && !dirty && <FeedbackSummary feedback={submission.feedback} />}
       <button type="button" className={card.submit} onClick={submit} disabled={preview || saving || !hasAny || (!!submission && !dirty)}>
-        {saving ? "Submitting…" : submission ? "Resubmit answers" : "Submit homework"}
+        {saving ? "Submitting & checking…" : submission ? "Resubmit answers" : "Submit homework"}
       </button>
       {preview ? (
         <span className={card.status}>Preview — students submit from their own account.</span>
@@ -103,8 +109,8 @@ function HomeworkItem({ hw, preview, today }: { hw: StudentHomework; preview: bo
       ) : submission ? (
         <span className={dirty ? card.status : card.statusDone}>
           {dirty
-            ? "You've changed your answers — resubmit to send the new version."
-            : `Submitted ${formatWhen(submission.updatedAt)}${submission.updatedAt !== submission.submittedAt ? " (updated)" : ""}`}
+            ? "You've changed your answers — resubmit to send the new version and get it checked again."
+            : `Submitted ${formatWhen(submission.updatedAt)}${submission.updatedAt !== submission.submittedAt ? " (updated)" : ""}${submission.feedback ? " · checked by AI" : ""}`}
         </span>
       ) : (
         <span className={card.status}>Answer what you can — you can edit and resubmit any time.</span>
@@ -138,7 +144,7 @@ export function HomeworkPage() {
         <small>YOUR CLASSES</small>
         <h1>Homework.</h1>
         <p>
-          Homework from your teacher for your batch, newest first. Type your answers under each task and submit — you can edit and resubmit any time.
+          Homework from your teacher for your batch, newest first. Type your answers under each task and submit — the AI checks them straight away and shows you what to fix. You can edit and resubmit any time.
           {homework && homework.length > 0 && !preview ? ` ${pending === 0 ? "All caught up!" : `${pending} still to submit.`}` : ""}
         </p>
       </div>

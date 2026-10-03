@@ -3,11 +3,13 @@ import { authErrorResponse, requireStudent, type Viewer } from "@/lib/auth";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 import { cleanHomeworkAnswers, homeworkFromRow, homeworkSubmissionFromRow, type HomeworkRow, type HomeworkSubmissionRow } from "@/lib/homeworkData";
 import { studentHomeworkAccess } from "@/lib/homework";
+import { checkHomeworkAnswers } from "@/lib/homeworkCheck";
 
 // POST { answers } → submit (or resubmit) the signed-in student's answers
-// to homework X. Only for homework sent to one of their active batches —
-// or any homework for an admin with a linked student record, who is
-// treated as enrolled in every batch.
+// to homework X, then have the AI check them and return its feedback.
+// Only for homework sent to one of their active batches — or any homework
+// for an admin with a linked student record, who is treated as enrolled
+// in every batch.
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   let viewer: Viewer;
   try {
@@ -61,5 +63,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return new Response("Couldn't submit — please try again.", { status: 500 });
   }
   const sub = homeworkSubmissionFromRow(result.data as HomeworkSubmissionRow);
-  return Response.json({ submission: { answers: sub.answers, submittedAt: sub.submittedAt, updatedAt: sub.updatedAt } });
+
+  // Answers are safe; now the AI check. Best-effort — if it fails the
+  // student still sees "Submitted", just without feedback.
+  const feedback = await checkHomeworkAnswers(homework, answers);
+  const { error: fbErr } = await supabase.from("homework_submissions").update({ feedback }).eq("id", sub.id);
+  if (fbErr) console.error("Failed to save homework feedback", sub.id, fbErr);
+
+  return Response.json({
+    submission: { answers: sub.answers, feedback: fbErr ? null : feedback, submittedAt: sub.submittedAt, updatedAt: sub.updatedAt },
+  });
 }

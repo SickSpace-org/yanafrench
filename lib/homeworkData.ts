@@ -49,11 +49,32 @@ export function homeworkFromRow(row: HomeworkRow): Homework {
 // A student's answers, shaped like the homework: answers[section][task].
 export type HomeworkAnswers = string[][];
 
+// The AI's check of one answer. "open" is for free-writing tasks with no
+// single right answer — the explanation is a comment, not a verdict.
+export type HomeworkVerdict = "correct" | "partly" | "incorrect" | "open" | "unanswered";
+
+export type HomeworkTaskFeedback = {
+  verdict: HomeworkVerdict;
+  correction: string; // the correct answer (open tasks: corrected text or a model answer)
+  explanation: string; // what was wrong / why it's right, in plain English
+};
+
+// What lib/homeworkCheck.ts stores on a submission: items[section][task]
+// lines up with the answers.
+export type HomeworkFeedback = {
+  summary: string;
+  correct: number;
+  total: number; // tasks with a right/wrong answer (not "open")
+  items: HomeworkTaskFeedback[][];
+  checkedAt: string;
+};
+
 export type HomeworkSubmission = {
   id: string;
   homeworkId: string;
   studentId: string;
   answers: HomeworkAnswers;
+  feedback: HomeworkFeedback | null;
   submittedAt: string;
   updatedAt: string;
 };
@@ -63,6 +84,7 @@ export type HomeworkSubmissionRow = {
   homework_id: string;
   student_id: string;
   answers: HomeworkAnswers | null;
+  feedback?: HomeworkFeedback | null;
   submitted_at: string;
   updated_at: string;
 };
@@ -73,6 +95,7 @@ export function homeworkSubmissionFromRow(row: HomeworkSubmissionRow): HomeworkS
     homeworkId: row.homework_id,
     studentId: row.student_id,
     answers: row.answers ?? [],
+    feedback: row.feedback ?? null,
     submittedAt: row.submitted_at,
     updatedAt: row.updated_at,
   };

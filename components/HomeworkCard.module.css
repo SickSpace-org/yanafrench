@@ -54,3 +54,21 @@
 .status { font-size: .7rem; color: var(--text-muted); }
 .statusDone { font-size: .7rem; font-weight: 700; color: #2f6b47; }
 .statusError { font-size: .7rem; font-weight: 700; color: #B63A3A; }
+
+/* AI check of an answer (components/HomeworkFeedback.tsx) */
+.feedback { margin-top: .35rem; display: flex; flex-direction: column; gap: .15rem; padding: .45rem .7rem; border-radius: 8px; font-size: .76rem; line-height: 1.45; color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
+.feedback strong { font-size: .66rem; letter-spacing: .04em; }
+.feedback_correct { background: rgba(47,107,71,.09); }
+.feedback_correct strong { color: #2f6b47; }
+.feedback_partly { background: rgba(196,138,30,.11); }
+.feedback_partly strong { color: #9a6a12; }
+.feedback_incorrect { background: rgba(182,58,58,.08); }
+.feedback_incorrect strong { color: #B63A3A; }
+.feedback_open { background: rgba(31,58,95,.06); }
+.feedback_open strong { color: var(--blue); }
+.feedback_unanswered { background: rgba(120,120,120,.08); }
+.feedback_unanswered strong { color: var(--text-muted); }
+.feedbackFix b { font-weight: 700; }
+.feedbackSummary { width: 100%; display: flex; flex-direction: column; gap: .35rem; padding: .7rem .9rem; border-radius: 10px; background: rgba(31,58,95,.05); }
+.feedbackSummary p { margin: 0; font-size: .8rem; line-height: 1.5; color: var(--text-primary); }
+.feedbackScore { font-size: .9rem; font-weight: 700; color: var(--blue); }
