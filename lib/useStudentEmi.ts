@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { loadRazorpayScript } from "./loadRazorpayScript";
-import type { EmiInstallment } from "./emiData";
+import { formatIndiaDate, type EmiInstallment } from "./emiData";
+import { formatRupees } from "./formatCurrency";
 
 export type StudentEmiState = {
   loaded: boolean;
@@ -12,7 +12,7 @@ export type StudentEmiState = {
 };
 
 // The signed-in student's EMI schedule (app/api/student/emi) — fetched on
-// mount and again after a payment, like useStudentProfile.
+// mount and on refresh(), like useStudentProfile.
 export function useStudentEmi(): StudentEmiState & { refresh: () => void } {
   const [state, setState] = useState<StudentEmiState>({ loaded: false, installments: [], locked: false, today: null });
 
@@ -30,55 +30,8 @@ export function useStudentEmi(): StudentEmiState & { refresh: () => void } {
   return { ...state, refresh };
 }
 
-// Creates an order for the student's next unpaid installment (the server
-// picks which one and how much) and opens Razorpay's checkout for it.
-// Resolves "paid" once the payment is verified server-side, "dismissed" if
-// the student closed the window, and throws on any other failure.
-export async function payNextEmi(): Promise<"paid" | "dismissed"> {
-  const res = await fetch("/api/emi/create-order", { method: "POST" });
-  if (!res.ok) throw new Error((await res.text().catch(() => "")) || "Couldn't start the payment. Please try again.");
-  const order = (await res.json()) as {
-    orderId: string;
-    amount: number;
-    currency: string;
-    title: string;
-    prefill: { name: string; email: string; contact: string };
-  };
-
-  const scriptOk = await loadRazorpayScript();
-  if (!scriptOk || !window.Razorpay) throw new Error("Couldn't load the payment widget. Check your connection and try again.");
-
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    const razorpay = new window.Razorpay!({
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-      amount: order.amount,
-      currency: order.currency,
-      order_id: order.orderId,
-      name: "The Français Hub",
-      description: order.title,
-      prefill: order.prefill,
-      theme: { color: "#1F3A5F" },
-      handler: async (response: Record<string, string>) => {
-        settled = true;
-        try {
-          const verify = await fetch("/api/emi/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(response),
-          });
-          if (!verify.ok) throw new Error();
-          resolve("paid");
-        } catch {
-          reject(new Error("Payment went through, but we couldn't confirm it automatically — it will update shortly. Contact us if it doesn't."));
-        }
-      },
-      modal: {
-        ondismiss: () => {
-          if (!settled) resolve("dismissed");
-        },
-      },
-    });
-    razorpay.open();
-  });
+// What a student sends Yana on WhatsApp to pay an EMI — there's no online
+// payment in the hub; Yana marks it paid in Admin → EMI once received.
+export function emiWhatsappMessage(inst: EmiInstallment): string {
+  return `Hi Yana! I'd like to pay my EMI ${inst.installmentNo} of ${inst.installmentCount} for ${inst.productTitle} — ${formatRupees(inst.amount)}, due ${formatIndiaDate(inst.dueDate)}. How can I pay?`;
 }

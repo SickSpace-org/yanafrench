@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import type { Student } from "@/lib/studentData";
 import { formatRupees } from "@/lib/formatCurrency";
 import { daysOverdue, formatIndiaDate, isoToIndiaDate, lockDate, nextPendingInstallment, EMI_GRACE_DAYS, type EmiInstallment } from "@/lib/emiData";
-import { payNextEmi, useStudentEmi } from "@/lib/useStudentEmi";
+import { emiWhatsappMessage, useStudentEmi } from "@/lib/useStudentEmi";
+import { whatsappUrl } from "@/lib/site";
 import styles from "./EmiPayments.module.css";
 
 function DueChip({ inst, today }: { inst: EmiInstallment; today: string }) {
@@ -17,13 +17,10 @@ function DueChip({ inst, today }: { inst: EmiInstallment; today: string }) {
 
 // Dashboard card: every enrollment with the date it started, and for EMI
 // purchases how many installments are paid, the next payment date, and a
-// "Pay next EMI" button (which always charges the earliest unpaid one —
-// see app/api/emi/create-order).
+// "Pay on WhatsApp" button for the earliest unpaid one — payment goes to
+// Yana directly, and she marks it paid in Admin → EMI.
 export function EmiPaymentsCard({ student }: { student: Student }) {
   const emi = useStudentEmi();
-  const [paying, setPaying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [justPaid, setJustPaid] = useState(false);
 
   const next = nextPendingInstallment(emi.installments);
   const byEnrollment = new Map<string, EmiInstallment[]>();
@@ -39,21 +36,6 @@ export function EmiPaymentsCard({ student }: { student: Student }) {
   ].sort((a, b) => a.enrolledAt.localeCompare(b.enrolledAt));
 
   if (enrollments.length === 0) return null;
-
-  async function handlePay() {
-    setPaying(true);
-    setError(null);
-    setJustPaid(false);
-    try {
-      const result = await payNextEmi();
-      if (result === "paid") setJustPaid(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
-    } finally {
-      setPaying(false);
-      emi.refresh();
-    }
-  }
 
   return (
     <section className={styles.card} aria-label="Your enrollments and payments">
@@ -82,16 +64,15 @@ export function EmiPaymentsCard({ student }: { student: Student }) {
               {plan && pending && emi.today && <DueChip inst={pending} today={emi.today} />}
               {plan && !pending && <span className={`${styles.chip} ${styles.chipOk}`}>Paid ✓</span>}
               {pending && next && pending.id === next.id && (
-                <button type="button" className={styles.pay} onClick={handlePay} disabled={paying}>
-                  {paying ? "Opening payment…" : `Pay next EMI · ${formatRupees(pending.amount)}`}
-                </button>
+                <a className={styles.pay} href={whatsappUrl(emiWhatsappMessage(pending))} target="_blank" rel="noreferrer">
+                  Pay on WhatsApp · {formatRupees(pending.amount)}
+                </a>
               )}
             </li>
           );
         })}
       </ul>
-      {justPaid && <p className={styles.success}>Payment received — thank you!</p>}
-      {error && <p className={styles.error}>{error}</p>}
+      {next && <p className={styles.itemMeta}>Pay Yana on WhatsApp — your EMI shows as paid here once she confirms it.</p>}
     </section>
   );
 }

@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { whatsappUrl } from "@/lib/site";
 import { formatRupees } from "@/lib/formatCurrency";
 import { formatIndiaDate, lockDate, nextPendingInstallment } from "@/lib/emiData";
-import { payNextEmi, useStudentEmi } from "@/lib/useStudentEmi";
+import { emiWhatsappMessage, useStudentEmi } from "@/lib/useStudentEmi";
 import { WhatsAppCountdown } from "./WhatsAppCountdown";
 import styles from "./EmiPayments.module.css";
 
@@ -17,12 +18,10 @@ const POLL_MS = 5000;
 // after 3 seconds to arrange payment; once she marks it paid in Admin →
 // EMI, this page notices (it keeps checking) and opens the hub by itself.
 // Also reachable when not locked (the reminder emails link here), in which
-// case it's simply a "pay your next EMI" page with online payment.
+// case it's simply a "pay your next EMI" page with a WhatsApp button.
 export function PayEmiPage() {
   const emi = useStudentEmi();
   const { refresh } = emi;
-  const [paying, setPaying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const next = nextPendingInstallment(emi.installments);
   // Auto-open WhatsApp only once per installment per browser session —
   // coming back from WhatsApp must not bounce the student straight back.
@@ -67,23 +66,6 @@ export function PayEmiPage() {
     };
   }, [emi.loaded, emi.locked, refresh]);
 
-  async function handlePay() {
-    setPaying(true);
-    setError(null);
-    try {
-      const result = await payNextEmi();
-      if (result === "paid") {
-        // Full navigation (not router.push) so proxy.ts re-checks the lock.
-        window.location.href = "/student-hub";
-        return;
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
-    }
-    setPaying(false);
-    emi.refresh();
-  }
-
   return (
     <main className={styles.page}>
       <div className={styles.panel}>
@@ -116,7 +98,7 @@ export function PayEmiPage() {
                 autoStart={autoOpen}
                 onOpen={markOpened}
                 hint="Your payment message is ready to send."
-                message={`Hi Yana! I'd like to pay my EMI ${next.installmentNo} of ${next.installmentCount} for ${next.productTitle} — ${formatRupees(next.amount)}, due ${formatIndiaDate(next.dueDate)}. How can I pay?`}
+                message={emiWhatsappMessage(next)}
               />
             )}
             <p className={styles.waiting}>
@@ -127,7 +109,7 @@ export function PayEmiPage() {
           <>
             <h1>Pay your next EMI.</h1>
             <p>
-              {`Pay before ${formatIndiaDate(lockDate(next.dueDate))} to keep your Student Hub unlocked.`}
+              {`Pay Yana on WhatsApp before ${formatIndiaDate(lockDate(next.dueDate))} to keep your Student Hub unlocked. It shows as paid once she confirms it.`}
             </p>
             <div className={styles.amount}>{formatRupees(next.amount)}</div>
             <div className={styles.facts}>
@@ -136,10 +118,9 @@ export function PayEmiPage() {
               <div><span>Due date</span>{formatIndiaDate(next.dueDate)}</div>
               <div><span>Status</span>Pending</div>
             </div>
-            {error && <p className={styles.error}>{error}</p>}
-            <button type="button" className={styles.payBig} onClick={handlePay} disabled={paying}>
-              {paying ? "Opening payment…" : `Pay now · ${formatRupees(next.amount)}`}
-            </button>
+            <a className={styles.payBig} href={whatsappUrl(emiWhatsappMessage(next))} target="_blank" rel="noreferrer">
+              Pay on WhatsApp · {formatRupees(next.amount)}
+            </a>
             <Link href="/student-hub" className={styles.signOut}>Back to Student Hub</Link>
           </>
         )}
