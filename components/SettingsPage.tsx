@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useRef, useState, type FormEvent } from "react";
-import { lessons } from "@/lib/courseData";
 import { computeOverallProgress } from "@/lib/progressData";
 import { useSpeakingHistory } from "@/lib/useSpeakingHistory";
 import { useQuizState } from "@/lib/useQuizState";
@@ -48,7 +47,7 @@ export function SettingsPage() {
   const initials = (name || "?").slice(0, 2).toUpperCase();
   const { sessions: quizSessions } = useQuizState();
   const { history: speakingHistory } = useSpeakingHistory();
-  const overallProgress = computeOverallProgress(lessons, quizSessions, speakingHistory);
+  const overallProgress = computeOverallProgress(quizSessions, speakingHistory);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [photoStatus, setPhotoStatus] = useState<"idle" | "uploading" | "error">("idle");

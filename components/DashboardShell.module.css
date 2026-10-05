@@ -114,7 +114,7 @@
 
 .dropdownHeading { font-size: .6rem; letter-spacing: .12em; text-transform: uppercase; color: var(--text-faint); padding: .2rem .3rem .6rem; border-bottom: 1px solid var(--hairline-ink); margin-bottom: .3rem; }
 
-.notifItem { padding: .5rem .3rem; border-radius: 8px; }
+.notifItem { display: block; padding: .5rem .3rem; border-radius: 8px; text-decoration: none; }
 .notifItem:hover { background: rgba(31,58,95,.05); }
 .notifItem strong { display: block; font-size: .72rem; font-weight: 700; color: var(--text-primary); }
 .notifItem small { display: block; font-size: .64rem; color: var(--text-faint); margin-top: .15rem; }

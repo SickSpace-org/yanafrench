@@ -6,16 +6,17 @@ import {
   cefrLevels,
   computeOverallProgress,
   computeSkillProgress,
-  testTarget,
   type CefrLevel,
 } from "@/lib/progressData";
-import { lessons } from "@/lib/courseData";
 import { useSpeakingHistory } from "@/lib/useSpeakingHistory";
 import { useQuizState } from "@/lib/useQuizState";
 import { useVocabState } from "@/lib/useVocabState";
-import { getVocabulary } from "@/lib/vocabData";
 import { DashboardShell } from "./DashboardShell";
 import styles from "./ProgressPage.module.css";
+
+function shortDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
 
 const nodeX = [60, 290, 520, 750, 940];
 const nodeY = [140, 60, 140, 60, 140];
@@ -37,9 +38,24 @@ export function ProgressPage() {
   const [selected, setSelected] = useState<CefrLevel | null>(null);
   const { history: speakingHistory } = useSpeakingHistory();
   const { savedWords } = useVocabState();
-  const vocabCount = getVocabulary().length + savedWords.length;
+  const vocabCount = savedWords.length;
   const skills = computeSkillProgress(quizSessions, speakingHistory, vocabCount);
-  const overallProgress = computeOverallProgress(lessons, quizSessions, speakingHistory);
+  const overallProgress = computeOverallProgress(quizSessions, speakingHistory);
+
+  // The selected level's real assessments: AI Quiz sessions taken at that
+  // level, plus speaking attempts when it's the student's current level.
+  const recentAssessments = selected
+    ? [
+        ...quizSessions
+          .filter((q) => q.level === selected.code)
+          .map((q) => ({ id: q.id, title: "AI Quiz", score: `${q.overallScore.toFixed(1)} / 10`, iso: q.date })),
+        ...(selected.code === currentLevelCode
+          ? speakingHistory.map((a) => ({ id: a.id, title: `Speaking · ${a.topic}`, score: `${a.evaluation.overall.toFixed(1)} / 10`, iso: a.date }))
+          : []),
+      ]
+        .sort((a, b) => b.iso.localeCompare(a.iso))
+        .slice(0, 4)
+    : [];
 
   return (
     <DashboardShell>
@@ -96,9 +112,9 @@ export function ProgressPage() {
           <div className={styles.progressBar}><span style={{ width: `${overallProgress}%` }} /></div>
         </div>
         <div className={styles.statCard}>
-          <span>TEST TARGET</span>
-          <strong>{testTarget.reached} / {testTarget.of}</strong>
-          <small>currently reached</small>
+          <span>PRACTICE DONE</span>
+          <strong>{quizSessions.length} quiz{quizSessions.length === 1 ? "" : "zes"} · {speakingHistory.length} speaking</strong>
+          <small>AI Quiz and speaking attempts</small>
         </div>
       </div>
 
@@ -126,7 +142,7 @@ export function ProgressPage() {
 
             {selected.skillsAchieved.length > 0 && (
               <div className={styles.panelSection}>
-                <h3>Skills already achieved</h3>
+                <h3>Key skills at this level</h3>
                 <ul>{selected.skillsAchieved.map((s) => <li key={s}>{s}</li>)}</ul>
               </div>
             )}
@@ -138,23 +154,16 @@ export function ProgressPage() {
               </div>
             )}
 
-            {selected.recentAssessments.length > 0 && (
+            {recentAssessments.length > 0 && (
               <div className={styles.panelSection}>
                 <h3>Recent assessments</h3>
-                {selected.recentAssessments.map((a) => (
-                  <div key={a.title} className={styles.assessmentRow}>
+                {recentAssessments.map((a) => (
+                  <div key={a.id} className={styles.assessmentRow}>
                     <span>{a.title}</span>
                     <strong>{a.score}</strong>
-                    <small>{a.date}</small>
+                    <small>{shortDate(a.iso)}</small>
                   </div>
                 ))}
-              </div>
-            )}
-
-            {selected.recommendedLessons.length > 0 && (
-              <div className={styles.panelSection}>
-                <h3>Recommended lessons</h3>
-                <ul>{selected.recommendedLessons.map((l) => <li key={l}>{l}</li>)}</ul>
               </div>
             )}
           </div>

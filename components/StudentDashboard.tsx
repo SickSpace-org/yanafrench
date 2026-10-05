@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { lessons } from "@/lib/courseData";
-import { computeLessonProgress, computeOverallProgress } from "@/lib/progressData";
+import { computeOverallProgress } from "@/lib/progressData";
+import { useStudentActivity } from "@/lib/useStudentActivity";
 import { useSpeakingHistory } from "@/lib/useSpeakingHistory";
 import { useQuizState } from "@/lib/useQuizState";
 import { usePortalState } from "@/lib/usePortalState";
@@ -15,8 +15,6 @@ import { ClassLinkLine } from "./ClassLinkLine";
 import { DashboardShell } from "./DashboardShell";
 import { EmiPaymentsCard } from "./EmiPaymentsCard";
 import styles from "./StudentDashboard.module.css";
-
-const streak = 12;
 
 function ProgressRing({ value }: { value: number }) {
   const r = 54;
@@ -48,8 +46,8 @@ export function StudentDashboard() {
   const profile = useStudentProfile();
   const name = displayName(profile) || "there";
   const { history: speakingHistory } = useSpeakingHistory();
-  const lessonProgress = computeLessonProgress(lessons);
-  const overallProgress = computeOverallProgress(lessons, quizSessions, speakingHistory);
+  const overallProgress = computeOverallProgress(quizSessions, speakingHistory);
+  const activity = useStudentActivity();
 
   // The student's own enrolled batches (see lib/batchEnrollmentData.ts —
   // one person can hold more than one) — same real-data source
@@ -113,8 +111,8 @@ export function StudentDashboard() {
           <ProgressRing value={overallProgress} />
           <div className={styles.progressFacts}>
             <div><span>CEFR level</span><strong>{currentLevelCode}</strong></div>
-            <div><span>Streak</span><strong>{streak} days</strong></div>
-            <div><span>Completed</span><strong>{lessonProgress.completed} / {lessonProgress.total} lessons</strong></div>
+            <div><span>Classes attended</span><strong>{activity.loaded ? `${activity.classesAttended} / ${activity.classesHeld}` : "—"}</strong></div>
+            <div><span>Homework done</span><strong>{activity.loaded ? `${activity.homeworkDone} / ${activity.homeworkTotal}` : "—"}</strong></div>
           </div>
         </div>
       </div>

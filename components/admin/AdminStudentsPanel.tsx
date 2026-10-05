@@ -146,7 +146,9 @@ export function AdminStudentsPanel({
                 </button>
               </td>
               <td>
-                <button type="button" className={styles.remove} onClick={() => onRemove(s.id)}>Remove student</button>
+                <button type="button" className={styles.remove} onClick={() => {
+                  if (window.confirm(`Remove ${s.name}? Their enrollments, EMIs, attendance and login will be deleted, and they won't be able to sign in.`)) onRemove(s.id);
+                }}>Remove student</button>
               </td>
             </tr>
           ))}

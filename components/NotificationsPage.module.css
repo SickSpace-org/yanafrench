@@ -32,3 +32,8 @@
 .item small { display: block; font-size: .74rem; color: var(--text-faint); }
 
 .date { font-size: .66rem; color: var(--text-faint); white-space: nowrap; margin-top: .15rem; }
+
+a.item { text-decoration: none; color: inherit; }
+a.item:hover { border-color: var(--hairline-ink-hover); }
+
+.empty { max-width: 640px; border: 1px dashed var(--hairline-ink); border-radius: var(--r-md); padding: 1.6rem 1.3rem; font-size: .8rem; color: var(--text-faint); }

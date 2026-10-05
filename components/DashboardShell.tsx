@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useState, type ReactNode } from "react";
-import { getNotifications } from "@/lib/notificationData";
+import { useStudentNotifications } from "@/lib/useStudentNotifications";
 import { useStudentProfile, displayName } from "@/lib/useStudentProfile";
 import { AuthNoticeToast } from "./AuthNoticeToast";
 import { BfcacheGuard } from "./BfcacheGuard";
@@ -47,6 +47,8 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const profile = useStudentProfile();
+  const notifications = useStudentNotifications();
+  const hasUnread = notifications.items.some((n) => !n.read);
   const isAdminPreview = profile.kind === "admin-preview";
   const name = displayName(profile) || "Student";
   const avatarUrl = profile.kind === "student" ? profile.student.avatarUrl : null;
@@ -81,17 +83,22 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               onClick={() => { setNotifOpen((v) => !v); setProfileOpen(false); }}
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5h-15S6 14 6 10Z" strokeLinejoin="round"/><path d="M10 19a2 2 0 0 0 4 0" strokeLinecap="round"/></svg>
-              <span className={styles.dot} />
+              {hasUnread && <span className={styles.dot} />}
             </button>
             {notifOpen && (
               <div className={styles.dropdown}>
                 <span className={styles.dropdownHeading}>Notifications</span>
-                {getNotifications().slice(0, 3).map((n) => (
-                  <div key={n.id} className={styles.notifItem}>
+                {notifications.items.slice(0, 3).map((n) => (
+                  <Link key={n.id} href={n.href} className={styles.notifItem} onClick={() => setNotifOpen(false)}>
                     <strong>{n.title}</strong>
                     <small>{n.detail} · {n.date}</small>
-                  </div>
+                  </Link>
                 ))}
+                {notifications.loaded && notifications.items.length === 0 && (
+                  <div className={styles.notifItem}>
+                    <small>You&apos;re all caught up.</small>
+                  </div>
+                )}
                 <Link href="/student-hub/notifications" className={styles.dropdownLink} onClick={() => setNotifOpen(false)}>View all →</Link>
               </div>
             )}
