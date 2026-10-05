@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { Hero } from "@/components/Hero";
 import { AuthNoticeToast } from "@/components/AuthNoticeToast";
 import { JsonLd } from "@/components/JsonLd";
-import { SITE_URL } from "@/lib/site";
+import { site, SITE_URL } from "@/lib/site";
 import { Pathways } from "@/components/Pathways";
 import { TefFeature } from "@/components/TefFeature";
 import { MaxFour } from "@/components/MaxFour";
@@ -34,14 +34,38 @@ const organizationSchema = {
   "@id": `${SITE_URL}/#organization`,
   name: "The Français Hub",
   url: SITE_URL,
-  logo: `${SITE_URL}/favicon.svg`,
+  logo: `${SITE_URL}/icon-512.png`,
+  image: `${SITE_URL}/icon-512.png`,
   description: DESCRIPTION,
   areaServed: ["IN", "CA"],
+  // Official profiles — what Google matches the brand against for a
+  // Knowledge Panel.
+  sameAs: [site.instagram, site.linkedin],
+  founder: { "@type": "Person", name: site.tutor },
+  contactPoint: {
+    "@type": "ContactPoint",
+    telephone: `+${site.phone}`,
+    contactType: "customer service",
+    availableLanguage: ["English", "French"],
+  },
+};
+
+// WebSite data is what Google uses to show "The Français Hub" as the
+// site name in results instead of the bare domain.
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": `${SITE_URL}/#website`,
+  name: "The Français Hub",
+  alternateName: ["The Francais Hub", "Français Hub"],
+  url: `${SITE_URL}/`,
+  publisher: { "@id": `${SITE_URL}/#organization` },
 };
 
 export default function Home() {
   return <>
     <JsonLd data={organizationSchema} />
+    <JsonLd data={websiteSchema} />
     <Suspense fallback={null}>
       <AuthNoticeToast param="logged_out" message="You&rsquo;ve been signed out." />
     </Suspense>

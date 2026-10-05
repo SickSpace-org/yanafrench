@@ -25,7 +25,21 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: "The Français Hub · French with direction", template: "%s · The Français Hub" },
   description: "Online French coaching by Yana Budhiraja for TEF, TCF and DELF learners. Small batches of up to four students.",
-  icons: { icon: asset("/favicon.svg") },
+  // PNGs alongside the SVG: Google Search's favicon guidelines want a
+  // square raster icon of at least 48px, and iOS uses apple-touch-icon.
+  icons: {
+    icon: [
+      { url: asset("/favicon.svg"), type: "image/svg+xml" },
+      { url: asset("/icon-48.png"), sizes: "48x48", type: "image/png" },
+      { url: asset("/icon-192.png"), sizes: "192x192", type: "image/png" },
+    ],
+    apple: asset("/apple-touch-icon.png"),
+  },
+  // Google Search Console's HTML-tag verification code, set as an env
+  // var in Vercel. Unset → no tag (DNS verification needs none).
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
