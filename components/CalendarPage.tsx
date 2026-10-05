@@ -61,12 +61,12 @@ export function CalendarPage() {
 
   // Every published batch for the selected course — not just the
   // student's own — so a batch shows up here the moment it's published,
-  // with no separate step required. The student's own batch(es) just sort
-  // first.
+  // with no separate step required — plus the student's own batch(es),
+  // published or not (private per-student batches), sorted first.
   const visibleBatches = useMemo(
     () =>
       batches
-        .filter((b) => b.published && (category === "All" || b.course === category))
+        .filter((b) => (b.published || isMine(b)) && (category === "All" || b.course === category))
         .sort((a, b) => Number(isMine(b)) - Number(isMine(a))),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [batches, category, myBatchIds]

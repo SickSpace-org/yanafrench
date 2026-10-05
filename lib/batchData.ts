@@ -41,7 +41,7 @@ export type Batch = {
   isCurrent: boolean;
 };
 
-export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 export const DAY_LABELS: Record<string, string> = {
   Mon: "Monday",
   Tue: "Tuesday",
@@ -49,6 +49,7 @@ export const DAY_LABELS: Record<string, string> = {
   Thu: "Thursday",
   Fri: "Friday",
   Sat: "Saturday",
+  Sun: "Sunday",
 };
 const DAY_INDEX: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 
