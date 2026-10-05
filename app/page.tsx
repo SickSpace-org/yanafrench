@@ -40,8 +40,8 @@ const organizationSchema = {
   areaServed: ["IN", "CA"],
   // Official profiles — what Google matches the brand against for a
   // Knowledge Panel.
-  sameAs: [site.instagram, site.linkedin],
-  founder: { "@type": "Person", name: site.tutor },
+  sameAs: [site.instagram],
+  founder: { "@type": "Person", name: site.tutor, sameAs: [site.linkedin] },
   contactPoint: {
     "@type": "ContactPoint",
     telephone: `+${site.phone}`,
