@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAdminCollection } from "@/lib/useAdminCollection";
+import { usePortalState } from "@/lib/usePortalState";
 import type { Student } from "@/lib/studentData";
 import { AdminShell } from "../AdminShell";
 import { AdminStudentsPanel } from "./AdminStudentsPanel";
@@ -15,6 +16,29 @@ export function AdminStudentsPage() {
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [sentId, setSentId] = useState<string | null>(null);
   const [failedId, setFailedId] = useState<string | null>(null);
+  const { batches } = usePortalState();
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  // Admin places a student into any batch by hand (no payment) — see
+  // app/api/batch-enrollments/route.ts.
+  async function addToBatch(studentId: string, batchId: string) {
+    setAddingId(studentId);
+    setAddError(null);
+    try {
+      const res = await fetch("/api/batch-enrollments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, batchId }),
+      });
+      if (!res.ok) setAddError((await res.text().catch(() => "")) || "Couldn't add to batch.");
+    } catch {
+      setAddError("Couldn't add to batch.");
+    } finally {
+      setAddingId(null);
+      refresh();
+    }
+  }
 
   // Removes a single enrollment (batch or course-catalog), not the
   // student's whole identity/login — see app/api/batch-enrollments/[id]
@@ -59,10 +83,14 @@ export function AdminStudentsPage() {
         </div>
       ) : (
         <div className={styles.tabPanel}>
+          {addError && <p className={styles.tabHint} style={{ color: "#B63A3A", fontWeight: 700 }}>{addError}</p>}
           <AdminStudentsPanel
             students={students}
+            batches={batches}
             onRemove={remove}
             onRemoveEnrollment={removeEnrollment}
+            onAddToBatch={addToBatch}
+            addingId={addingId}
             onResendSetupLink={resendSetupLink}
             sendingId={sendingId}
             sentId={sentId}

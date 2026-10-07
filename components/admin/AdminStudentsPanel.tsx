@@ -1,6 +1,7 @@
 "use client";
 
 import type { Student } from "@/lib/studentData";
+import type { Batch } from "@/lib/batchData";
 import { formatRupees } from "@/lib/formatCurrency";
 import { daysOverdue, formatIndiaDate, isInstallmentLocking, isoToIndiaDate, nextPendingInstallment, todayInIndia, type EmiInstallment } from "@/lib/emiData";
 import styles from "./AdminLeadsPanel.module.css";
@@ -37,6 +38,32 @@ function formatWhen(iso: string) {
   return new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(date);
 }
 
+// Admin override: put this student into any batch (published or draft)
+// they aren't already in — see app/api/batch-enrollments POST. Combined
+// with each enrollment's "Remove", this is also how a student is moved.
+function AddToBatch({ student, batches, busy, onAdd }: { student: Student; batches: Batch[]; busy: boolean; onAdd: (batchId: string) => void }) {
+  const taken = new Set(student.batchEnrollments.map((e) => e.batchId));
+  const options = batches.filter((b) => !taken.has(b.id));
+  if (options.length === 0) return null;
+  return (
+    <div className={styles.confirmBox} style={{ marginTop: ".5rem" }}>
+      <select
+        value=""
+        disabled={busy}
+        aria-label={`Add ${student.name} to a batch`}
+        onChange={(e) => e.target.value && onAdd(e.target.value)}
+      >
+        <option value="">{busy ? "Adding…" : "+ Add to batch…"}</option>
+        {options.map((b) => (
+          <option key={b.id} value={b.id}>
+            {b.course} · {b.name}{b.published ? "" : " (draft)"}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 // The roster of confirmed, paying students — one row per person (login),
 // not per payment. A person can hold several enrollments now (see
 // lib/batchEnrollmentData.ts / lib/courseEnrollmentData.ts), so "Remove"
@@ -45,16 +72,22 @@ function formatWhen(iso: string) {
 // whole identity (cascades to all of it, see the enrollments migration).
 export function AdminStudentsPanel({
   students,
+  batches,
   onRemove,
   onRemoveEnrollment,
+  onAddToBatch,
+  addingId,
   onResendSetupLink,
   sendingId,
   sentId,
   failedId,
 }: {
   students: Student[];
+  batches: Batch[];
   onRemove: (id: string) => void;
   onRemoveEnrollment: (kind: "batch" | "course", enrollmentId: string) => void;
+  onAddToBatch: (studentId: string, batchId: string) => void;
+  addingId: string | null;
   onResendSetupLink: (id: string) => void;
   sendingId: string | null;
   sentId: string | null;
@@ -117,6 +150,7 @@ export function AdminStudentsPanel({
                     })}
                   </div>
                 )}
+                <AddToBatch student={s} batches={batches} busy={addingId === s.id} onAdd={(batchId) => onAddToBatch(s.id, batchId)} />
               </td>
               <td>
                 <strong style={{ whiteSpace: "nowrap" }}>{formatRupees(s.totalPaidPaise ?? 0)}</strong>

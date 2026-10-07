@@ -18,7 +18,8 @@ type Group = {
   students: Student[];
 };
 
-// Read-only view of who sits in which batch. Nothing is assigned by hand:
+// Read-only view of who sits in which batch (admins place students by hand
+// from Admin → Students; otherwise it follows payments):
 // every verified payment already writes a batch_enrollments row carrying
 // the batch id (see lib/enrollment.ts), so grouping the roster by that id
 // is the segregation — a new student shows up in their group on the next
