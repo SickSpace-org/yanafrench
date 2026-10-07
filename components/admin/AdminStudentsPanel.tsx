@@ -44,16 +44,15 @@ function formatWhen(iso: string) {
 function AddToBatch({ student, batches, busy, onAdd }: { student: Student; batches: Batch[]; busy: boolean; onAdd: (batchId: string) => void }) {
   const taken = new Set(student.batchEnrollments.map((e) => e.batchId));
   const options = batches.filter((b) => !taken.has(b.id));
-  if (options.length === 0) return null;
   return (
     <div className={styles.confirmBox} style={{ marginTop: ".5rem" }}>
       <select
         value=""
-        disabled={busy}
+        disabled={busy || options.length === 0}
         aria-label={`Add ${student.name} to a batch`}
         onChange={(e) => e.target.value && onAdd(e.target.value)}
       >
-        <option value="">{busy ? "Adding…" : "+ Add to batch…"}</option>
+        <option value="">{busy ? "Adding…" : options.length === 0 ? (batches.length === 0 ? "No batches yet — create one in Batches" : "Already in every batch") : "+ Add to batch…"}</option>
         {options.map((b) => (
           <option key={b.id} value={b.id}>
             {b.course} · {b.name}{b.published ? "" : " (draft)"}
