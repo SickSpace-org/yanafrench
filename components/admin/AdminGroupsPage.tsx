@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import { useAdminCollection } from "@/lib/useAdminCollection";
 import { usePortalState } from "@/lib/usePortalState";
-import { type Batch, type BatchCourse, formatSchedule } from "@/lib/batchData";
+import { useBatchTeacherNames } from "@/lib/useBatchTeacherNames";
+import { formatSchedule, type Batch, type BatchCourse } from "@/lib/batchData";
 import type { Student } from "@/lib/studentData";
 import { AdminShell } from "../AdminShell";
 import styles from "./AdminLessonsManager.module.css";
@@ -92,6 +93,8 @@ export function AdminGroupsPage() {
   const { loaded: batchesLoaded, batches } = usePortalState();
   const { items: students, loaded: studentsLoaded } = useAdminCollection<Student>("/api/students");
   const groups = useMemo(() => buildGroups(batches, students), [batches, students]);
+  const { loaded: teachersLoaded, teacherFor } = useBatchTeacherNames();
+  const batchIds = useMemo(() => new Set(batches.map((b) => b.id)), [batches]);
 
   return (
     <AdminShell>
@@ -120,6 +123,9 @@ export function AdminGroupsPage() {
                     {group.title}
                   </h2>
                   {group.meta && <div className={groupStyles.groupMeta}>{group.meta}</div>}
+                  {teachersLoaded && batchIds.has(group.key) && (
+                    <div className={groupStyles.groupMeta}>Teacher: {teacherFor(group.key)}</div>
+                  )}
                 </div>
                 <span className={groupStyles.count}>
                   {group.students.length} {group.students.length === 1 ? "student" : "students"}

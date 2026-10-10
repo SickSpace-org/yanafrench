@@ -2,6 +2,7 @@ import { applyPortalAction, type PortalStateAction } from "@/lib/portalState";
 import { readPortalState, writePortalState } from "@/lib/portalStateServer";
 import { validateSlots } from "@/lib/batchData";
 import { authErrorResponse, requireAdmin } from "@/lib/auth";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 // GET: public — the student Lessons/Batches/Calendar pages (and the public
 // batch finder) read this state without being signed in.
@@ -42,6 +43,14 @@ export async function POST(req: Request) {
   const saved = await writePortalState(next);
   if (!saved) {
     return new Response("Not persisted — R2 isn't configured.", { status: 501 });
+  }
+
+  // A deleted batch hands its teacher assignment back too. Best-effort:
+  // teacher reads already ignore assignments to batches that no longer
+  // exist, so a failure here never grants anything.
+  if (action.type === "removeBatch") {
+    const { error } = (await getSupabaseAdmin()?.from("batch_teachers").delete().eq("batch_id", action.id)) ?? {};
+    if (error) console.error("Failed to clear teacher assignment for removed batch", action.id, error);
   }
 
   return Response.json(next);

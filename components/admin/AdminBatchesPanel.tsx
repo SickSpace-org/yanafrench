@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { DAYS, DAY_LABELS, validateSlots, type Batch, type BatchCourse, type BatchSlot, type BatchStatus } from "@/lib/batchData";
 import styles from "./AdminBatchesPanel.module.css";
@@ -175,11 +176,13 @@ function NewBatchForm({ onAdd }: { onAdd: (batch: Batch) => void }) {
 
 function BatchRow({
   batch,
+  teacher,
   onUpdate,
   onRemove,
   onSetCurrent,
 }: {
   batch: Batch;
+  teacher?: string;
   onUpdate: (patch: Partial<Batch>) => void;
   onRemove: () => void;
   onSetCurrent: () => void;
@@ -286,6 +289,12 @@ function BatchRow({
         </label>
       </div>
 
+      {teacher && (
+        <p className={styles.teacherLine}>
+          Teacher: <strong>{teacher}</strong> · <Link href="/admin/teachers">change in Teachers</Link>
+        </p>
+      )}
+
       <button type="button" className={styles.remove} onClick={onRemove}>Delete</button>
     </div>
   );
@@ -302,8 +311,10 @@ export function AdminBatchesPanel({
   onUpdate,
   onRemove,
   onSetCurrent,
+  teacherFor,
 }: {
   batches: Batch[];
+  teacherFor?: (batchId: string) => string;
   onAdd: (batch: Batch) => void;
   onUpdate: (id: string, patch: Partial<Batch>) => void;
   onRemove: (id: string) => void;
@@ -318,6 +329,7 @@ export function AdminBatchesPanel({
           <BatchRow
             key={batch.id}
             batch={batch}
+            teacher={teacherFor?.(batch.id)}
             onUpdate={(patch) => onUpdate(batch.id, patch)}
             onRemove={() => onRemove(batch.id)}
             onSetCurrent={() => onSetCurrent(batch.id)}

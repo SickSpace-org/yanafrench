@@ -41,6 +41,23 @@ export async function sendPasswordSetupEmail(to: string, setupUrl: string): Prom
   );
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+}
+
+// Admin -> Teachers' invite (and "Resend invite"). Same one-time setup-link
+// mechanism as students; sent from the route with after(), never awaited
+// inline, so the admin's request returns as soon as the teacher is saved.
+export async function sendTeacherInviteEmail(to: string, fullName: string, setupUrl: string): Promise<boolean> {
+  const firstName = fullName.trim().split(/\s+/)[0] || "there";
+  return sendEmail(
+    to,
+    "Your Français Hub teacher login",
+    `Hi ${firstName},\n\nYana has added you as a teacher on The Français Hub. Set a password for your teacher account here:\n${setupUrl}\n\nAfter that, sign in any time at the Français Hub login page.\n\nThis link is one-time use and expires after a while — if it's stopped working, ask Yana to send you a new one.`,
+    `<p>Hi ${escapeHtml(firstName)},</p><p>Yana has added you as a teacher on The Français Hub. Set a password for your teacher account here:</p><p><a href="${setupUrl}">${setupUrl}</a></p><p>After that, sign in any time at the Français Hub login page.</p><p>This link is one-time use and expires after a while — if it's stopped working, ask Yana to send you a new one.</p>`
+  );
+}
+
 // Distinct copy from sendPasswordSetupEmail — this is /forgot-password's
 // "I already have an account, I forgot my password" flow, not first-time
 // setup. Same underlying link mechanism (see app/api/auth/forgot-password).
@@ -136,8 +153,6 @@ export async function sendEnrollmentReceivedEmail(
     `<p style="color:#666">WhatsApp: ${esc(input.whatsappNumber)}</p><p>À bientôt !<br>— The Français Hub</p>`;
   return sendEmail(to, `We've received your enrollment — ${input.courseTitle}`, text, html);
 }
-
-const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 function detailsTable(rows: [string, string][]): string {
   return `<table style="border-collapse:collapse;margin:8px 0 16px">${rows

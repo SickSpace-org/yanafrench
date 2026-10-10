@@ -1,7 +1,7 @@
 import { daysBetween, EMI_REMINDER_DAYS_BEFORE, formatIndiaDate, isoToIndiaDate, type EmiInstallment } from "./emiData";
 import { formatRupees } from "./formatCurrency";
 
-export type NotificationType = "assignment" | "feedback" | "payment" | "message";
+export type NotificationType = "assignment" | "feedback" | "payment" | "message" | "announcement";
 
 export type Notification = {
   id: string;
@@ -26,6 +26,7 @@ export type NotificationHomework = {
   submission: { feedback: unknown; updatedAt?: string; submittedAt?: string } | null;
 };
 export type NotificationMessage = { id: string; from: "student" | "teacher"; text: string; time: number };
+export type NotificationAnnouncement = { id: string; studentId: string | null; senderName: string; body: string; createdAt: string };
 
 export function relativeDate(iso: string, now: number = Date.now()): string {
   const diff = Math.max(0, now - new Date(iso).getTime());
@@ -44,6 +45,10 @@ export function buildNotifications(input: {
   homework: NotificationHomework[];
   installments: EmiInstallment[];
   messages: NotificationMessage[];
+  // From the student's teachers / Yana (lib/announcements.ts). Unread until
+  // the student opens Notifications after it was sent (seenAt).
+  announcements?: NotificationAnnouncement[];
+  seenAt?: string | null;
   today: string;
   now?: number;
 }): Notification[] {
@@ -91,6 +96,21 @@ export function buildNotifications(input: {
       read: false,
       // Payment reminders always sit at the top.
       sortKey: Number.MAX_SAFE_INTEGER - daysLeft,
+    });
+  }
+
+  const seenAt = input.seenAt ? Date.parse(input.seenAt) : 0;
+  for (const a of input.announcements ?? []) {
+    const at = Date.parse(a.createdAt);
+    items.push({
+      id: `ann-${a.id}`,
+      type: "announcement",
+      title: a.studentId ? `${a.senderName} wrote to you` : `Announcement from ${a.senderName}`,
+      detail: a.body,
+      date: relativeDate(a.createdAt, now),
+      href: "/student-hub/notifications",
+      read: at <= seenAt,
+      sortKey: at,
     });
   }
 

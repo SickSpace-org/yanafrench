@@ -1,6 +1,7 @@
 "use client";
 
 import { usePortalState } from "@/lib/usePortalState";
+import { useBatchTeacherNames } from "@/lib/useBatchTeacherNames";
 import { AdminShell } from "../AdminShell";
 import { AdminBatchesPanel } from "./AdminBatchesPanel";
 import styles from "./AdminLessonsManager.module.css";
@@ -10,6 +11,7 @@ import styles from "./AdminLessonsManager.module.css";
 // flagged isCurrent, the student's calendar (see lib/batchData.ts).
 export function AdminBatchesPage() {
   const { loaded, batches, addBatch, removeBatch, updateBatch, setCurrentBatch } = usePortalState();
+  const { loaded: teachersLoaded, teacherFor } = useBatchTeacherNames();
 
   return (
     <AdminShell>
@@ -25,7 +27,7 @@ export function AdminBatchesPage() {
         </div>
       ) : (
         <div className={styles.tabPanel}>
-          <AdminBatchesPanel batches={batches} onAdd={addBatch} onUpdate={updateBatch} onRemove={removeBatch} onSetCurrent={setCurrentBatch} />
+          <AdminBatchesPanel batches={batches} teacherFor={teachersLoaded ? teacherFor : undefined} onAdd={addBatch} onUpdate={updateBatch} onRemove={removeBatch} onSetCurrent={setCurrentBatch} />
         </div>
       )}
     </AdminShell>

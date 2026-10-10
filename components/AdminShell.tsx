@@ -18,8 +18,10 @@ const navItems = [
   { label: "Payments", href: "/admin/payments" },
   { label: "EMI", href: "/admin/emi" },
   { label: "Students", href: "/admin/students" },
+  { label: "Teachers", href: "/admin/teachers" },
   { label: "Highlights", href: "/admin/highlights" },
   { label: "Messages", href: "/admin/messages" },
+  { label: "Announcements", href: "/admin/announcements" },
 ];
 
 export function AdminShell({ children }: { children: ReactNode }) {

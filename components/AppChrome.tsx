@@ -17,7 +17,7 @@ import { GA_MEASUREMENT_ID } from "@/lib/site";
 // only when its JS actually loads.
 const ChatWidget = dynamic(() => import("./ChatWidget").then((m) => m.ChatWidget), { ssr: false });
 
-const STANDALONE_PREFIXES = ["/student-hub", "/admin"];
+const STANDALONE_PREFIXES = ["/student-hub", "/admin", "/teacher"];
 // Auth screens render with no site chrome at all — no nav, footer or chat.
 const BARE_PREFIXES = ["/login", "/forgot-password", "/reset-password", "/auth"];
 
@@ -25,7 +25,8 @@ export function AppChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const bare = BARE_PREFIXES.some((p) => pathname === p || pathname?.startsWith(`${p}/`));
   const standalone = STANDALONE_PREFIXES.some((p) => pathname?.startsWith(p));
-  const isAdmin = pathname?.startsWith("/admin");
+  // The concierge chat is for students and visitors, not staff.
+  const isStaff = pathname?.startsWith("/admin") || pathname === "/teacher" || pathname?.startsWith("/teacher/");
 
   if (bare) {
     return <main id="main">{children}</main>;
@@ -35,7 +36,7 @@ export function AppChrome({ children }: { children: ReactNode }) {
     return (
       <>
         <main id="main">{children}</main>
-        {!isAdmin && <ChatWidget />}
+        {!isStaff && <ChatWidget />}
       </>
     );
   }

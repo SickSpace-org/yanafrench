@@ -37,3 +37,5 @@ a.item { text-decoration: none; color: inherit; }
 a.item:hover { border-color: var(--hairline-ink-hover); }
 
 .empty { max-width: 640px; border: 1px dashed var(--hairline-ink); border-radius: var(--r-md); padding: 1.6rem 1.3rem; font-size: .8rem; color: var(--text-faint); }
+
+.item small.fullText { white-space: pre-line; color: var(--text-muted); line-height: 1.6; }

@@ -110,3 +110,6 @@
 .slotRemove { border: 0; background: none; color: #B63A3A; font-size: .68rem; font-weight: 700; cursor: pointer; padding: .45rem .2rem; }
 .slotActions { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; }
 .slotError { flex-basis: 100%; margin: 0; font-size: .72rem; font-weight: 700; color: #B63A3A; }
+
+.teacherLine { margin: 0; font-size: .74rem; color: var(--text-muted); }
+.teacherLine a { color: var(--blue); }

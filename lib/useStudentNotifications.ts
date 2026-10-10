@@ -14,7 +14,7 @@ async function getJson<T>(url: string, fallback: T): Promise<T> {
 }
 
 // The signed-in student's notifications, built from their homework, EMI
-// schedule and message thread (see lib/notificationData.ts). Fetched once
+// schedule, message thread and announcements (see lib/notificationData.ts). Fetched once
 // on mount, like useStudentProfile. An admin previewing the hub gets none.
 export function useStudentNotifications(): { loaded: boolean; items: Notification[] } {
   const [state, setState] = useState<{ loaded: boolean; items: Notification[] }>({ loaded: false, items: [] });
@@ -25,7 +25,8 @@ export function useStudentNotifications(): { loaded: boolean; items: Notificatio
       getJson<{ homework?: []; preview?: boolean }>("/api/student/homework", {}),
       getJson<{ installments?: []; today?: string }>("/api/student/emi", {}),
       getJson<[]>("/api/messages", []),
-    ]).then(([hw, emi, messages]) => {
+      getJson<{ announcements?: []; seenAt?: string | null }>("/api/student/announcements", {}),
+    ]).then(([hw, emi, messages, ann]) => {
       if (cancelled) return;
       setState({
         loaded: true,
@@ -33,6 +34,8 @@ export function useStudentNotifications(): { loaded: boolean; items: Notificatio
           homework: hw.preview ? [] : hw.homework ?? [],
           installments: emi.installments ?? [],
           messages: Array.isArray(messages) ? messages : [],
+          announcements: ann.announcements ?? [],
+          seenAt: ann.seenAt ?? null,
           today: emi.today ?? todayInIndia(),
         }),
       });

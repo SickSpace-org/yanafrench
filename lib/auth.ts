@@ -3,8 +3,9 @@
 // lib/supabase/proxy.ts: JWT claim first, user_roles table as fallback.
 
 import { createServerSupabase } from "@/lib/supabase/server";
+import { roleFromClaim, type ViewerRole } from "@/lib/roles";
 
-export type ViewerRole = "admin" | "student" | null;
+export type { ViewerRole };
 
 export type Viewer = {
   userId: string;
@@ -17,10 +18,6 @@ export class AuthError extends Error {
   constructor(public status: 401 | 403) {
     super(status === 401 ? "Not authenticated" : "Forbidden");
   }
-}
-
-function roleFromClaim(value: unknown): ViewerRole {
-  return value === "admin" || value === "student" ? value : null;
 }
 
 export async function getViewer(): Promise<Viewer | null> {

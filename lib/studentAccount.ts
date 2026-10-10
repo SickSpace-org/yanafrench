@@ -4,7 +4,9 @@ import { sendPasswordSetupEmail } from "./email";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "http://localhost:3000";
 
-async function findUserByEmail(supabase: SupabaseClient, email: string) {
+// Expects an already-normalized (trimmed, lowercased) email. Also used by
+// lib/teachers.ts to keep teacher and student logins separate.
+export async function findUserByEmail(supabase: SupabaseClient, email: string) {
   for (let page = 1; page <= 20; page++) {
     const { data, error } = await supabase.auth.admin.listUsers({ page, perPage: 200 });
     if (error) throw error;
@@ -60,6 +62,13 @@ export async function provisionStudentAccount(email: string): Promise<ProvisionR
     if (!existingRole) {
       const { error: roleErr } = await supabase.from("user_roles").insert({ user_id: userId, role: "student" });
       if (roleErr) throw roleErr;
+    }
+    // A teacher's login is never shared with a student account: don't link
+    // it to the students row and don't email it a setup link. The payment
+    // and enrollment still go through; the student row just stays unlinked.
+    if (existingRole?.role === "teacher") {
+      console.warn("Not linking a student account to a teacher login for", normalizedEmail);
+      return null;
     }
 
     const { data: link, error: linkErr } = await supabase.auth.admin.generateLink({

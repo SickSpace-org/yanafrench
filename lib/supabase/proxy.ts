@@ -12,13 +12,12 @@
 
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { roleFromClaim, type ViewerRole } from "@/lib/roles";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-export type ViewerRole = "admin" | "student" | null;
 
 export type SessionResult = {
   response: NextResponse;
@@ -26,10 +25,6 @@ export type SessionResult = {
   email: string | null;
   role: ViewerRole;
 };
-
-function roleFromClaim(value: unknown): ViewerRole {
-  return value === "admin" || value === "student" ? value : null;
-}
 
 export async function resolveSession(request: NextRequest): Promise<SessionResult> {
   let response = NextResponse.next({ request });

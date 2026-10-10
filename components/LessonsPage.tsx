@@ -7,6 +7,9 @@ import { usePortalState } from "@/lib/usePortalState";
 import { JOIN_CLASS_URL } from "@/lib/attendanceData";
 import { useClassLinks } from "@/lib/useClassLinks";
 import { useQuizState } from "@/lib/useQuizState";
+import { useStudentBatchContent } from "@/lib/useStudentBatchContent";
+import { formatFileSize, materialDownloadUrl } from "@/lib/batchContentData";
+import { formatIndiaDate } from "@/lib/emiData";
 import { DashboardShell } from "./DashboardShell";
 import { IconPlay, IconVideoFrame } from "./Icons";
 import { QuizPractice } from "./QuizPractice";
@@ -163,6 +166,10 @@ export function LessonsPage() {
     resources: allResources,
   } = usePortalState();
   const { level: quizLevel, sessions: quizSessions, refresh } = useQuizState();
+  // Shared by the teachers of the student's own batches (Teacher -> Class
+  // content); shown above the sitewide recordings / resources.
+  const batchContent = useStudentBatchContent();
+  const batchLabel = (id: string) => batchContent.batchNames[id];
 
   const courses = allCourses.filter((c) => c.published);
   const recordings = allRecordings.filter((r) => r.published);
@@ -236,12 +243,41 @@ export function LessonsPage() {
               <strong>Join meeting →</strong>
             </a>
           )}
+          {batchContent.recordings.length > 0 && (
+            <div className={styles.simpleList} style={{ marginBottom: "1.4rem" }}>
+              {batchContent.recordings.map((r) => (
+                <div key={r.id} className={styles.simpleRow}>
+                  <div>
+                    <span className={styles.simpleTag}>{batchLabel(r.batchId) ?? "Your batch"}</span>
+                    <strong>{r.title}</strong>
+                    <small>{[r.classDate ? formatIndiaDate(r.classDate) : null, `Given by ${r.authorName}`].filter(Boolean).join(" · ")}</small>
+                  </div>
+                  <a href={r.url} target="_blank" rel="noreferrer noopener" className={styles.simpleAction}>Watch</a>
+                </div>
+              ))}
+            </div>
+          )}
           {recordings.length > 0 ? (
             <RecordingsPlaylist recordings={recordings} />
-          ) : (
+          ) : batchContent.recordings.length === 0 ? (
             <div className={styles.empty}><p>Class recordings will appear here after each session.</p></div>
-          )}
+          ) : null}
         </>
+      )}
+
+      {activeTab === "Resources" && batchContent.materials.length > 0 && (
+        <div className={styles.simpleList} style={{ marginBottom: "1.4rem" }}>
+          {batchContent.materials.map((m) => (
+            <div key={m.id} className={styles.simpleRow}>
+              <div>
+                <span className={styles.simpleTag}>{batchLabel(m.batchId) ?? "Your batch"}</span>
+                <strong>{m.title}</strong>
+                <small>{formatFileSize(m.sizeBytes)} · Shared by {m.authorName}</small>
+              </div>
+              <a href={materialDownloadUrl(m.id)} className={styles.simpleAction}>Download</a>
+            </div>
+          ))}
+        </div>
       )}
 
       {activeTab === "Resources" && (
@@ -265,9 +301,9 @@ export function LessonsPage() {
               </div>
             ))}
           </div>
-        ) : (
+        ) : batchContent.materials.length === 0 ? (
           <div className={styles.empty}><p>External resources will appear here.</p></div>
-        )
+        ) : null
       )}
 
       {activeTab === "Quiz" && (
