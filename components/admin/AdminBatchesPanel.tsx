@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { DAYS, type Batch, type BatchCourse, type BatchStatus } from "@/lib/batchData";
+import { useEffect, useState, type FormEvent } from "react";
+import { DAYS, DAY_LABELS, validateSlots, type Batch, type BatchCourse, type BatchSlot, type BatchStatus } from "@/lib/batchData";
 import styles from "./AdminBatchesPanel.module.css";
 
 const COURSES: BatchCourse[] = ["TEF", "TCF", "DELF"];
@@ -13,22 +13,75 @@ const STATUS_LABELS: Record<BatchStatus, string> = {
   waitlist: "Waitlist",
 };
 
-function DayPicker({ value, onChange }: { value: string[]; onChange: (days: string[]) => void }) {
+// Days already used by another slot of the same batch are disabled — a batch
+// has at most one class per day (lib/batchData.ts validateSlots).
+function DayPicker({ value, taken, onChange }: { value: string[]; taken: Set<string>; onChange: (days: string[]) => void }) {
   function toggle(day: string) {
-    onChange(value.includes(day) ? value.filter((d) => d !== day) : [...value, day]);
+    onChange(value.includes(day) ? value.filter((d) => d !== day) : DAYS.filter((d) => d === day || value.includes(d)));
   }
   return (
     <div className={styles.dayPicker}>
-      {DAYS.map((day) => (
+      {DAYS.map((day) => {
+        const blocked = taken.has(day) && !value.includes(day);
+        return (
+          <button
+            key={day}
+            type="button"
+            className={value.includes(day) ? styles.dayChipActive : styles.dayChip}
+            disabled={blocked}
+            title={blocked ? `${DAY_LABELS[day]} already has a class time in this batch` : undefined}
+            onClick={() => toggle(day)}
+          >
+            {day}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const NEW_SLOT: BatchSlot = { days: [], start_time: "09:30", end_time: "10:30" };
+
+// A batch's weekly schedule: one row per time slot (days + start/end). A
+// batch that meets Tue–Fri at 1:00 PM and Sat at 1:30 PM is one batch with
+// two rows, not two batches.
+function SlotsEditor({ value, onChange }: { value: BatchSlot[]; onChange: (slots: BatchSlot[]) => void }) {
+  const update = (i: number, patch: Partial<BatchSlot>) => onChange(value.map((s, j) => (j === i ? { ...s, ...patch } : s)));
+  return (
+    <div className={styles.slots}>
+      {value.map((slot, i) => {
+        const taken = new Set(value.flatMap((s, j) => (j === i ? [] : s.days)));
+        return (
+          <div key={i} className={styles.slot}>
+            <DayPicker value={slot.days} taken={taken} onChange={(days) => update(i, { days })} />
+            <label>
+              <span>Start</span>
+              <input type="time" value={slot.start_time} onChange={(e) => update(i, { start_time: e.target.value })} required />
+            </label>
+            <label>
+              <span>End</span>
+              <input type="time" value={slot.end_time} onChange={(e) => update(i, { end_time: e.target.value })} required />
+            </label>
+            {value.length > 1 && (
+              <button type="button" className={styles.slotRemove} onClick={() => onChange(value.filter((_, j) => j !== i))}>
+                Remove
+              </button>
+            )}
+          </div>
+        );
+      })}
+      {value.flatMap((s) => s.days).length < DAYS.length && (
         <button
-          key={day}
           type="button"
-          className={value.includes(day) ? styles.dayChipActive : styles.dayChip}
-          onClick={() => toggle(day)}
+          className={styles.slotAdd}
+          onClick={() => {
+            const last = value[value.length - 1] ?? NEW_SLOT;
+            onChange([...value, { days: [], start_time: last.start_time, end_time: last.end_time }]);
+          }}
         >
-          {day}
+          + Add another day &amp; time
         </button>
-      ))}
+      )}
     </div>
   );
 }
@@ -37,9 +90,8 @@ function NewBatchForm({ onAdd }: { onAdd: (batch: Batch) => void }) {
   const [course, setCourse] = useState<BatchCourse>("TEF");
   const [name, setName] = useState("");
   const [level, setLevel] = useState("");
-  const [days, setDays] = useState<string[]>([]);
-  const [startTime, setStartTime] = useState("09:30");
-  const [endTime, setEndTime] = useState("10:30");
+  const [slots, setSlots] = useState<BatchSlot[]>([NEW_SLOT]);
+  const [slotError, setSlotError] = useState<string | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [totalSeats, setTotalSeats] = useState(4);
@@ -47,15 +99,15 @@ function NewBatchForm({ onAdd }: { onAdd: (batch: Batch) => void }) {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!name.trim() || days.length === 0) return;
+    const problem = validateSlots(slots);
+    setSlotError(problem);
+    if (!name.trim() || problem) return;
     onAdd({
       id: `batch-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       course,
       level: level.trim() || null,
       name: name.trim(),
-      days,
-      start_time: startTime,
-      end_time: endTime,
+      slots,
       start_date: startDate || null,
       end_date: endDate || null,
       total_seats: totalSeats,
@@ -66,7 +118,7 @@ function NewBatchForm({ onAdd }: { onAdd: (batch: Batch) => void }) {
     });
     setName("");
     setLevel("");
-    setDays([]);
+    setSlots([NEW_SLOT]);
   }
 
   return (
@@ -89,20 +141,13 @@ function NewBatchForm({ onAdd }: { onAdd: (batch: Batch) => void }) {
         </label>
       </div>
 
-      <label className={styles.fullWidth}>
-        <span>Days</span>
-        <DayPicker value={days} onChange={setDays} />
-      </label>
+      <div className={styles.fullWidth}>
+        <span>Days &amp; times</span>
+        <SlotsEditor value={slots} onChange={setSlots} />
+        {slotError && <p className={styles.slotError}>{slotError}</p>}
+      </div>
 
       <div className={styles.fieldGrid}>
-        <label>
-          <span>Start time</span>
-          <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
-        </label>
-        <label>
-          <span>End time</span>
-          <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
-        </label>
         <label>
           <span>Status</span>
           <select value={status} onChange={(e) => setStatus(e.target.value as BatchStatus)}>
@@ -139,6 +184,18 @@ function BatchRow({
   onRemove: () => void;
   onSetCurrent: () => void;
 }) {
+  // The schedule is edited as a draft and saved with one click, so a
+  // half-finished slot (no days yet) is never stored.
+  const savedKey = JSON.stringify(batch.slots);
+  const [slots, setSlots] = useState<BatchSlot[]>(batch.slots);
+  const dirty = JSON.stringify(slots) !== savedKey;
+  const problem = dirty ? validateSlots(slots) : null;
+  useEffect(() => {
+    if (!dirty) setSlots(batch.slots);
+    // Only when the stored schedule changes (e.g. another admin's edit).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedKey]);
+
   return (
     <div className={batch.published ? styles.row : `${styles.row} ${styles.draftRow}`}>
       <div className={styles.rowHead}>
@@ -202,20 +259,23 @@ function BatchRow({
         </label>
       </div>
 
-      <label className={styles.fullWidth}>
-        <span>Days</span>
-        <DayPicker value={batch.days} onChange={(days) => onUpdate({ days })} />
-      </label>
+      <div className={styles.fullWidth}>
+        <span>Days &amp; times</span>
+        <SlotsEditor value={slots} onChange={setSlots} />
+        {dirty && (
+          <div className={styles.slotActions}>
+            <button type="button" className={styles.save} disabled={!!problem} onClick={() => onUpdate({ slots })}>
+              Save schedule
+            </button>
+            <button type="button" className={styles.slotRemove} onClick={() => setSlots(batch.slots)}>
+              Discard changes
+            </button>
+            {problem && <p className={styles.slotError}>{problem}</p>}
+          </div>
+        )}
+      </div>
 
       <div className={styles.fieldGrid}>
-        <label>
-          <span>Start time</span>
-          <input type="time" defaultValue={batch.start_time} onBlur={(e) => e.target.value !== batch.start_time && onUpdate({ start_time: e.target.value })} />
-        </label>
-        <label>
-          <span>End time</span>
-          <input type="time" defaultValue={batch.end_time} onBlur={(e) => e.target.value !== batch.end_time && onUpdate({ end_time: e.target.value })} />
-        </label>
         <label>
           <span>Start date</span>
           <input type="date" defaultValue={batch.start_date ?? ""} onBlur={(e) => e.target.value !== (batch.start_date ?? "") && onUpdate({ start_date: e.target.value || null })} />

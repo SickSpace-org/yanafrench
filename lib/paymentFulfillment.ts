@@ -9,9 +9,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { paymentFromRow, type PaymentRow } from "./paymentData";
 import { coursePaymentFromRow, type CoursePaymentRow } from "./coursePaymentData";
 import { resolveStudentIdentity } from "./enrollment";
-import { writeJson } from "./r2";
-import { applyPortalAction, PORTAL_STATE_KEY } from "./portalState";
-import { readPortalState } from "./portalStateServer";
+import { applyPortalAction } from "./portalState";
+import { readPortalState, writePortalState } from "./portalStateServer";
 import { createInstallmentsForEnrollment } from "./emi";
 import { enrollablePriceInPaise, findEnrollableByProductId } from "./courseCatalogData";
 
@@ -37,7 +36,7 @@ export async function decrementBatchSeat(batchId: string) {
       status: nextSeats <= 0 && batch.status !== "waitlist" ? "full" : batch.status,
     },
   });
-  await writeJson(PORTAL_STATE_KEY, next);
+  await writePortalState(next);
 }
 
 export type FulfillResult =

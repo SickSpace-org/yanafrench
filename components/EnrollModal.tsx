@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { formatTime, statusText, type Batch, type BatchCourse } from "@/lib/batchData";
+import { formatSchedule, statusText, type Batch, type BatchCourse } from "@/lib/batchData";
 import { CURRENT_LEVELS, type CurrentLevel } from "@/lib/leadData";
 import { site, whatsappDisplay, whatsappUrl } from "@/lib/site";
 import { PhoneNumberInput, isValidPhoneNumber } from "./PhoneNumberInput";
@@ -150,7 +150,7 @@ export function EnrollModal({
                       <select value={batch?.id ?? ""} onChange={(e) => setBatchId(e.target.value)}>
                         {courseBatches.map((b) => (
                           <option key={b.id} value={b.id}>
-                            {b.name} · {b.days.join("/")} {formatTime(b.start_time)}
+                            {b.name} · {formatSchedule(b)}
                           </option>
                         ))}
                       </select>
@@ -162,7 +162,7 @@ export function EnrollModal({
 
                 {batch && (
                   <p className={styles.batchSummary}>
-                    {batch.days.join(" · ")} · {formatTime(batch.start_time)}–{formatTime(batch.end_time)} · {statusText(batch)}
+                    {formatSchedule(batch)} · {statusText(batch)}
                   </p>
                 )}
 

@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { authErrorResponse, requireAdmin } from "@/lib/auth";
 import { leadFromRow, leadToRow, type Lead, type LeadRow } from "@/lib/leadData";
-import { formatDays, formatTime } from "@/lib/batchData";
+import { formatSchedule } from "@/lib/batchData";
 import { formatIndiaDate } from "@/lib/emiData";
 import { sendEnrollmentReceivedEmail } from "@/lib/email";
 import { readPortalState } from "@/lib/portalStateServer";
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     details: [
       `Course: ${batch.course}`,
       `Batch: ${batch.name}`,
-      `Schedule: ${formatDays(batch.days)} · ${formatTime(batch.start_time)}–${formatTime(batch.end_time)} (India time)`,
+      `Schedule: ${formatSchedule(batch)} (India time)`,
       ...(batch.start_date ? [`Starts: ${formatIndiaDate(batch.start_date)}`] : []),
       ...(clean.currentLevel ? [`Your level: ${clean.currentLevel}`] : []),
     ],

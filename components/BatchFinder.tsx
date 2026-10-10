@@ -4,7 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
 import { whatsappUrl } from "@/lib/site";
 import { usePortalState } from "@/lib/usePortalState";
-import { formatDays, formatTime, statusText, type Batch, type BatchCourse } from "@/lib/batchData";
+import { earliestStart, formatDays, formatTime, statusText, type Batch, type BatchCourse } from "@/lib/batchData";
 import type { Lead } from "@/lib/leadData";
 import { EnrollModal, type EnrollDetails } from "./EnrollModal";
 import styles from "./BatchFinder.module.css";
@@ -27,20 +27,16 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
 
   const batches = useMemo(() => allBatches.filter((b) => b.published), [allBatches]);
 
-  // One row per batch — the underlying data already stores every batch as a
-  // single record with a `days` array, so no de-duplication is needed here,
-  // just a stable sort for scanning. (Two source batches with different
-  // times on different days were entered as multiple records at the data
-  // level, since a batch here has one time slot for all its days — those
-  // share a name but carry distinct days/times, handled below.)
+  // One row per batch. A batch that meets at different times on different
+  // days is ONE record with several slots (lib/batchData.ts), shown as one
+  // line per slot in the Days/Time cells. Sorted by its earliest start.
   const courseBatches = useMemo(
-    () => [...batches.filter((b) => b.course === course)].sort((a, b) => a.start_time.localeCompare(b.start_time)),
+    () => [...batches.filter((b) => b.course === course)].sort((a, b) => earliestStart(a).localeCompare(earliestStart(b))),
     [batches, course]
   );
 
-  // Batches sharing a display name but different day/time records (e.g. an
-  // "Evening Batch (Late)" split across a few time slots) get their time
-  // appended to the name so two rows never read as identical.
+  // Two different batches that happen to share a display name get their
+  // earliest start time appended so two rows never read as identical.
   const nameCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const b of courseBatches) counts[b.name] = (counts[b.name] || 0) + 1;
@@ -146,11 +142,21 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
                         return (
                           <tr key={batch.id} className={!selectable ? styles.rowDisabled : ""}>
                             <td>
-                              <strong>{batch.name}{disambiguate ? ` · ${formatTime(batch.start_time)}` : ""}</strong>
+                              <strong>{batch.name}{disambiguate ? ` · ${formatTime(earliestStart(batch))}` : ""}</strong>
                               {batch.level && <small>{batch.level}</small>}
                             </td>
-                            <td>{formatDays(batch.days)}</td>
-                            <td>{formatTime(batch.start_time)}–{formatTime(batch.end_time)}</td>
+                            <td>
+                              {batch.slots.map((slot) => (
+                                <span key={slot.days.join("")} className={styles.slotLine}>{formatDays(slot.days)}</span>
+                              ))}
+                            </td>
+                            <td>
+                              {batch.slots.map((slot) => (
+                                <span key={slot.days.join("")} className={styles.slotLine}>
+                                  {formatTime(slot.start_time)}–{formatTime(slot.end_time)}
+                                </span>
+                              ))}
+                            </td>
                             <td>
                               <span className={`${styles.status} ${styles[`status_${batch.status}`] || ""}`}>{statusText(batch)}</span>
                             </td>
@@ -181,12 +187,14 @@ export function BatchFinder({ standalone = false }: { standalone?: boolean }) {
                           <span className={styles.cardCourse}>{batch.course}</span>
                           <span className={`${styles.status} ${styles[`status_${batch.status}`] || ""}`}>{statusText(batch)}</span>
                         </div>
-                        <strong>{batch.name}{disambiguate ? ` · ${formatTime(batch.start_time)}` : ""}</strong>
+                        <strong>{batch.name}{disambiguate ? ` · ${formatTime(earliestStart(batch))}` : ""}</strong>
                         {batch.level && <small>{batch.level}</small>}
-                        <div className={styles.cardMeta}>
-                          <span>{formatDays(batch.days)}</span>
-                          <span>{formatTime(batch.start_time)}–{formatTime(batch.end_time)}</span>
-                        </div>
+                        {batch.slots.map((slot) => (
+                          <div key={slot.days.join("")} className={styles.cardMeta}>
+                            <span>{formatDays(slot.days)}</span>
+                            <span>{formatTime(slot.start_time)}–{formatTime(slot.end_time)}</span>
+                          </div>
+                        ))}
                         {selectable ? (
                           <button type="button" className={styles.enrollBtn} onClick={() => setEnrollingBatch(batch)}>
                             {batch.status === "waitlist" ? "Join waitlist" : "Enroll now"}

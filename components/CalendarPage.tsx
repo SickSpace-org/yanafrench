@@ -27,8 +27,11 @@ function BatchCard({ batch, zoomLink, isYours, link }: { batch: Batch; zoomLink:
         {isYours && <span className={styles.mainBadge}>Your batch</span>}
       </div>
       <strong>{batch.name}</strong>
-      <small>{batch.days.map((d) => DAY_LABELS[d] ?? d).join(" · ")}</small>
-      <small>{formatTime(batch.start_time)}–{formatTime(batch.end_time)}</small>
+      {batch.slots.map((slot) => (
+        <small key={slot.days.join("")}>
+          {slot.days.map((d) => DAY_LABELS[d] ?? d).join(" · ")} · {formatTime(slot.start_time)}–{formatTime(slot.end_time)}
+        </small>
+      ))}
       {next && (
         <small className={styles.nextClass}>
           Next class: {next.date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}

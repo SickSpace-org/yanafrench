@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useAdminCollection } from "@/lib/useAdminCollection";
 import { usePortalState } from "@/lib/usePortalState";
-import { formatDays, formatTime, type Batch, type BatchCourse } from "@/lib/batchData";
+import { type Batch, type BatchCourse, formatSchedule } from "@/lib/batchData";
 import type { Student } from "@/lib/studentData";
 import { AdminShell } from "../AdminShell";
 import styles from "./AdminLessonsManager.module.css";
@@ -53,8 +53,7 @@ function buildGroups(batches: Batch[], students: Student[]): Group[] {
     course: batch.course,
     meta: [
       batch.level,
-      formatDays(batch.days),
-      `${formatTime(batch.start_time)}–${formatTime(batch.end_time)}`,
+      formatSchedule(batch),
       batch.published ? null : "Draft",
     ]
       .filter(Boolean)

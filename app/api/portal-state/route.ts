@@ -1,6 +1,6 @@
-import { writeJson } from "@/lib/r2";
-import { applyPortalAction, PORTAL_STATE_KEY, type PortalStateAction } from "@/lib/portalState";
-import { readPortalState } from "@/lib/portalStateServer";
+import { applyPortalAction, type PortalStateAction } from "@/lib/portalState";
+import { readPortalState, writePortalState } from "@/lib/portalStateServer";
+import { validateSlots } from "@/lib/batchData";
 import { authErrorResponse, requireAdmin } from "@/lib/auth";
 
 // GET: public — the student Lessons/Batches/Calendar pages (and the public
@@ -24,13 +24,22 @@ export async function POST(req: Request) {
     return new Response("Invalid action", { status: 400 });
   }
 
+  // A batch's schedule must be valid before it's stored: at least one slot,
+  // real days and times, and no weekday in two slots (one class per day).
+  const slots =
+    action.type === "addBatch" ? action.batch?.slots : action.type === "updateBatch" && action.patch && "slots" in action.patch ? action.patch.slots : undefined;
+  if (action.type === "addBatch" || slots !== undefined) {
+    const problem = validateSlots(slots);
+    if (problem) return new Response(problem, { status: 400 });
+  }
+
   const existing = await readPortalState();
   const next = applyPortalAction(existing, action);
   if (next === existing) {
     return new Response("Unknown action", { status: 400 });
   }
 
-  const saved = await writeJson(PORTAL_STATE_KEY, next);
+  const saved = await writePortalState(next);
   if (!saved) {
     return new Response("Not persisted — R2 isn't configured.", { status: 501 });
   }

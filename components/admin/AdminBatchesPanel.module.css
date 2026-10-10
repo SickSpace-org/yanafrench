@@ -98,3 +98,15 @@
 
 .remove { align-self: flex-start; border: 1px solid rgba(182,58,58,.35); background: none; color: #B63A3A; padding: .5rem 1rem; border-radius: 999px; font-size: .68rem; font-weight: 700; }
 .remove:hover { background: rgba(182,58,58,.06); }
+
+/* Multi-slot schedule editor (one row per days + time). */
+.slots { display: flex; flex-direction: column; gap: .7rem; }
+.slot { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .6rem 1rem; padding: .7rem .8rem; border: 1px solid var(--hairline-ink); border-radius: var(--r-md); }
+.slot label { display: flex; flex-direction: column; gap: .3rem; font-size: .62rem; font-weight: 700; color: var(--text-faint); }
+.slot input { padding: .45rem .55rem; border: 1px solid var(--hairline-ink); border-radius: var(--r-md); font: inherit; font-size: .8rem; color: var(--text-primary); background: var(--card-surface, #fff); }
+.slot input:focus { outline: none; border-color: var(--blue); }
+.dayChip:disabled { opacity: .35; cursor: not-allowed; }
+.slotAdd { align-self: flex-start; border: 1px dashed var(--blue); background: none; color: var(--blue); padding: .45rem .9rem; border-radius: 999px; font-size: .68rem; font-weight: 700; cursor: pointer; }
+.slotRemove { border: 0; background: none; color: #B63A3A; font-size: .68rem; font-weight: 700; cursor: pointer; padding: .45rem .2rem; }
+.slotActions { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; }
+.slotError { flex-basis: 100%; margin: 0; font-size: .72rem; font-weight: 700; color: #B63A3A; }

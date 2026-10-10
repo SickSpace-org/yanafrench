@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePortalState } from "@/lib/usePortalState";
-import { formatDays, formatTime } from "@/lib/batchData";
+import { formatSchedule } from "@/lib/batchData";
 import { JOIN_EARLY_MINUTES, JOIN_WINDOW_MINUTES, type AttendanceSource, type AttendanceStatus, type SessionStatus } from "@/lib/attendanceData";
 import { AdminShell } from "../AdminShell";
 import styles from "./AdminLessonsManager.module.css";
@@ -208,7 +208,7 @@ export function AdminAttendancePage() {
 
           {batch && (
             <p className={styles.tabHint}>
-              {formatDays(batch.days)} · {formatTime(batch.start_time)}–{formatTime(batch.end_time)} · last 30 days
+              {formatSchedule(batch)} · last 30 days
             </p>
           )}
 

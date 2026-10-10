@@ -377,3 +377,7 @@
 
   .cardList { display: flex; }
 }
+
+/* A batch with several weekly time slots shows one line per slot. */
+.slotLine { display: block; white-space: nowrap; }
+.slotLine + .slotLine { margin-top: .25rem; }
