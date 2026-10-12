@@ -14,7 +14,7 @@ export function OrientationTestCard({ onEnroll }: { onEnroll: (level: Orientatio
       <div className="orientation-card__copy">
         <p className="eyebrow">Not sure where to start?</p>
         <h3>French Orientation Test</h3>
-        <p>A short placement test to confirm your current level before you commit to a course.</p>
+        <p>A short placement test to confirm your current level before you commit to a course. Pick your level, then book a time slot — at most 4 students per slot.</p>
       </div>
       <div className="orientation-card__levels" role="group" aria-label="Select orientation test level">
         {orientationLevels.map((o) => (
@@ -31,7 +31,7 @@ export function OrientationTestCard({ onEnroll }: { onEnroll: (level: Orientatio
         ))}
       </div>
       <button type="button" className="button button--accent" onClick={() => onEnroll(active)}>
-        Enroll — {active.level} · {formatRupees(active.priceInPaise)}
+        Book a slot — {active.level} · {formatRupees(active.priceInPaise)}
       </button>
     </Reveal>
   );

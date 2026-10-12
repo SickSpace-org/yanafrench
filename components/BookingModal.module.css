@@ -1,0 +1,100 @@
+/* Slot picker for the Orientation Test / Demo Class booking modal. */
+.card { max-width: 580px; }
+
+.picker { display: flex; flex-direction: column; gap: .9rem; margin-bottom: 1.4rem; }
+
+.hint { margin: 0; font-size: .8rem; line-height: 1.6; color: var(--text-muted); }
+
+.retry { border: 0; background: none; padding: 0; color: inherit; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+
+.days {
+  display: flex;
+  gap: .5rem;
+  overflow-x: auto;
+  padding: .2rem .1rem .5rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.day {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .15rem;
+  min-width: 64px;
+  padding: .6rem .7rem;
+  border-radius: var(--r-md);
+  border: 1px solid var(--stone);
+  background: white;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color .2s var(--ease), background .2s var(--ease), transform .2s var(--ease);
+}
+
+.day span { font-size: .56rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); }
+.day strong { font-family: var(--serif); font-size: 1.35rem; font-weight: 400; line-height: 1; color: var(--blue); }
+.day:hover { border-color: var(--blue); transform: translateY(-1px); }
+
+.dayActive, .dayActive:hover { background: var(--blue); border-color: var(--blue); }
+.dayActive span { color: rgba(246,244,239,.7); }
+.dayActive strong { color: var(--porcelain); }
+
+.dayFull:not(.dayActive) { opacity: .55; }
+
+.dayLabel { margin: 0 0 .6rem; font-size: .72rem; font-weight: 700; color: var(--text-muted); }
+
+.times { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .5rem; }
+
+.time {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .2rem;
+  padding: .75rem .9rem;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--stone);
+  background: white;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .2s var(--ease), background .2s var(--ease);
+}
+
+.time strong { font-size: .92rem; color: var(--blue); }
+.time span { font-size: .64rem; font-weight: 600; color: var(--emerald); }
+.time:hover:not(:disabled) { border-color: var(--blue); }
+
+.timeActive, .timeActive:hover:not(:disabled) { border-color: var(--blue); background: rgba(31,58,95,.07); box-shadow: 0 0 0 2px var(--blue) inset; }
+
+.time:disabled { cursor: not-allowed; background: var(--stone-wash); }
+.time:disabled strong { color: var(--text-faint); text-decoration: line-through; }
+.time:disabled span { color: var(--text-faint); }
+
+.levels { border: 0; padding: 0; margin: 0; }
+.levels legend { padding: 0; margin-bottom: .45rem; font-size: .62rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); }
+.levels > div { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; }
+
+.level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .15rem;
+  padding: .6rem .4rem;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--stone);
+  background: white;
+  cursor: pointer;
+}
+
+.level strong { font-size: .9rem; color: var(--blue); }
+.level span { font-size: .66rem; color: var(--text-muted); }
+.levelActive { background: var(--blue); border-color: var(--blue); }
+.levelActive strong, .levelActive span { color: var(--porcelain); }
+
+
+@media (max-width: 480px) {
+  .times { grid-template-columns: 1fr 1fr; }
+  .levels > div { grid-template-columns: repeat(2, 1fr); }
+}

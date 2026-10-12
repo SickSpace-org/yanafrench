@@ -136,3 +136,84 @@ export async function sendEnrollmentReceivedEmail(
     `<p style="color:#666">WhatsApp: ${esc(input.whatsappNumber)}</p><p>À bientôt !<br>— The Français Hub</p>`;
   return sendEmail(to, `We've received your enrollment — ${input.courseTitle}`, text, html);
 }
+
+const escapeHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+function detailsTable(rows: [string, string][]): string {
+  return `<table style="border-collapse:collapse;margin:8px 0 16px">${rows
+    .map(([label, value]) => `<tr><td style="padding:4px 14px 4px 0;color:#666">${escapeHtml(label)}</td><td style="padding:4px 0;font-weight:700">${escapeHtml(value)}</td></tr>`)
+    .join("")}</table>`;
+}
+
+// Sent when someone books an Orientation Test or Demo Class slot on the
+// website (app/api/bookings) — confirms the date and time they picked. A
+// paid booking (the Orientation Test) also asks them to pay the fee to
+// confirm their seat; the Demo Class is free.
+export async function sendBookingConfirmationEmail(
+  to: string,
+  input: {
+    name: string;
+    what: string; // "Orientation Test" / "Demo Class"
+    when: string; // already formatted, e.g. "Monday, 12 October 2026 at 7:00 PM IST"
+    details: [string, string][]; // extra rows, e.g. ["Level", "A2"]
+    paymentRequired: boolean;
+    whatsappUrl: string;
+    whatsappNumber: string;
+  }
+): Promise<boolean> {
+  const first = input.name.split(" ")[0] || "there";
+  const intro = `Thank you for booking the ${input.what} at The Français Hub! Here are your booking details:`;
+  const rows: [string, string][] = [["Booking", input.what], ["Date & time", input.when], ...input.details];
+  const next = input.paymentRequired
+    ? [
+        "To confirm your seat, please complete the payment of the test fee. Message Yana on WhatsApp and she'll share the payment details.",
+        "Once your payment is received, we'll email you to confirm your booking, and Yana will share the joining link before your slot.",
+      ]
+    : ["The demo class is free — there's nothing to pay. Yana will share the joining link before your slot."];
+  const help = `Can't make it, or need a different time? Message Yana on WhatsApp: ${input.whatsappNumber}`;
+
+  const text = [
+    `Hi ${first},`,
+    intro,
+    rows.map(([l, v]) => `${l}: ${v}`).join("\n"),
+    ...next,
+    `${help}\n${input.whatsappUrl}`,
+    "À bientôt !\n— The Français Hub",
+  ].join("\n\n");
+  const html =
+    `<p>Hi ${escapeHtml(first)},</p><p>${escapeHtml(intro)}</p>${detailsTable(rows)}` +
+    next.map((line, i) => `<p${input.paymentRequired && i === 0 ? ' style="font-weight:700"' : ""}>${escapeHtml(line)}</p>`).join("") +
+    `<p><a href="${input.whatsappUrl}" style="display:inline-block;padding:10px 18px;background:#25D366;color:#fff;border-radius:999px;text-decoration:none;font-weight:700">${input.paymentRequired ? "Get the payment details on WhatsApp" : "Message Yana on WhatsApp"}</a></p>` +
+    `<p style="color:#666">${escapeHtml(help)}</p><p>À bientôt !<br>— The Français Hub</p>`;
+  const subject = input.paymentRequired
+    ? `Complete your payment to confirm your ${input.what} — ${input.when}`
+    : `Booked: your ${input.what} on ${input.when}`;
+  return sendEmail(to, subject, text, html);
+}
+
+// Sent when the admin marks an Orientation Test booking as paid in
+// Admin -> Bookings: the payment is accepted and the seat is confirmed.
+export async function sendBookingPaymentConfirmedEmail(
+  to: string,
+  input: {
+    name: string;
+    what: string;
+    when: string;
+    details: [string, string][];
+    whatsappUrl: string;
+    whatsappNumber: string;
+  }
+): Promise<boolean> {
+  const first = input.name.split(" ")[0] || "there";
+  const intro = `Your payment has been accepted — you're now confirmed for the ${input.what}. Here are your session details:`;
+  const rows: [string, string][] = [["Session", input.what], ["Date & time", input.when], ...input.details, ["Payment", "Received"]];
+  const next = "Yana will share the joining link before your slot. Please join a few minutes early.";
+  const help = `Questions? Message Yana on WhatsApp: ${input.whatsappNumber}`;
+
+  const text = [`Hi ${first},`, intro, rows.map(([l, v]) => `${l}: ${v}`).join("\n"), next, `${help}\n${input.whatsappUrl}`, "À bientôt !\n— The Français Hub"].join("\n\n");
+  const html =
+    `<p>Hi ${escapeHtml(first)},</p><p style="font-weight:700">${escapeHtml(intro)}</p>${detailsTable(rows)}<p>${escapeHtml(next)}</p>` +
+    `<p><a href="${input.whatsappUrl}" style="display:inline-block;padding:10px 18px;background:#25D366;color:#fff;border-radius:999px;text-decoration:none;font-weight:700">Message Yana on WhatsApp</a></p>` +
+    `<p style="color:#666">${escapeHtml(input.whatsappNumber)}</p><p>À bientôt !<br>— The Français Hub</p>`;
+  return sendEmail(to, `Payment accepted — you're confirmed for the ${input.what} on ${input.when}`, text, html);
+}

@@ -1,0 +1,65 @@
+/* Admin -> Bookings (Orientation Test / Demo Class) */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; margin-bottom: 1.4rem; }
+.stats > div { display: flex; flex-direction: column; gap: .25rem; padding: 1rem 1.1rem; border-radius: var(--r-md); border: 1px solid var(--hairline-ink); background: var(--card-surface); }
+.stats strong { font-family: var(--serif); font-weight: 400; font-size: 1.7rem; line-height: 1; color: var(--blue); }
+.stats span { font-size: .6rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); }
+
+.viewSwitch { display: inline-flex; padding: .25rem; border-radius: 999px; background: rgba(23,25,28,.05); margin-bottom: 1.2rem; }
+.viewSwitch button { border: 0; background: none; padding: .5rem 1rem; border-radius: 999px; font-size: .72rem; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+.viewSwitch .viewActive { background: white; color: var(--blue); box-shadow: var(--shadow-soft); }
+
+.error { margin: 0 0 1rem; padding: .7rem .9rem; border-radius: 10px; background: #fbe9e7; color: #9c2f2f; font-size: .78rem; font-weight: 600; }
+
+.panel { display: flex; flex-direction: column; gap: 1rem; }
+
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; }
+.filters { display: flex; flex-wrap: wrap; gap: .4rem; }
+.filter, .filterActive { border: 1px solid var(--stone); background: white; padding: .4rem .8rem; border-radius: 999px; font-size: .7rem; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+.filterActive { background: var(--blue); border-color: var(--blue); color: var(--porcelain); }
+.checkbox { display: inline-flex; align-items: center; gap: .4rem; font-size: .74rem; color: var(--text-muted); cursor: pointer; }
+
+.tableWrap { overflow-x: auto; border: 1px solid var(--hairline-ink); border-radius: var(--r-md); background: var(--card-surface); }
+.nowrap { white-space: nowrap; }
+.sub { margin-top: .2rem; font-size: .68rem; color: var(--text-faint); }
+.message { margin-top: .3rem; max-width: 240px; font-size: .74rem; color: var(--text-muted); }
+.payCell { display: flex; flex-direction: column; align-items: flex-start; gap: .35rem; }
+.payCell button { padding: 0; }
+
+.addForm { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .8rem 1rem; padding: 1.1rem 1.2rem; border-radius: var(--r-md); border: 1px solid var(--hairline-ink); background: var(--card-surface); }
+.addForm > strong { flex-basis: 100%; font-size: .82rem; color: var(--blue); }
+.addForm label, .editRow label { display: flex; flex-direction: column; gap: .25rem; font-size: .6rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); }
+.addForm input, .editRow input { font: inherit; font-size: .82rem; letter-spacing: 0; text-transform: none; padding: .45rem .6rem; border: 1px solid var(--stone); border-radius: 8px; background: white; color: var(--text-primary); }
+.addForm input[type="number"], .editRow input[type="number"] { width: 5.5rem; }
+
+.day h3 { margin: .4rem 0 .6rem; font-family: var(--serif); font-weight: 400; font-size: 1.15rem; color: var(--blue); }
+.slotList { display: flex; flex-direction: column; gap: .5rem; }
+
+.slot { padding: .85rem 1rem; border-radius: var(--r-md); border: 1px solid var(--hairline-ink); background: var(--card-surface); }
+.slotMain { display: grid; grid-template-columns: 6rem 4.5rem 1fr auto; align-items: center; gap: .8rem; }
+.slotTime { font-size: .95rem; color: var(--blue); }
+
+.status { justify-self: start; padding: .2rem .55rem; border-radius: 999px; font-size: .6rem; font-weight: 700; letter-spacing: .04em; }
+.statusOpen { background: rgba(63,138,99,.12); color: var(--status-available); }
+.statusFull { background: rgba(182,58,58,.1); color: #B63A3A; }
+.statusClosed { background: rgba(215,163,74,.16); color: #8a6420; }
+.statusPast { background: rgba(23,25,28,.07); color: var(--text-faint); }
+
+.meter { display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+.meterBar { height: 6px; border-radius: 999px; background: rgba(23,25,28,.08); overflow: hidden; }
+.meterBar span { display: block; height: 100%; background: var(--blue); border-radius: inherit; }
+.meter small { font-size: .68rem; color: var(--text-muted); }
+
+.slotActions { display: flex; gap: .9rem; }
+.slotActions button:disabled { opacity: .4; cursor: not-allowed; text-decoration: none; }
+
+.editRow { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .8rem 1rem; margin-top: .8rem; padding-top: .8rem; border-top: 1px dashed var(--stone); }
+
+.attendees { list-style: none; margin: .7rem 0 0; padding: .7rem 0 0; border-top: 1px solid var(--stone); display: flex; flex-direction: column; gap: .35rem; font-size: .76rem; color: var(--ink); }
+.attendees li { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+
+@media (max-width: 760px) {
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .slotMain { grid-template-columns: auto auto 1fr; }
+  .meter { grid-column: 1 / -1; }
+  .slotActions { grid-column: 1 / -1; }
+}

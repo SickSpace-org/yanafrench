@@ -14,6 +14,7 @@ const navItems = [
   { label: "Attendance", href: "/admin/attendance" },
   { label: "Homework", href: "/admin/homework" },
   { label: "Enrollments", href: "/admin/enrollments" },
+  { label: "Bookings", href: "/admin/bookings" },
   { label: "Payments", href: "/admin/payments" },
   { label: "EMI", href: "/admin/emi" },
   { label: "Students", href: "/admin/students" },

@@ -1127,6 +1127,11 @@ a:focus-visible, button:focus-visible { outline:2px solid var(--bordeaux); outli
 .orientation-card__level strong { font-family: var(--serif); font-size: 1rem; }
 .orientation-card__level:hover { transform: translateY(-2px); }
 .orientation-card__level.is-active { background: var(--bordeaux); border-color: var(--bordeaux); }
+.orientation-card--demo { margin-top: 1.4rem; background: linear-gradient(165deg, #34557d, var(--blue-2)); }
+.orientation-card__facts { display: flex; gap: .6rem; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; }
+.orientation-card__facts li { display: flex; flex-direction: column; align-items: center; gap: .3rem; min-width: 92px; padding: .8rem 1rem; border-radius: var(--r-md); border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.06); }
+.orientation-card__facts strong { font-family: var(--serif); font-size: 1rem; }
+.orientation-card__facts span { font-size: .62rem; letter-spacing: .1em; text-transform: uppercase; color: rgba(246,244,239,.65); }
 
 @media (max-width: 800px) {
   .orientation-card { flex-direction: column; align-items: flex-start; }

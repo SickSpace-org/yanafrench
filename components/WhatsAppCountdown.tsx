@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { site, whatsappUrl } from "@/lib/site";
 import styles from "./WhatsAppCountdown.module.css";
 
-const SECONDS = 3;
 const RADIUS = 26;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-// Shown on the enroll forms' thank-you screen: counts down 3 seconds, then
+// Shown on the enroll forms' thank-you screen: counts down (3 seconds by
+// default), then
 // opens Yana's WhatsApp chat (same tab — a new tab opened from a timer,
 // with no click behind it, gets blocked as a popup). "Stay here" cancels.
 // autoStart={false} skips straight to the plain button (e.g. the student
@@ -19,13 +19,15 @@ export function WhatsAppCountdown({
   autoStart = true,
   hint = "Your enrollment message is ready to send.",
   onOpen,
+  seconds = 3,
 }: {
   message: string;
   autoStart?: boolean;
   hint?: string;
   onOpen?: () => void;
+  seconds?: number;
 }) {
-  const [left, setLeft] = useState(SECONDS);
+  const [left, setLeft] = useState(seconds);
   const [cancelled, setCancelled] = useState(!autoStart);
   const href = whatsappUrl(message);
   const tutor = site.tutor.split(" ")[0];
@@ -60,7 +62,7 @@ export function WhatsAppCountdown({
             cy="32"
             r={RADIUS}
             strokeDasharray={CIRCUMFERENCE}
-            strokeDashoffset={CIRCUMFERENCE * (1 - left / SECONDS)}
+            strokeDashoffset={CIRCUMFERENCE * (1 - left / seconds)}
           />
         </svg>
         <span className={styles.count}>{Math.max(left, 0)}</span>
