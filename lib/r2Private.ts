@@ -60,13 +60,15 @@ export function buildMaterialKey(batchId: string, fileName: string): string {
 }
 
 // Presigned PUT for the browser to upload straight to the private bucket.
-// Content-Type and Content-Length are part of the signature, so the upload
-// must be exactly the type and size that were checked here.
+// Content-Length is signed by default; Content-Type is only signed because
+// it's listed in signableHeaders — so the upload must be exactly the type
+// and size that were checked here, or R2 refuses it (403).
 export async function presignMaterialUpload(key: string, contentType: string, size: number): Promise<string> {
   const r2 = getPrivateR2();
   if (!r2) throw new Error("Private bucket isn't configured.");
   return getSignedUrl(r2.client, new PutObjectCommand({ Bucket: r2.bucket, Key: key, ContentType: contentType, ContentLength: size }), {
     expiresIn: 15 * 60,
+    signableHeaders: new Set(["content-type"]),
   });
 }
 
