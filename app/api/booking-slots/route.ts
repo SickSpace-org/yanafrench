@@ -1,11 +1,11 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { authErrorResponse, requireAdmin } from "@/lib/auth";
-import { DEFAULT_SLOT_CAPACITY, isBookingKind, istToIso } from "@/lib/bookingData";
+import { DEFAULT_SLOT_CAPACITY, DEFAULT_TEACHER, isBookingKind, isTeacher, istToIso } from "@/lib/bookingData";
 import { listAdminSlots } from "@/lib/bookings";
 
 // Admin -> Bookings.
 // GET ?kind=orientation|demo → every slot of that kind with its bookings
-// POST { kind, date, time, capacity? } → add a slot (date/time in IST)
+// POST { kind, date, time, capacity?, teacher? } → add a slot (date/time in IST)
 export async function GET(req: Request) {
   try {
     await requireAdmin();
@@ -34,16 +34,19 @@ export async function POST(req: Request) {
   const supabase = getSupabaseAdmin();
   if (!supabase) return new Response("Supabase isn't configured.", { status: 501 });
 
-  const body = (await req.json().catch(() => null)) as { kind?: unknown; date?: unknown; time?: unknown; capacity?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { kind?: unknown; date?: unknown; time?: unknown; capacity?: unknown; teacher?: unknown } | null;
   if (!body || !isBookingKind(body.kind)) return new Response("Unknown booking type.", { status: 400 });
   const startsAt = istToIso(String(body.date ?? ""), String(body.time ?? ""));
   if (!startsAt) return new Response("Pick a date and a time.", { status: 400 });
   const capacity = body.capacity === undefined ? DEFAULT_SLOT_CAPACITY : Number(body.capacity);
   if (!Number.isInteger(capacity) || capacity < 1 || capacity > 50) return new Response("Seats must be between 1 and 50.", { status: 400 });
 
+  const teacher = body.teacher === undefined ? DEFAULT_TEACHER : body.teacher;
+  if (!isTeacher(teacher)) return new Response("Unknown teacher.", { status: 400 });
+
   const { data, error } = await supabase
     .from("booking_slots")
-    .insert({ kind: body.kind, starts_at: startsAt, capacity })
+    .insert({ kind: body.kind, starts_at: startsAt, capacity, teacher })
     .select("id")
     .single();
   if (error) {

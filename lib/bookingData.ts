@@ -17,6 +17,17 @@ export const DEFAULT_SLOT_CAPACITY = 4;
 // Only the Orientation Test is paid; the Demo Class is free.
 export const BOOKING_IS_PAID: Record<BookingKind, boolean> = { orientation: true, demo: false };
 
+// Who takes a slot. Each slot has a teacher, and each booking starts with
+// its slot's teacher; the admin can switch a booking to the other teacher
+// (e.g. when both offer the same time).
+export const TEACHERS = ["Yana", "Harnoor"] as const;
+export type Teacher = (typeof TEACHERS)[number];
+export const DEFAULT_TEACHER: Teacher = "Yana";
+
+export function isTeacher(value: unknown): value is Teacher {
+  return TEACHERS.includes(value as Teacher);
+}
+
 export function isBookingKind(value: unknown): value is BookingKind {
   return value === "orientation" || value === "demo";
 }
@@ -39,12 +50,14 @@ export type Booking = {
   message: string | null;
   // Orientation Test only — when the admin marked the fee as received.
   paidAt: string | null;
+  teacher: string;
   createdAt: string;
 };
 
 export type AdminSlot = PublicSlot & {
   kind: BookingKind;
   active: boolean;
+  teacher: string;
   bookings: Booking[];
 };
 

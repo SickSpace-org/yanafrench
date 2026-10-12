@@ -6,6 +6,8 @@ import {
   BOOKING_KINDS,
   BOOKING_LABELS,
   DEFAULT_SLOT_CAPACITY,
+  DEFAULT_TEACHER,
+  TEACHERS,
   formatSlotDate,
   formatSlotTime,
   groupSlotsByDate,
@@ -180,11 +182,13 @@ type Act = (url: string, method: string, body?: unknown) => Promise<boolean>;
 function StudentsTable({ kind, rows, act, setPaid }: { kind: BookingKind; rows: Row[]; act: Act; setPaid: (row: Row, paid: boolean) => Promise<void> }) {
   const paid = BOOKING_IS_PAID[kind];
   const [filter, setFilter] = useState<PayFilter>("all");
+  const [teacher, setTeacher] = useState<string>("all");
   const [showPast, setShowPast] = useState(false);
   const now = Date.now();
 
   const visible = rows
     .filter((r) => showPast || new Date(r.slot.startsAt).getTime() > now)
+    .filter((r) => teacher === "all" || r.teacher === teacher)
     .filter((r) => !paid || filter === "all" || (filter === "paid" ? !!r.paidAt : !r.paidAt))
     .sort((a, b) => a.slot.startsAt.localeCompare(b.slot.startsAt) || a.createdAt.localeCompare(b.createdAt));
   const pastCount = rows.filter((r) => new Date(r.slot.startsAt).getTime() <= now).length;
@@ -201,6 +205,13 @@ function StudentsTable({ kind, rows, act, setPaid }: { kind: BookingKind; rows: 
             ))}
           </div>
         )}
+        <div className={styles.filters} role="group" aria-label="Teacher">
+          {["all", ...TEACHERS].map((t) => (
+            <button key={t} type="button" aria-pressed={teacher === t} className={teacher === t ? styles.filterActive : styles.filter} onClick={() => setTeacher(t)}>
+              {t === "all" ? "All teachers" : `${t} (${rows.filter((r) => r.teacher === t).length})`}
+            </button>
+          ))}
+        </div>
         {pastCount > 0 && (
           <label className={styles.checkbox}>
             <input type="checkbox" checked={showPast} onChange={(e) => setShowPast(e.target.checked)} /> Show past slots ({pastCount})
@@ -221,6 +232,7 @@ function StudentsTable({ kind, rows, act, setPaid }: { kind: BookingKind; rows: 
                 <th>Contact</th>
                 <th>Date</th>
                 <th>Time slot</th>
+                <th>Teacher</th>
                 <th>Level</th>
                 <th>{paid ? "Payment" : "Fee"}</th>
                 <th>Booked</th>
@@ -242,6 +254,17 @@ function StudentsTable({ kind, rows, act, setPaid }: { kind: BookingKind; rows: 
                   <td className={styles.nowrap}>
                     {formatSlotTime(r.slot.startsAt)} IST
                     <div className={styles.sub}>{r.slot.booked}/{r.slot.capacity} booked</div>
+                  </td>
+                  <td>
+                    <select
+                      className={styles.teacherSelect}
+                      value={r.teacher}
+                      aria-label={`Teacher for ${r.name}`}
+                      onChange={(e) => act(`/api/bookings/${r.id}`, "PATCH", { teacher: e.target.value })}
+                    >
+                      {TEACHERS.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    {r.teacher !== r.slot.teacher && <div className={styles.sub}>Slot is {r.slot.teacher}&rsquo;s</div>}
                   </td>
                   <td>{r.level ?? <span className={panelStyles.muted}>—</span>}</td>
                   <td>
@@ -286,6 +309,7 @@ function SlotsManager({ kind, slots, act }: { kind: BookingKind; slots: AdminSlo
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [capacity, setCapacity] = useState(String(DEFAULT_SLOT_CAPACITY));
+  const [teacher, setTeacher] = useState<string>(DEFAULT_TEACHER);
   const [adding, setAdding] = useState(false);
   const [showPast, setShowPast] = useState(false);
   const now = Date.now();
@@ -296,7 +320,7 @@ function SlotsManager({ kind, slots, act }: { kind: BookingKind; slots: AdminSlo
   async function add(e: FormEvent) {
     e.preventDefault();
     setAdding(true);
-    const ok = await act("/api/booking-slots", "POST", { kind, date, time, capacity: Number(capacity) });
+    const ok = await act("/api/booking-slots", "POST", { kind, date, time, capacity: Number(capacity), teacher });
     setAdding(false);
     if (ok) setTime("");
   }
@@ -316,6 +340,12 @@ function SlotsManager({ kind, slots, act }: { kind: BookingKind; slots: AdminSlo
         <label>
           Seats
           <input type="number" min={1} max={50} value={capacity} onChange={(e) => setCapacity(e.target.value)} required />
+        </label>
+        <label>
+          Teacher
+          <select value={teacher} onChange={(e) => setTeacher(e.target.value)}>
+            {TEACHERS.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
         </label>
         <button type="submit" className={panelStyles.received} disabled={adding || !date || !time}>
           {adding ? "Adding…" : "Add slot"}
@@ -367,6 +397,15 @@ function SlotRow({ slot, act }: { slot: AdminSlot; act: Act }) {
       <div className={styles.slotMain}>
         <strong className={styles.slotTime}>{formatSlotTime(slot.startsAt)}</strong>
         <span className={`${styles.status} ${status.className}`}>{status.label}</span>
+        <select
+          className={styles.teacherSelect}
+          value={slot.teacher}
+          aria-label="Teacher for this slot"
+          title="Who takes this slot. Switching it also moves the students booked with the previous teacher."
+          onChange={(e) => act(`/api/booking-slots/${slot.id}`, "PATCH", { teacher: e.target.value })}
+        >
+          {TEACHERS.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
         <div className={styles.meter} aria-label={`${slot.booked} of ${slot.capacity} seats booked`}>
           <div className={styles.meterBar}><span style={{ width: `${pct}%` }} /></div>
           <small>{slot.booked}/{slot.capacity} booked · {left} left</small>
@@ -418,6 +457,14 @@ function SlotRow({ slot, act }: { slot: AdminSlot; act: Act }) {
             <li key={b.id}>
               <strong>{b.name}</strong> · {b.email}
               {b.level ? ` · ${b.level}` : ""}
+              <select
+                className={styles.teacherSelect}
+                value={b.teacher}
+                aria-label={`Teacher for ${b.name}`}
+                onChange={(e) => act(`/api/bookings/${b.id}`, "PATCH", { teacher: e.target.value })}
+              >
+                {TEACHERS.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
               {slot.kind === "orientation" && (
                 <span className={`${panelStyles.payment} ${b.paidAt ? panelStyles.payment_paid : panelStyles.payment_pending}`}>{b.paidAt ? "Paid" : "Unpaid"}</span>
               )}

@@ -1,9 +1,11 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { authErrorResponse, requireAdmin } from "@/lib/auth";
-import { istToIso } from "@/lib/bookingData";
+import { isTeacher, istToIso } from "@/lib/bookingData";
 
-// PATCH { capacity?, active?, date?, time? } — Admin -> Bookings' slot edits.
-// Seats can't go below the bookings already in the slot.
+// PATCH { capacity?, active?, date?, time?, teacher? } — Admin -> Bookings'
+// slot edits. Seats can't go below the bookings already in the slot.
+// Changing the teacher also moves the slot's bookings that were with the
+// previous teacher; bookings the admin assigned elsewhere stay put.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireAdmin();
@@ -14,7 +16,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!supabase) return new Response("Supabase isn't configured.", { status: 501 });
 
   const { id } = await params;
-  const body = (await req.json().catch(() => null)) as { capacity?: unknown; active?: unknown; date?: unknown; time?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { capacity?: unknown; active?: unknown; date?: unknown; time?: unknown; teacher?: unknown } | null;
   if (!body) return new Response("Invalid request.", { status: 400 });
 
   const update: Record<string, unknown> = {};
@@ -26,6 +28,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     update.capacity = capacity;
   }
   if (typeof body.active === "boolean") update.active = body.active;
+  if (body.teacher !== undefined) {
+    if (!isTeacher(body.teacher)) return new Response("Unknown teacher.", { status: 400 });
+    update.teacher = body.teacher;
+  }
   if (body.date !== undefined || body.time !== undefined) {
     const startsAt = istToIso(String(body.date ?? ""), String(body.time ?? ""));
     if (!startsAt) return new Response("Pick a date and a time.", { status: 400 });
@@ -33,11 +39,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   }
   if (Object.keys(update).length === 0) return Response.json({ ok: true });
 
+  const previousTeacher = update.teacher
+    ? ((await supabase.from("booking_slots").select("teacher").eq("id", id).maybeSingle()).data?.teacher as string | undefined)
+    : undefined;
+
   const { error } = await supabase.from("booking_slots").update(update).eq("id", id);
   if (error) {
     if (error.code === "23505") return new Response("There's already a slot at that date and time.", { status: 409 });
     console.error("Failed to update booking slot", id, error);
     return new Response("Couldn't update the slot.", { status: 500 });
+  }
+  if (previousTeacher && previousTeacher !== update.teacher) {
+    const { error: moveError } = await supabase.from("bookings").update({ teacher: update.teacher }).eq("slot_id", id).eq("teacher", previousTeacher);
+    if (moveError) console.error("Failed to move bookings to the new teacher", id, moveError);
   }
   return Response.json({ ok: true });
 }

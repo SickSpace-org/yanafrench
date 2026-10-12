@@ -1,8 +1,8 @@
 // Server-only booking queries (types and formatting: lib/bookingData.ts).
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AdminSlot, Booking, BookingKind, PublicSlot } from "./bookingData";
+import { DEFAULT_TEACHER, type AdminSlot, type Booking, type BookingKind, type PublicSlot } from "./bookingData";
 
-type SlotRow = { id: string; kind: BookingKind; starts_at: string; capacity: number; active: boolean };
+type SlotRow = { id: string; kind: BookingKind; starts_at: string; capacity: number; active: boolean; teacher: string };
 type BookingRow = {
   id: string;
   slot_id: string;
@@ -12,6 +12,7 @@ type BookingRow = {
   level: string | null;
   message: string | null;
   paid_at: string | null;
+  teacher: string | null;
   created_at: string;
 };
 
@@ -25,6 +26,7 @@ function toBooking(row: BookingRow): Booking {
     level: row.level,
     message: row.message,
     paidAt: row.paid_at,
+    teacher: row.teacher ?? DEFAULT_TEACHER,
     createdAt: row.created_at,
   };
 }
@@ -41,7 +43,7 @@ async function bookingsFor(supabase: SupabaseClient, slotIds: string[]): Promise
 export async function listPublicSlots(supabase: SupabaseClient, kind: BookingKind): Promise<PublicSlot[]> {
   const { data, error } = await supabase
     .from("booking_slots")
-    .select("id, kind, starts_at, capacity, active")
+    .select("id, kind, starts_at, capacity, active, teacher")
     .eq("kind", kind)
     .eq("active", true)
     .gt("starts_at", new Date().toISOString())
@@ -65,7 +67,7 @@ export async function listPublicSlots(supabase: SupabaseClient, kind: BookingKin
 export async function listAdminSlots(supabase: SupabaseClient, kind: BookingKind): Promise<AdminSlot[]> {
   const { data, error } = await supabase
     .from("booking_slots")
-    .select("id, kind, starts_at, capacity, active")
+    .select("id, kind, starts_at, capacity, active, teacher")
     .eq("kind", kind)
     .order("starts_at");
   if (error) throw error;
@@ -83,6 +85,7 @@ export async function listAdminSlots(supabase: SupabaseClient, kind: BookingKind
       startsAt: new Date(s.starts_at).toISOString(),
       capacity: s.capacity,
       active: s.active,
+      teacher: s.teacher,
       booked: bookings.length,
       bookings,
     };
@@ -115,7 +118,7 @@ export async function bookSlot(
 
   const { data: slot, error: slotError } = await supabase
     .from("booking_slots")
-    .select("id, kind, starts_at, capacity, active")
+    .select("id, kind, starts_at, capacity, active, teacher")
     .eq("id", input.slotId)
     .single();
   if (slotError || !slot) return { ok: false, reason: "error" };
