@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { BOOKING_IS_PAID, BOOKING_LABELS, formatSlotWhen, isBookingKind } from "@/lib/bookingData";
 import { bookSlot, type BookSlotFailure } from "@/lib/bookings";
@@ -12,6 +13,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 const FAILURE_RESPONSES: Record<BookSlotFailure, [number, string]> = {
   slot_not_found: [404, "That time slot no longer exists. Please pick another one."],
+  wrong_kind: [400, "That time slot is for a different booking."],
   slot_closed: [409, "That time slot is no longer available. Please pick another one."],
   slot_past: [409, "That time slot has already passed. Please pick another one."],
   slot_full: [409, "Sorry, that time slot just filled up. Please pick another one."],
@@ -24,7 +26,8 @@ const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
 
 // POST — public: book a seat in an Orientation Test or Demo Class slot,
 // then email the student (asking them to pay the fee to confirm, for the
-// Orientation Test). The seat is saved even if the email can't be sent.
+// Orientation Test). The email goes out after the response, so the student
+// isn't kept waiting on it; the seat is saved even if it can't be sent.
 export async function POST(req: Request) {
   if (!(await checkRateLimit(`booking:${clientIp(req)}`, 10, 600))) return rateLimitResponse();
 
@@ -48,12 +51,9 @@ export async function POST(req: Request) {
   if (kind === "orientation" && !orientation) return new Response("Please pick a test level.", { status: 400 });
   const level = orientation?.level ?? (str(body.level).slice(0, 40) || null);
 
-  // The slot must belong to the kind being booked — the two never share seats.
-  const { data: slotKind } = await supabase.from("booking_slots").select("kind").eq("id", slotId).maybeSingle();
-  if (!slotKind) return new Response(FAILURE_RESPONSES.slot_not_found[1], { status: 404 });
-  if (slotKind.kind !== kind) return new Response("That time slot is for a different booking.", { status: 400 });
-
-  const result = await bookSlot(supabase, { slotId, name, email, phone, level, message });
+  // reserve_slot() also checks the slot belongs to this kind — the two never
+  // share seats.
+  const result = await bookSlot(supabase, { kind, slotId, name, email, phone, level, message });
   if (!result.ok) {
     if (result.reason === "error") return new Response("Couldn't save your booking. Please try again.", { status: 502 });
     const [status, text] = FAILURE_RESPONSES[result.reason];
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
   }
 
   const what = BOOKING_LABELS[kind];
-  const when = formatSlotWhen(result.slot.starts_at);
+  const when = formatSlotWhen(result.startsAt);
   const details: [string, string][] = orientation
     ? [["Level", orientation.level], ["Test fee", formatRupees(orientation.priceInPaise)]]
     : level
@@ -69,19 +69,21 @@ export async function POST(req: Request) {
       : [];
 
   const paymentRequired = BOOKING_IS_PAID[kind];
-  await sendBookingConfirmationEmail(email, {
-    name,
-    what,
-    when,
-    details,
-    paymentRequired,
-    whatsappUrl: whatsappUrl(
-      paymentRequired
-        ? `Hi Yana! I'm ${name} (${email}). I've booked the French Orientation Test — ${level} for ${when}. Please share the details for payment.`
-        : `Hi Yana! I'm ${name} (${email}). I've booked the free Demo Class for ${when}.`
-    ),
-    whatsappNumber: whatsappDisplay,
-  }).catch((err) => console.error("Failed to send booking confirmation", email, err));
+  after(() =>
+    sendBookingConfirmationEmail(email, {
+      name,
+      what,
+      when,
+      details,
+      paymentRequired,
+      whatsappUrl: whatsappUrl(
+        paymentRequired
+          ? `Hi Yana! I'm ${name} (${email}). I've booked the French Orientation Test — ${level} for ${when}. Please share the details for payment.`
+          : `Hi Yana! I'm ${name} (${email}). I've booked the free Demo Class for ${when}.`
+      ),
+      whatsappNumber: whatsappDisplay,
+    }).catch((err) => console.error("Failed to send booking confirmation", email, err))
+  );
 
-  return Response.json({ bookingId: result.bookingId, startsAt: new Date(result.slot.starts_at).toISOString() });
+  return Response.json({ bookingId: result.bookingId, startsAt: result.startsAt });
 }

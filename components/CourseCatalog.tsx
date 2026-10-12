@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { Reveal } from "./Reveal";
 import { CourseCard } from "./CourseCard";
@@ -9,7 +9,7 @@ import { CourseEnrollModal } from "./CourseEnrollModal";
 import { DelfPricingTable } from "./DelfPricingTable";
 import { OrientationTestCard } from "./OrientationTestCard";
 import { DemoClassCard } from "./DemoClassCard";
-import { BookingModal } from "./BookingModal";
+import { BookingModal, prefetchBookingSlots } from "./BookingModal";
 import { courses, type Course, type CourseCategory, type Enrollable, type OrientationLevel } from "@/lib/courseCatalogData";
 import type { BookingKind } from "@/lib/bookingData";
 
@@ -20,6 +20,13 @@ export function CourseCatalog() {
   const [detailsCourse, setDetailsCourse] = useState<Course | null>(null);
   const [enrolling, setEnrolling] = useState<Enrollable | null>(null);
   const [booking, setBooking] = useState<{ kind: BookingKind; level?: OrientationLevel["level"] } | null>(null);
+
+  // Load the time slots in the background so the booking modal opens with
+  // them already there.
+  useEffect(() => {
+    prefetchBookingSlots("orientation");
+    prefetchBookingSlots("demo");
+  }, []);
 
   const visibleCourses = useMemo(() => {
     if (filter === "All") return courses;

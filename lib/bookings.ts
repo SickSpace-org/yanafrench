@@ -31,35 +31,26 @@ function toBooking(row: BookingRow): Booking {
   };
 }
 
-async function bookingsFor(supabase: SupabaseClient, slotIds: string[]): Promise<BookingRow[]> {
-  if (slotIds.length === 0) return [];
-  const { data, error } = await supabase.from("bookings").select("*").in("slot_id", slotIds).order("created_at");
-  if (error) throw error;
-  return (data ?? []) as BookingRow[];
-}
+// Each list is a single query: PostgREST embeds the slot's bookings (or
+// just their count) in the same request.
 
 // Open, upcoming slots with their seat counts. Full slots are included
 // (shown as "Full") so people can see the schedule.
 export async function listPublicSlots(supabase: SupabaseClient, kind: BookingKind): Promise<PublicSlot[]> {
   const { data, error } = await supabase
     .from("booking_slots")
-    .select("id, kind, starts_at, capacity, active, teacher")
+    .select("id, starts_at, capacity, bookings(count)")
     .eq("kind", kind)
     .eq("active", true)
     .gt("starts_at", new Date().toISOString())
     .order("starts_at");
   if (error) throw error;
-  const slots = (data ?? []) as SlotRow[];
-
-  const counts = new Map<string, number>();
-  for (const b of await bookingsFor(supabase, slots.map((s) => s.id))) {
-    counts.set(b.slot_id, (counts.get(b.slot_id) ?? 0) + 1);
-  }
+  const slots = (data ?? []) as { id: string; starts_at: string; capacity: number; bookings: { count: number }[] }[];
   return slots.map((s) => ({
     id: s.id,
     startsAt: new Date(s.starts_at).toISOString(),
     capacity: s.capacity,
-    booked: counts.get(s.id) ?? 0,
+    booked: s.bookings[0]?.count ?? 0,
   }));
 }
 
@@ -67,18 +58,13 @@ export async function listPublicSlots(supabase: SupabaseClient, kind: BookingKin
 export async function listAdminSlots(supabase: SupabaseClient, kind: BookingKind): Promise<AdminSlot[]> {
   const { data, error } = await supabase
     .from("booking_slots")
-    .select("id, kind, starts_at, capacity, active, teacher")
+    .select("id, kind, starts_at, capacity, active, teacher, bookings(*)")
     .eq("kind", kind)
     .order("starts_at");
   if (error) throw error;
-  const slots = (data ?? []) as SlotRow[];
-
-  const bySlot = new Map<string, Booking[]>();
-  for (const row of await bookingsFor(supabase, slots.map((s) => s.id))) {
-    bySlot.set(row.slot_id, [...(bySlot.get(row.slot_id) ?? []), toBooking(row)]);
-  }
+  const slots = (data ?? []) as (SlotRow & { bookings: BookingRow[] })[];
   return slots.map((s) => {
-    const bookings = bySlot.get(s.id) ?? [];
+    const bookings = [...s.bookings].sort((a, b) => a.created_at.localeCompare(b.created_at)).map(toBooking);
     return {
       id: s.id,
       kind: s.kind,
@@ -92,18 +78,22 @@ export async function listAdminSlots(supabase: SupabaseClient, kind: BookingKind
   });
 }
 
-export type BookSlotFailure = "slot_not_found" | "slot_closed" | "slot_past" | "slot_full" | "already_booked";
+export type BookSlotFailure = "slot_not_found" | "wrong_kind" | "slot_closed" | "slot_past" | "slot_full" | "already_booked";
 
-const FAILURES: BookSlotFailure[] = ["slot_not_found", "slot_closed", "slot_past", "slot_full", "already_booked"];
+const FAILURES: BookSlotFailure[] = ["slot_not_found", "wrong_kind", "slot_closed", "slot_past", "slot_full", "already_booked"];
 
-// Takes a seat through the book_slot() Postgres function, which locks the
-// slot while it counts — so a slot can never go over capacity.
+export type BookedSlot = { bookingId: string; startsAt: string; capacity: number; booked: number };
+
+// Takes a seat through the reserve_slot() Postgres function in one round
+// trip. It locks the slot while it counts, so a slot can never go over
+// capacity, and checks the slot belongs to the kind being booked.
 export async function bookSlot(
   supabase: SupabaseClient,
-  input: { slotId: string; name: string; email: string; phone: string; level: string | null; message: string | null }
-): Promise<{ ok: true; bookingId: string; slot: SlotRow } | { ok: false; reason: BookSlotFailure | "error" }> {
-  const { data, error } = await supabase.rpc("book_slot", {
+  input: { kind: BookingKind; slotId: string; name: string; email: string; phone: string; level: string | null; message: string | null }
+): Promise<({ ok: true } & BookedSlot) | { ok: false; reason: BookSlotFailure | "error" }> {
+  const { data, error } = await supabase.rpc("reserve_slot", {
     p_slot_id: input.slotId,
+    p_kind: input.kind,
     p_name: input.name,
     p_email: input.email,
     p_phone: input.phone,
@@ -112,15 +102,9 @@ export async function bookSlot(
   });
   if (error) {
     const reason = FAILURES.find((f) => error.message?.includes(f));
-    if (!reason) console.error("book_slot failed", input.slotId, error);
+    if (!reason) console.error("reserve_slot failed", input.slotId, error);
     return { ok: false, reason: reason ?? "error" };
   }
-
-  const { data: slot, error: slotError } = await supabase
-    .from("booking_slots")
-    .select("id, kind, starts_at, capacity, active, teacher")
-    .eq("id", input.slotId)
-    .single();
-  if (slotError || !slot) return { ok: false, reason: "error" };
-  return { ok: true, bookingId: data as string, slot: slot as SlotRow };
+  const row = data as { id: string; starts_at: string; capacity: number; booked: number };
+  return { ok: true, bookingId: row.id, startsAt: new Date(row.starts_at).toISOString(), capacity: row.capacity, booked: row.booked };
 }

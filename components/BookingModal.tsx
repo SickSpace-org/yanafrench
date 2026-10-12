@@ -28,11 +28,38 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // while someone is choosing turns to "Full".
 const POLL_MS = 8000;
 
+// Last-known slots per kind, so the modal opens with times already shown
+// (then refreshes). prefetchBookingSlots() warms it from the page that
+// hosts the booking button, before anyone clicks.
+const slotCache = new Map<BookingKind, PublicSlot[]>();
+const inflight = new Map<BookingKind, Promise<PublicSlot[]>>();
+
+function fetchSlots(kind: BookingKind): Promise<PublicSlot[]> {
+  const pending = inflight.get(kind);
+  if (pending) return pending;
+  const request = fetch(`/api/bookings/slots?kind=${kind}`, { cache: "no-store" })
+    .then((res) => {
+      if (!res.ok) throw new Error();
+      return res.json() as Promise<PublicSlot[]>;
+    })
+    .then((slots) => {
+      slotCache.set(kind, slots);
+      return slots;
+    })
+    .finally(() => inflight.delete(kind));
+  inflight.set(kind, request);
+  return request;
+}
+
+export function prefetchBookingSlots(kind: BookingKind) {
+  if (!slotCache.has(kind)) fetchSlots(kind).catch(() => {});
+}
+
 type FieldErrors = Partial<Record<"slot" | "name" | "email" | "phone", string>>;
 
 const INTRO: Record<BookingKind, string> = {
   orientation: "Pick a time for your placement test. Each slot takes at most 4 students.",
-  demo: "Pick a time for a free demo class with Yana. Each slot takes at most 4 students.",
+  demo: "Pick a time for your free demo class. Each slot takes at most 4 students.",
 };
 
 // The WhatsApp message opened after booking. The Orientation Test is paid,
@@ -57,7 +84,7 @@ export function BookingModal({
   initialLevel?: OrientationLevel["level"];
   onClose: () => void;
 }) {
-  const [slots, setSlots] = useState<PublicSlot[] | null>(null);
+  const [slots, setSlots] = useState<PublicSlot[] | null>(() => slotCache.get(kind) ?? null);
   const [loadError, setLoadError] = useState(false);
   const [date, setDate] = useState<string | null>(null);
   const [slotId, setSlotId] = useState<string | null>(null);
@@ -76,9 +103,7 @@ export function BookingModal({
 
   const loadSlots = useCallback(async () => {
     try {
-      const res = await fetch(`/api/bookings/slots?kind=${kind}`, { cache: "no-store" });
-      if (!res.ok) throw new Error();
-      setSlots(await res.json());
+      setSlots(await fetchSlots(kind));
       setLoadError(false);
     } catch {
       setLoadError(true);

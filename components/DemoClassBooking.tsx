@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { DemoClassCard } from "./DemoClassCard";
-import { BookingModal } from "./BookingModal";
+import { BookingModal, prefetchBookingSlots } from "./BookingModal";
 
 // The /demo-class page's card + booking modal.
 export function DemoClassBooking() {
   const [open, setOpen] = useState(false);
+  useEffect(() => prefetchBookingSlots("demo"), []);
   return (
     <section className="section">
       <div className="container">
