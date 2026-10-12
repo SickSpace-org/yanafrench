@@ -17,7 +17,7 @@ function getResendClient(): Resend | null {
   return new Resend(apiKey);
 }
 
-async function sendEmail(to: string, subject: string, text: string, html: string): Promise<boolean> {
+async function sendEmail(to: string | string[], subject: string, text: string, html: string): Promise<boolean> {
   const resend = getResendClient();
   if (!resend) {
     console.error("RESEND_API_KEY isn't configured — skipping email to", to);
@@ -216,4 +216,29 @@ export async function sendBookingPaymentConfirmedEmail(
     `<p><a href="${input.whatsappUrl}" style="display:inline-block;padding:10px 18px;background:#25D366;color:#fff;border-radius:999px;text-decoration:none;font-weight:700">Message Yana on WhatsApp</a></p>` +
     `<p style="color:#666">${escapeHtml(input.whatsappNumber)}</p><p>À bientôt !<br>— The Français Hub</p>`;
   return sendEmail(to, `Payment accepted — you're confirmed for the ${input.what} on ${input.when}`, text, html);
+}
+
+// Where "a student just enrolled" notifications go. ADMIN_NOTIFY_EMAIL can
+// override it (comma-separated for several addresses).
+const ADMIN_NOTIFY_EMAILS = (process.env.ADMIN_NOTIFY_EMAIL || "abhinavgarg4982@gmail.com")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+// Sent to the admin whenever a student submits any enroll form on the
+// website — batch, course, Orientation Test or Demo Class booking — with
+// everything they entered.
+export async function sendNewEnrollmentAdminEmail(input: {
+  what: string; // e.g. "Orientation Test booking", "Course enrollment"
+  studentName: string;
+  rows: [string, string][]; // already formatted, in display order
+  adminUrl: string;
+}): Promise<boolean> {
+  const rows = input.rows.filter(([, v]) => v);
+  const intro = `${input.studentName} just submitted a ${input.what} on the website.`;
+  const text = [intro, rows.map(([l, v]) => `${l}: ${v}`).join("\n"), `Open in Admin: ${input.adminUrl}`].join("\n\n");
+  const html =
+    `<p>${escapeHtml(intro)}</p>${detailsTable(rows)}` +
+    `<p><a href="${input.adminUrl}" style="display:inline-block;padding:10px 18px;background:#1F3A5F;color:#fff;border-radius:999px;text-decoration:none;font-weight:700">Open in Admin</a></p>`;
+  return sendEmail(ADMIN_NOTIFY_EMAILS, `New ${input.what}: ${input.studentName}`, text, html);
 }

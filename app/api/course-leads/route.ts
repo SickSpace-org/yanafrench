@@ -3,9 +3,10 @@ import { courseLeadToRow, type CourseLead } from "@/lib/courseLeadData";
 import { findEnrollableByProductId, enrollableTitle, enrollablePriceInPaise } from "@/lib/courseCatalogData";
 import { EMI_INSTALLMENT_COUNT, emiAvailableFor, splitEmi } from "@/lib/emiData";
 import { formatRupees } from "@/lib/formatCurrency";
-import { sendEnrollmentReceivedEmail } from "@/lib/email";
+import { after } from "next/server";
+import { sendEnrollmentReceivedEmail, sendNewEnrollmentAdminEmail } from "@/lib/email";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
-import { whatsappDisplay, whatsappUrl } from "@/lib/site";
+import { SITE_URL, whatsappDisplay, whatsappUrl } from "@/lib/site";
 
 type CreateLeadBody = {
   name?: string;
@@ -94,6 +95,26 @@ export async function POST(req: Request) {
     whatsappUrl: whatsappUrl(`Hi Yana! I just enrolled in ${productTitle} on the website (${lead.email}). Could you share the next steps?`),
     whatsappNumber: whatsappDisplay,
   }).catch((err) => console.error("Failed to send enrollment email", lead.email, err));
+
+  after(() =>
+    sendNewEnrollmentAdminEmail({
+      what: "course enrollment",
+      studentName: lead.name,
+      rows: [
+        ["Course", productTitle],
+        ["Course fee", formatRupees(fee)],
+        ["Payment plan", emiPlan ? `EMI — ${formatRupees(split.upfront)} to start, then ${EMI_INSTALLMENT_COUNT} monthly payments` : "Pay in full"],
+        ["Name", lead.name],
+        ["Phone", lead.phone],
+        ["WhatsApp", lead.whatsapp ?? ""],
+        ["Email", lead.email],
+        ["Current level", lead.currentLevel ?? ""],
+        ["Preferred mode", lead.preferredMode ?? ""],
+        ["Message", lead.message ?? ""],
+      ],
+      adminUrl: `${SITE_URL}/admin/enrollments`,
+    }).catch((err) => console.error("Failed to send admin enrollment email", err))
+  );
 
   return Response.json({ leadId: lead.id });
 }

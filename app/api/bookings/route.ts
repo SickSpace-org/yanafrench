@@ -4,9 +4,9 @@ import { BOOKING_IS_PAID, BOOKING_LABELS, formatSlotWhen, isBookingKind } from "
 import { bookSlot, type BookSlotFailure } from "@/lib/bookings";
 import { orientationLevels } from "@/lib/courseCatalogData";
 import { formatRupees } from "@/lib/formatCurrency";
-import { sendBookingConfirmationEmail } from "@/lib/email";
+import { sendBookingConfirmationEmail, sendNewEnrollmentAdminEmail } from "@/lib/email";
 import { checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rateLimit";
-import { whatsappDisplay, whatsappUrl } from "@/lib/site";
+import { SITE_URL, whatsappDisplay, whatsappUrl } from "@/lib/site";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -83,6 +83,24 @@ export async function POST(req: Request) {
       ),
       whatsappNumber: whatsappDisplay,
     }).catch((err) => console.error("Failed to send booking confirmation", email, err))
+  );
+  after(() =>
+    sendNewEnrollmentAdminEmail({
+      what: `${what} booking`,
+      studentName: name,
+      rows: [
+        ["Booking", what],
+        ["Date & time", when],
+        ["Name", name],
+        ["Phone", phone],
+        ["Email", email],
+        ...details,
+        ["Payment", paymentRequired ? "Unpaid — waiting for the test fee" : "Free"],
+        ["Message", message ?? ""],
+        ["Slot", `${result.booked} of ${result.capacity} seats taken`],
+      ],
+      adminUrl: `${SITE_URL}/admin/bookings`,
+    }).catch((err) => console.error("Failed to send admin booking email", err))
   );
 
   return Response.json({ bookingId: result.bookingId, startsAt: result.startsAt });

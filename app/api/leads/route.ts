@@ -3,10 +3,11 @@ import { authErrorResponse, requireAdmin } from "@/lib/auth";
 import { leadFromRow, leadToRow, type Lead, type LeadRow } from "@/lib/leadData";
 import { formatSchedule } from "@/lib/batchData";
 import { formatIndiaDate } from "@/lib/emiData";
-import { sendEnrollmentReceivedEmail } from "@/lib/email";
+import { after } from "next/server";
+import { sendEnrollmentReceivedEmail, sendNewEnrollmentAdminEmail } from "@/lib/email";
 import { readPortalState } from "@/lib/portalStateServer";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rateLimit";
-import { whatsappDisplay, whatsappUrl } from "@/lib/site";
+import { SITE_URL, whatsappDisplay, whatsappUrl } from "@/lib/site";
 
 // GET: list every enrollment inquiry for Admin → Enrollments, newest first.
 export async function GET() {
@@ -79,6 +80,25 @@ export async function POST(req: Request) {
     whatsappUrl: whatsappUrl(`Hi Yana! I just enrolled in the ${batch.course} ${batch.name} batch on the website (${clean.email}). Could you share the next steps?`),
     whatsappNumber: whatsappDisplay,
   }).catch((err) => console.error("Failed to send enrollment email", clean.email, err));
+
+  after(() =>
+    sendNewEnrollmentAdminEmail({
+      what: "batch enrollment",
+      studentName: clean.name,
+      rows: [
+        ["Course", batch.course],
+        ["Batch", batch.name],
+        ["Schedule", `${formatSchedule(batch)} (India time)`],
+        ["Starts", batch.start_date ? formatIndiaDate(batch.start_date) : ""],
+        ["Name", clean.name],
+        ["Phone", clean.phone],
+        ["Email", clean.email],
+        ["Current level", clean.currentLevel ?? ""],
+        ["Notes", clean.notes?.trim() ?? ""],
+      ],
+      adminUrl: `${SITE_URL}/admin/enrollments`,
+    }).catch((err) => console.error("Failed to send admin enrollment email", err))
+  );
 
   return Response.json({ ok: true });
 }
