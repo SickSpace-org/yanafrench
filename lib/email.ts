@@ -220,7 +220,7 @@ export async function sendBookingPaymentConfirmedEmail(
 
 // Where "a student just enrolled" notifications go. ADMIN_NOTIFY_EMAIL can
 // override it (comma-separated for several addresses).
-const ADMIN_NOTIFY_EMAILS = (process.env.ADMIN_NOTIFY_EMAIL || "abhinavgarg4982@gmail.com")
+const ADMIN_NOTIFY_EMAILS = (process.env.ADMIN_NOTIFY_EMAIL || "frenchwithyana@gmail.com,sickspace05@gmail.com")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
