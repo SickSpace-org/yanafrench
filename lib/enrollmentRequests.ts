@@ -9,6 +9,12 @@ import { coursePaymentFromRow, type CoursePaymentRow } from "./coursePaymentData
 import { enrollablePriceInPaise, findEnrollableByProductId } from "./courseCatalogData";
 import { emiAvailableFor, splitEmi, type PaymentPlan } from "./emiData";
 import { fulfillBatchPayment, fulfillCoursePayment } from "./paymentFulfillment";
+import { formatSchedule } from "./batchData";
+import { readPortalState } from "./portalStateServer";
+import { formatIndiaDate, EMI_INSTALLMENT_COUNT } from "./emiData";
+import { formatRupees } from "./formatCurrency";
+import { sendEnrollmentConfirmedEmail, sendNewEnrollmentAdminEmail } from "./email";
+import { SITE_URL, whatsappDisplay, whatsappUrl } from "./site";
 import {
   enrollmentKindFromId,
   MANUAL_PAYMENT_PREFIX,
@@ -90,6 +96,7 @@ export class ConfirmError extends Error {
 // manual payment in `payments` / `course_payments`) and runs the same
 // fulfillment a Razorpay payment used to — student record + login email,
 // the enrollment, a batch seat, and the EMI schedule when plan is "emi".
+// Then emails the student that they're enrolled, and the admins a copy.
 export async function confirmEnrollmentPayment(
   supabase: SupabaseClient,
   leadId: string,
@@ -127,6 +134,17 @@ export async function confirmEnrollmentPayment(
       throw new ConfirmError(500, "Couldn't record the payment.");
     }
     await fulfillCoursePayment(supabase, id, null, lead.id);
+    await sendPaymentConfirmedEmails({
+      name: lead.name,
+      email: lead.email,
+      phone: lead.phone,
+      courseTitle: lead.productTitle,
+      details: [
+        ["Course", lead.productTitle],
+        ["Amount received", formatRupees(input.amountPaise)],
+        ["Payment plan", plan === "emi" ? `EMI — ${EMI_INSTALLMENT_COUNT} monthly payments to follow` : "Paid in full"],
+      ],
+    });
     return;
   }
 
@@ -156,6 +174,48 @@ export async function confirmEnrollmentPayment(
     throw new ConfirmError(500, "Couldn't record the payment.");
   }
   await fulfillBatchPayment(supabase, id, null, lead.id);
+
+  const batch = await readPortalState()
+    .then((state) => state.batches.find((b) => b.id === lead.batchId))
+    .catch(() => undefined);
+  await sendPaymentConfirmedEmails({
+    name: lead.name,
+    email: lead.email,
+    phone: lead.phone,
+    courseTitle: `${lead.course} — ${lead.batchName}`,
+    details: [
+      ["Course", lead.course],
+      ["Batch", lead.batchName],
+      ...(batch ? ([["Schedule", `${formatSchedule(batch)} (India time)`]] as [string, string][]) : []),
+      ...(batch?.start_date ? ([["Starts", formatIndiaDate(batch.start_date)]] as [string, string][]) : []),
+      ["Amount received", formatRupees(input.amountPaise)],
+    ],
+  });
+}
+
+// Best-effort: the enrollment is already done if either email fails.
+async function sendPaymentConfirmedEmails(input: {
+  name: string;
+  email: string;
+  phone: string;
+  courseTitle: string;
+  details: [string, string][];
+}) {
+  await Promise.all([
+    sendEnrollmentConfirmedEmail(input.email, {
+      name: input.name,
+      courseTitle: input.courseTitle,
+      details: input.details,
+      whatsappUrl: whatsappUrl(`Hi Yana! I'm ${input.name} (${input.email}) — my payment for ${input.courseTitle} is confirmed. What are the next steps?`),
+      whatsappNumber: whatsappDisplay,
+    }).catch((err) => console.error("Failed to send enrollment confirmed email", input.email, err)),
+    sendNewEnrollmentAdminEmail({
+      what: "payment confirmation",
+      studentName: input.name,
+      rows: [...input.details, ["Name", input.name], ["Phone", input.phone], ["Email", input.email], ["Status", "Payment confirmed — student enrolled"]],
+      adminUrl: `${SITE_URL}/admin/payments`,
+    }).catch((err) => console.error("Failed to send admin payment email", err)),
+  ]);
 }
 
 // Admin → Payments: batch and course payments together, newest first.

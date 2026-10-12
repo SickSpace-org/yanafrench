@@ -117,8 +117,8 @@ export async function sendEnrollmentReceivedEmail(
   const first = input.name.split(" ")[0] || "there";
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const intro = `Thank you for enrolling in ${input.courseTitle} at The Français Hub! We've received your details.`;
-  const next = "Yana will get in touch with you shortly to confirm your seat and share the payment details. Once your payment is confirmed, you'll get your Student Hub login by email.";
-  const ask = `Questions, or want to get started sooner? Message Yana on WhatsApp: ${input.whatsappNumber}`;
+  const next = "Next step: message Yana on WhatsApp for the next steps — she'll confirm your seat and share the payment details. Once your payment is confirmed, we'll email you a confirmation and your Student Hub login.";
+  const ask = `WhatsApp Yana: ${input.whatsappNumber}`;
 
   const text = [`Hi ${first},`, intro, input.details.join("\n"), next, `${ask}\n${input.whatsappUrl}`, "À bientôt !\n— The Français Hub"].join("\n\n");
   const html =
@@ -241,4 +241,30 @@ export async function sendNewEnrollmentAdminEmail(input: {
     `<p>${escapeHtml(intro)}</p>${detailsTable(rows)}` +
     `<p><a href="${input.adminUrl}" style="display:inline-block;padding:10px 18px;background:#1F3A5F;color:#fff;border-radius:999px;text-decoration:none;font-weight:700">Open in Admin</a></p>`;
   return sendEmail(ADMIN_NOTIFY_EMAILS, `New ${input.what}: ${input.studentName}`, text, html);
+}
+
+// Sent when the admin confirms a course or batch payment in Admin ->
+// Enrollments ("Payment received"). The Student Hub login comes in its own
+// email (sendPasswordSetupEmail).
+export async function sendEnrollmentConfirmedEmail(
+  to: string,
+  input: {
+    name: string;
+    courseTitle: string;
+    details: [string, string][]; // already formatted, e.g. ["Amount received", "₹25,000"]
+    whatsappUrl: string;
+    whatsappNumber: string;
+  }
+): Promise<boolean> {
+  const first = input.name.split(" ")[0] || "there";
+  const intro = `Your payment has been received — you're now enrolled in ${input.courseTitle}. Welcome to The Français Hub!`;
+  const next = "You'll get a separate email to set up your Student Hub login, where you'll find your classes, lessons and homework. Yana will share everything you need before your first class.";
+  const help = `Questions? Message Yana on WhatsApp: ${input.whatsappNumber}`;
+
+  const text = [`Hi ${first},`, intro, input.details.map(([l, v]) => `${l}: ${v}`).join("\n"), next, `${help}\n${input.whatsappUrl}`, "À bientôt !\n— The Français Hub"].join("\n\n");
+  const html =
+    `<p>Hi ${escapeHtml(first)},</p><p style="font-weight:700">${escapeHtml(intro)}</p>${detailsTable(input.details)}<p>${escapeHtml(next)}</p>` +
+    `<p><a href="${input.whatsappUrl}" style="display:inline-block;padding:10px 18px;background:#25D366;color:#fff;border-radius:999px;text-decoration:none;font-weight:700">Message Yana on WhatsApp</a></p>` +
+    `<p style="color:#666">${escapeHtml(help)}</p><p>À bientôt !<br>— The Français Hub</p>`;
+  return sendEmail(to, `Payment received — you're enrolled in ${input.courseTitle}`, text, html);
 }
