@@ -4,7 +4,7 @@ import { IconOnline, IconStudents, IconCalendar, IconGuidance } from "./Icons";
 
 const details = [
   ["01", "100% online", IconOnline],
-  ["02", "Up to 4 students", IconStudents],
+  ["02", "Up to 5 students", IconStudents],
   ["03", "Batches based on availability", IconCalendar],
   ["04", "Direct guidance from Yana", IconGuidance],
 ] as const;

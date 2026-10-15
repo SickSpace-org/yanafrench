@@ -58,8 +58,8 @@ export function prefetchBookingSlots(kind: BookingKind) {
 type FieldErrors = Partial<Record<"slot" | "name" | "email" | "phone", string>>;
 
 const INTRO: Record<BookingKind, string> = {
-  orientation: "Pick a time for your placement test. Each slot takes at most 4 students.",
-  demo: "Pick a time for your free demo class. Each slot takes at most 4 students.",
+  orientation: "Pick a time for your placement test. Each slot takes at most 5 students.",
+  demo: "Pick a time for your free demo class. Each slot takes at most 5 students.",
 };
 
 // The WhatsApp message opened after booking. The Orientation Test is paid,

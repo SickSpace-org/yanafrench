@@ -14,7 +14,7 @@ export function OrientationTestCard({ onEnroll }: { onEnroll: (level: Orientatio
       <div className="orientation-card__copy">
         <p className="eyebrow">Not sure where to start?</p>
         <h3>French Orientation Test</h3>
-        <p>A short placement test to confirm your current level before you commit to a course. Pick your level, then book a time slot — at most 4 students per slot.</p>
+        <p>A short placement test to confirm your current level before you commit to a course. Pick your level, then book a time slot — at most 5 students per slot.</p>
       </div>
       <div className="orientation-card__levels" role="group" aria-label="Select orientation test level">
         {orientationLevels.map((o) => (

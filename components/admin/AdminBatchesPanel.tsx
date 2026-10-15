@@ -95,7 +95,7 @@ function NewBatchForm({ onAdd }: { onAdd: (batch: Batch) => void }) {
   const [slotError, setSlotError] = useState<string | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [totalSeats, setTotalSeats] = useState(4);
+  const [totalSeats, setTotalSeats] = useState(5);
   const [status, setStatus] = useState<BatchStatus>("available");
 
   function handleSubmit(e: FormEvent) {

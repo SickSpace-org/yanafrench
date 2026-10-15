@@ -12,7 +12,7 @@ export const BOOKING_LABELS: Record<BookingKind, string> = {
   demo: "Demo Class",
 };
 
-export const DEFAULT_SLOT_CAPACITY = 4;
+export const DEFAULT_SLOT_CAPACITY = 5;
 
 // Only the Orientation Test is paid; the Demo Class is free.
 export const BOOKING_IS_PAID: Record<BookingKind, boolean> = { orientation: true, demo: false };

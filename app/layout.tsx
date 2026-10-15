@@ -24,7 +24,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL || "ht
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: "The Français Hub · French with direction", template: "%s · The Français Hub" },
-  description: "Online French coaching by Yana Budhiraja for TEF, TCF and DELF learners. Small batches of up to four students.",
+  description: "Online French coaching by Yana Budhiraja for TEF, TCF and DELF learners. Small batches of up to five students.",
   // PNGs alongside the SVG: Google Search's favicon guidelines want a
   // square raster icon of at least 48px, and iOS uses apple-touch-icon.
   icons: {

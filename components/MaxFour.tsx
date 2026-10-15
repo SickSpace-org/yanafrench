@@ -30,7 +30,7 @@ export function MaxFour() {
       <div className="container max-four__grid">
         <Reveal>
           <p className="eyebrow">A deliberately smaller room</p>
-          <div className="max-four__number">0<CountUp to={4}/><span>.</span></div>
+          <div className="max-four__number">0<CountUp to={5}/><span>.</span></div>
         </Reveal>
         <Reveal className="max-four__copy" delay={.12}>
           <h2>Students.<br/>Maximum.</h2>
