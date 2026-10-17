@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useAdminCollection } from "@/lib/useAdminCollection";
 import { formatRupees } from "@/lib/formatCurrency";
 import {
@@ -157,9 +157,127 @@ function InstallmentLine({ inst, onChanged }: { inst: EmiInstallment; onChanged:
   );
 }
 
+type PendingDraft = { id: string | null; amount: string; dueDate: string };
+
+// "Edit plan" for one existing student: paid installments stay as they
+// are; the unpaid ones can be re-priced, re-dated, added or removed — e.g.
+// turn 3 remaining EMIs into 2, or into 5 smaller ones.
+function ScheduleEditor({ plan, onSaved, onCancel }: { plan: Plan; onSaved: () => void; onCancel: () => void }) {
+  const paid = plan.installments.filter((i) => i.status === "paid");
+  const originalPending = plan.installments.filter((i) => i.status === "pending");
+  const [rows, setRows] = useState<PendingDraft[]>(() =>
+    originalPending.map((i) => ({ id: i.id, amount: String(Math.round(i.amount / 100)), dueDate: i.dueDate }))
+  );
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const before = originalPending.reduce((s, i) => s + i.amount, 0);
+  const after = rows.reduce((s, r) => s + (Number(r.amount) || 0) * 100, 0);
+  const valid = rows.every((r, i) => Number.isInteger(Number(r.amount)) && Number(r.amount) >= 1 && r.dueDate && (i === 0 || r.dueDate >= rows[i - 1].dueDate));
+
+  function update(i: number, field: "amount" | "dueDate", value: string) {
+    setRows((prev) => prev.map((r, j) => (j === i ? { ...r, [field]: value } : r)));
+  }
+
+  function addPayment() {
+    setRows((prev) => {
+      const last = prev[prev.length - 1]?.dueDate ?? paid[paid.length - 1]?.dueDate ?? todayInIndia();
+      const [y, m, d] = last.split("-").map(Number);
+      const next = new Date(Date.UTC(y, m, Math.min(d, 28))).toISOString().slice(0, 10);
+      return [...prev, { id: null, amount: "", dueDate: next }];
+    });
+  }
+
+  // Spreads the amount still to collect (as it was) equally over the rows.
+  function splitEqually() {
+    const total = Math.round(before / 100);
+    const each = Math.floor(total / rows.length);
+    setRows((prev) => prev.map((r, i) => ({ ...r, amount: String(i === prev.length - 1 ? total - each * (prev.length - 1) : each) })));
+  }
+
+  async function save() {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/emi/plans/${encodeURIComponent(plan.key)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pending: rows.map((r) => ({ id: r.id, amountRupees: Number(r.amount), dueDate: r.dueDate })) }),
+      });
+      if (!res.ok) throw new Error((await res.text()) || "Couldn't save the plan.");
+      onSaved();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't save the plan.");
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className={emiStyles.editor}>
+      <strong className={emiStyles.editorTitle}>
+        Edit {plan.student.name}&rsquo;s plan — {plan.productTitle}
+      </strong>
+      {paid.length > 0 && (
+        <p className={leadStyles.muted}>
+          Already paid: {paid.map((i) => `${formatRupees(i.amount)} (#${i.installmentNo})`).join(", ")} — these stay as they are.
+        </p>
+      )}
+      {rows.map((r, i) => (
+        <div className={emiStyles.editorRow} key={r.id ?? `new-${i}`}>
+          <span>Payment {i + 1}</span>
+          <label>
+            ₹
+            <input
+              type="number"
+              min="1"
+              step="1"
+              inputMode="numeric"
+              value={r.amount}
+              onChange={(e) => update(i, "amount", e.target.value)}
+              disabled={saving}
+              aria-label={`Payment ${i + 1} amount`}
+            />
+          </label>
+          <label>
+            due
+            <input type="date" value={r.dueDate} onChange={(e) => update(i, "dueDate", e.target.value)} disabled={saving} aria-label={`Payment ${i + 1} due date`} />
+          </label>
+          <button type="button" className={emiStyles.undo} disabled={saving} onClick={() => setRows((prev) => prev.filter((_, j) => j !== i))}>
+            Remove
+          </button>
+        </div>
+      ))}
+      {rows.length === 0 && <p className={leadStyles.muted}>No payments left — saving marks this plan as fully paid.</p>}
+      <p className={after === before ? emiStyles.totalOk : emiStyles.totalChanged}>
+        Still to collect: {formatRupees(after)}
+        {after !== before && ` (was ${formatRupees(before)})`}
+      </p>
+      <div className={emiStyles.editorActions}>
+        <button type="button" className={leadStyles.received} disabled={saving || !valid || rows.length > 12} onClick={save}>
+          {saving ? "Saving…" : "Save plan"}
+        </button>
+        <button type="button" className={leadStyles.action} disabled={saving || rows.length >= 12} onClick={addPayment}>
+          + Add payment
+        </button>
+        {rows.length > 0 && (
+          <button type="button" className={leadStyles.action} disabled={saving} onClick={splitEqually}>
+            Split {formatRupees(before)} equally
+          </button>
+        )}
+        <button type="button" className={leadStyles.action} disabled={saving} onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+      {!valid && <p className={emiStyles.lineError}>Every payment needs an amount of ₹1 or more and a date, in date order.</p>}
+      {error && <p className={emiStyles.lineError}>{error}</p>}
+    </div>
+  );
+}
+
 export function AdminEmiPage() {
   const { items: students, loaded, refresh } = useAdminCollection<Student>("/api/students");
   const plans = useMemo(() => buildPlans(students), [students]);
+  const [editing, setEditing] = useState<string | null>(null);
   const today = todayInIndia();
 
   const active = plans.filter((p) => p.next);
@@ -180,7 +298,9 @@ export function AdminEmiPage() {
         <h1>EMI.</h1>
         <p>
           Students paying in installments — what they&rsquo;ve paid, and when their next payment is due. Got an EMI by bank transfer, UPI
-          or cash? Press &ldquo;Mark paid&rdquo; next to it — if their Student Hub was locked, it unlocks straight away.
+          or cash? Press &ldquo;Mark paid&rdquo; next to it — if their Student Hub was locked, it unlocks straight away. &ldquo;Edit
+          plan&rdquo; changes a student&rsquo;s remaining payments: amounts, dates, or how many are left. (To change the plan for new
+          enrollments, use EMI Plans.)
         </p>
       </div>
 
@@ -217,7 +337,8 @@ export function AdminEmiPage() {
                   {plans.map((p) => {
                     const paid = p.installments.filter((i) => i.status === "paid").length;
                     return (
-                      <tr key={p.key}>
+                      <Fragment key={p.key}>
+                      <tr>
                         <td>
                           <div className={emiStyles.name}>{p.student.name}</div>
                           <div className={leadStyles.contact}>
@@ -248,8 +369,28 @@ export function AdminEmiPage() {
                               <InstallmentLine key={i.id} inst={i} onChanged={refresh} />
                             ))}
                           </ul>
+                          {editing !== p.key && (
+                            <button type="button" className={emiStyles.editPlan} onClick={() => setEditing(p.key)}>
+                              Edit plan
+                            </button>
+                          )}
                         </td>
                       </tr>
+                      {editing === p.key && (
+                        <tr>
+                          <td colSpan={5}>
+                            <ScheduleEditor
+                              plan={p}
+                              onCancel={() => setEditing(null)}
+                              onSaved={() => {
+                                setEditing(null);
+                                refresh();
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>
                     );
                   })}
                 </tbody>

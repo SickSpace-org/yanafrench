@@ -34,3 +34,17 @@
 .undo { border: 0; background: none; padding: .25rem .2rem; color: var(--text-muted); font-size: .66rem; font-weight: 700; cursor: pointer; text-decoration: underline; }
 .undo:disabled { opacity: .6; cursor: default; }
 .lineError { grid-column: 1 / -1; white-space: normal; color: #B63A3A; font-weight: 700; font-size: .7rem; }
+
+/* "Edit plan" for an existing student's unpaid installments */
+.editPlan { margin-top: .45rem; border: 0; background: none; padding: 0; color: var(--blue); font-size: .7rem; font-weight: 700; cursor: pointer; text-decoration: underline; }
+.editor { display: flex; flex-direction: column; gap: .6rem; padding: 1rem 1.1rem; border: 1px solid var(--hairline-ink); border-radius: var(--r-lg); white-space: normal; }
+.editorTitle { color: var(--text-primary); font-size: .85rem; }
+.editorRow { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; font-size: .78rem; color: var(--text-muted); }
+.editorRow > span { min-width: 5rem; font-weight: 700; }
+.editorRow label { display: inline-flex; align-items: center; gap: .35rem; }
+.editorRow input { font: inherit; font-size: .8rem; padding: .4rem .55rem; border: 1px solid var(--hairline-ink); border-radius: 8px; background: transparent; color: var(--text-primary); }
+.editorRow input[type="number"] { width: 7rem; }
+.editorActions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.totalOk, .totalChanged { margin: 0; font-size: .76rem; font-weight: 700; }
+.totalOk { color: var(--text-muted); }
+.totalChanged { color: #B6772A; }

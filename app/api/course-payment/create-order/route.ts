@@ -1,8 +1,9 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { coursePaymentToRow, type CoursePayment } from "@/lib/coursePaymentData";
 import { hasActiveCourseEnrollment } from "@/lib/enrollment";
-import { findEnrollableByProductId, enrollablePriceInPaise, enrollableTitle } from "@/lib/courseCatalogData";
-import { emiSchemeFor, splitEmi, type PaymentPlan } from "@/lib/emiData";
+import { enrollableTitle } from "@/lib/courseCatalogData";
+import type { PaymentPlan } from "@/lib/emiData";
+import { productEmiPlan } from "@/lib/emiSettingsServer";
 
 type CreateOrderBody = {
   leadId?: string;
@@ -31,19 +32,18 @@ export async function POST(req: Request) {
   // The amount is never trusted from the client — it's re-derived here from
   // the catalog by productId, same principle as
   // app/api/payment/create-order/route.ts's flat-fee comment.
-  const enrollable = findEnrollableByProductId(productId);
-  if (!enrollable) {
+  const product = await productEmiPlan(productId);
+  if (!product) {
     return new Response("Unknown course.", { status: 400 });
   }
-  const scheme = emiSchemeFor(enrollable);
-  if (plan === "emi" && !scheme) {
+  const { enrollable, pricePaise: fullPrice, plan: emiPlan } = product;
+  if (plan === "emi" && !emiPlan) {
     return new Response("EMI isn't available for this course.", { status: 400 });
   }
-  // EMI checkout charges only the upfront part now; the remaining
-  // installments are scheduled when this payment is fulfilled (see
+  // EMI checkout charges only the plan's first payment now; the rest are
+  // scheduled when this payment is fulfilled (see
   // lib/paymentFulfillment.ts → lib/emi.ts).
-  const fullPrice = enrollablePriceInPaise(enrollable);
-  const amount = plan === "emi" && scheme ? splitEmi(fullPrice, scheme).upfront : fullPrice;
+  const amount = plan === "emi" && emiPlan ? emiPlan[0].amount : fullPrice;
   const title = enrollableTitle(enrollable);
 
   // Block before any Razorpay order exists — same rule as the Programs

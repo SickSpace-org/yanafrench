@@ -5,38 +5,35 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   emiInstallmentFromRow,
-  installmentDueDate,
   isInstallmentLocking,
   isoToIndiaDate,
-  splitEmi,
+  planPaymentDueDate,
   todayInIndia,
   type EmiInstallment,
-  type EmiScheme,
   type EmiInstallmentRow,
+  type EmiPlan,
 } from "./emiData";
 
-// Creates the installments for an EMI course enrollment (3 monthly, or the
-// single "after 12 sessions" one of a two-part plan), sized from the
-// product's full price. Idempotent: (course_enrollment_id,
-// installment_no) is unique, so a second call (browser verify + webhook
-// both fulfilling the same upfront payment) inserts nothing new.
+// Creates the installment rows for an EMI course enrollment — every payment
+// of its plan after the upfront one (already paid), numbered 2..N of N.
+// Idempotent: (course_enrollment_id, installment_no) is unique, so a
+// second call (browser verify + webhook both fulfilling the same upfront
+// payment) inserts nothing new.
 export async function createInstallmentsForEnrollment(
   supabase: SupabaseClient,
-  input: { studentId: string; courseEnrollmentId: string; productTitle: string; totalPaise: number; enrolledAt: string; scheme: EmiScheme }
+  input: { studentId: string; courseEnrollmentId: string; productTitle: string; enrolledAt: string; plan: EmiPlan }
 ) {
-  const { scheme } = input;
-  const { installments } = splitEmi(input.totalPaise, scheme);
+  const { plan } = input;
   const enrolledDate = isoToIndiaDate(input.enrolledAt);
-  const offset = scheme.countsUpfront ? 1 : 0;
-  const rows = installments.map((amount, i) => ({
-    id: `emi-${input.courseEnrollmentId}-${i + 1 + offset}`,
+  const rows = plan.slice(1).map((payment, i) => ({
+    id: `emi-${input.courseEnrollmentId}-${i + 2}`,
     student_id: input.studentId,
     course_enrollment_id: input.courseEnrollmentId,
     product_title: input.productTitle,
-    installment_no: i + 1 + offset,
-    installment_count: scheme.installmentCount + offset,
-    amount,
-    due_date: installmentDueDate(enrolledDate, scheme, i),
+    installment_no: i + 2,
+    installment_count: plan.length,
+    amount: payment.amount,
+    due_date: planPaymentDueDate(enrolledDate, payment),
     status: "pending",
   }));
   const { error } = await supabase

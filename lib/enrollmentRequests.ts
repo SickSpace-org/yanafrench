@@ -6,8 +6,8 @@ import { leadFromRow, type LeadRow } from "./leadData";
 import { courseLeadFromRow, type CourseLeadRow } from "./courseLeadData";
 import { paymentFromRow, type PaymentRow } from "./paymentData";
 import { coursePaymentFromRow, type CoursePaymentRow } from "./coursePaymentData";
-import { enrollablePriceInPaise, findEnrollableByProductId } from "./courseCatalogData";
-import { describeRemainingEmis, emiSchemeFor, splitEmi, type PaymentPlan } from "./emiData";
+import { describeRemainingEmis, type PaymentPlan } from "./emiData";
+import { productEmiPlan, readEmiSettings } from "./emiSettingsServer";
 import { fulfillBatchPayment, fulfillCoursePayment } from "./paymentFulfillment";
 import { formatSchedule } from "./batchData";
 import { readPortalState } from "./portalStateServer";
@@ -54,12 +54,13 @@ export async function listEnrollmentRequests(supabase: SupabaseClient): Promise<
     };
   });
 
-  const course: EnrollmentRequest[] = ((courseRows as (CourseLeadRow & { plan?: string | null })[]) ?? []).map((row) => {
+  const emiSettings = await readEmiSettings();
+  const course: EnrollmentRequest[] = await Promise.all(((courseRows as (CourseLeadRow & { plan?: string | null })[]) ?? []).map(async (row) => {
     const lead = courseLeadFromRow(row);
-    const enrollable = findEnrollableByProductId(lead.productId);
-    const fee = enrollable ? enrollablePriceInPaise(enrollable) : null;
-    const scheme = enrollable ? emiSchemeFor(enrollable) : null;
-    const emiAvailable = scheme !== null;
+    const product = await productEmiPlan(lead.productId, emiSettings);
+    const fee = product?.pricePaise ?? null;
+    const emi = product?.plan ?? null;
+    const emiAvailable = emi !== null;
     return {
       id: lead.id,
       kind: "course",
@@ -74,12 +75,12 @@ export async function listEnrollmentRequests(supabase: SupabaseClient): Promise<
       notes: lead.message ?? null,
       plan: row.plan === "emi" && emiAvailable ? "emi" : row.plan === "full" ? "full" : null,
       emiAvailable,
-      emiRemaining: scheme ? describeRemainingEmis(scheme) : null,
+      emiRemaining: emi ? describeRemainingEmis(emi) : null,
       feePaise: fee,
-      emiUpfrontPaise: fee !== null && scheme ? splitEmi(fee, scheme).upfront : null,
+      emiUpfrontPaise: emi ? emi[0].amount : null,
       createdAt: lead.createdAt,
-    };
-  });
+    } satisfies EnrollmentRequest;
+  }));
 
   return [...batch, ...course].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
@@ -113,9 +114,8 @@ export async function confirmEnrollmentPayment(
     if (!row) throw new ConfirmError(404, "Enrollment not found.");
     const lead = courseLeadFromRow(row as CourseLeadRow);
     if (lead.paymentStatus === "paid") throw new ConfirmError(409, "This payment is already confirmed.");
-    const enrollable = findEnrollableByProductId(lead.productId);
-    const scheme = enrollable ? emiSchemeFor(enrollable) : null;
-    const plan: PaymentPlan = input.plan === "emi" && scheme ? "emi" : "full";
+    const emi = (await productEmiPlan(lead.productId))?.plan ?? null;
+    const plan: PaymentPlan = input.plan === "emi" && emi ? "emi" : "full";
 
     const { error } = await supabase.from("course_payments").insert({
       id,
@@ -146,7 +146,7 @@ export async function confirmEnrollmentPayment(
       details: [
         ["Course", lead.productTitle],
         ["Amount received", formatRupees(input.amountPaise)],
-        ["Payment plan", plan === "emi" && scheme ? `EMI — ${describeRemainingEmis(scheme)}` : "Paid in full"],
+        ["Payment plan", plan === "emi" && emi ? `EMI — ${describeRemainingEmis(emi)}` : "Paid in full"],
       ],
     });
     return;

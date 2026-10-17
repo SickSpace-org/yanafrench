@@ -12,6 +12,7 @@ import { DemoClassCard } from "./DemoClassCard";
 import { BookingModal, prefetchBookingSlots } from "./BookingModal";
 import { courses, courseInCategory, type Course, type CourseCategory, type Enrollable, type OrientationLevel } from "@/lib/courseCatalogData";
 import type { BookingKind } from "@/lib/bookingData";
+import { prefetchEmiSettings } from "@/lib/useEmiSettings";
 
 const FILTERS: ("All" | CourseCategory | "Demo Class")[] = ["All", "French Levels", "TEF", "TCF", "DELF", "Orientation", "Demo Class"];
 
@@ -21,11 +22,12 @@ export function CourseCatalog() {
   const [enrolling, setEnrolling] = useState<Enrollable | null>(null);
   const [booking, setBooking] = useState<{ kind: BookingKind; level?: OrientationLevel["level"] } | null>(null);
 
-  // Load the time slots in the background so the booking modal opens with
-  // them already there.
+  // Load the time slots and EMI plans in the background so the booking and
+  // enroll modals open with them already there.
   useEffect(() => {
     prefetchBookingSlots("orientation");
     prefetchBookingSlots("demo");
+    prefetchEmiSettings();
   }, []);
 
   const visibleCourses = useMemo(() => {

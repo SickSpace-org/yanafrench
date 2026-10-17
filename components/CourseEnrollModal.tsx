@@ -10,7 +10,8 @@ import {
 } from "@/lib/courseCatalogData";
 import { CURRENT_LEVELS, LEARNING_MODES, type CurrentLevel, type LearningMode } from "@/lib/courseLeadData";
 import { formatRupees } from "@/lib/formatCurrency";
-import { describeEmiPlan, emiSchemeFor, type PaymentPlan } from "@/lib/emiData";
+import { describeEmiPlan, resolveEmiPlan, type PaymentPlan } from "@/lib/emiData";
+import { useEmiSettings } from "@/lib/useEmiSettings";
 import { whatsappDisplay } from "@/lib/site";
 import { WhatsAppLink } from "./WhatsAppLink";
 import { WhatsAppCountdown } from "./WhatsAppCountdown";
@@ -40,13 +41,14 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
   const title = enrollableTitle(enrollable);
   const priceInPaise = enrollablePriceInPaise(enrollable);
   const productId = enrollableProductId(enrollable);
-  // EMI: 3 monthly EMIs after 30% upfront, or (DELF and the intensive
-  // course) half before the course and half after 12 sessions — see
-  // lib/emiData.ts. There's no online payment — the plan is the student's
-  // preference; Yana confirms payment by hand in Admin → Enrollments.
-  const emiScheme = emiSchemeFor(enrollable);
-  const emiOffered = emiScheme !== null;
-  const emiDescription = emiScheme ? describeEmiPlan(priceInPaise, emiScheme) : "";
+  // EMI: the product's plan from Admin → EMI Plans, or the default (see
+  // lib/emiData.ts). The picker waits for the settings so it never shows
+  // a plan that then changes. There's no online payment — the plan is the
+  // student's preference; Yana confirms payment by hand in Admin → Enrollments.
+  const { settings: emiSettings, loaded: emiLoaded } = useEmiSettings();
+  const emiPlan = resolveEmiPlan(enrollable, priceInPaise, emiSettings[productId]);
+  const emiOffered = emiLoaded && emiPlan !== null;
+  const emiDescription = emiPlan ? describeEmiPlan(emiPlan) : "";
   const whatsappMessage = `Hi Yana! I'd like to know more about ${title}.`;
 
   useEffect(() => {
@@ -149,7 +151,7 @@ export function CourseEnrollModal({ enrollable, onClose }: { enrollable: Enrolla
                 <label className={plan === "emi" ? styles.planOptionActive : styles.planOption}>
                   <input type="radio" name="plan" value="emi" checked={plan === "emi"} onChange={() => setPlan("emi")} />
                   <span>
-                    <strong>{emiScheme?.due.kind === "afterSessions" ? "Pay in 2 installments" : "Pay in EMIs"}</strong>
+                    <strong>Pay in {emiPlan?.length} installments</strong>
                     <small>{emiDescription}</small>
                   </span>
                 </label>

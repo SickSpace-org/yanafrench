@@ -420,6 +420,22 @@ export function enrollablePriceInPaise(e: Enrollable): number {
   return e.level.priceInPaise;
 }
 
+// Every product that can be bought on EMI (all courses and DELF options —
+// not the Orientation Test), for Admin → EMI Plans.
+export type EmiProduct = { productId: string; title: string; group: string; enrollable: Enrollable };
+export function emiProducts(): EmiProduct[] {
+  const list: Enrollable[] = [
+    ...courses.map((course): Enrollable => ({ kind: "course", course })),
+    ...delfCourses.flatMap((d) => d.options.map((option): Enrollable => ({ kind: "delf", level: d.level, option }))),
+  ];
+  return list.map((enrollable) => ({
+    productId: enrollableProductId(enrollable),
+    title: enrollableTitle(enrollable),
+    group: enrollable.kind === "course" ? enrollable.course.category : "DELF",
+    enrollable,
+  }));
+}
+
 // Server-side price lookup by productId, used by
 // app/api/course-payment/create-order so the charged amount is always
 // re-derived here — never trusted from the client. Mirrors

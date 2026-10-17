@@ -1,7 +1,8 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { courseLeadToRow, type CourseLead } from "@/lib/courseLeadData";
 import { findEnrollableByProductId, enrollableTitle, enrollablePriceInPaise } from "@/lib/courseCatalogData";
-import { describeEmiPlan, emiSchemeFor } from "@/lib/emiData";
+import { describeEmiPlan } from "@/lib/emiData";
+import { productEmiPlan } from "@/lib/emiSettingsServer";
 import { formatRupees } from "@/lib/formatCurrency";
 import { after } from "next/server";
 import { sendEnrollmentReceivedEmail, sendNewEnrollmentAdminEmail } from "@/lib/email";
@@ -68,8 +69,8 @@ export async function POST(req: Request) {
     razorpayPaymentId: null,
   };
 
-  const scheme = emiSchemeFor(enrollable);
-  const emiPlan = plan === "emi" && scheme !== null;
+  const emi = (await productEmiPlan(productId))?.plan ?? null;
+  const emiPlan = plan === "emi" && emi !== null;
   let { error } = await supabase.from("course_leads").insert({ ...courseLeadToRow(lead), plan: emiPlan ? "emi" : "full" });
   // Before migration 20261003150000 adds course_leads.plan, save without it
   // rather than lose the enquiry.
@@ -81,7 +82,7 @@ export async function POST(req: Request) {
 
   // Best-effort: the enquiry is saved even if the email can't be sent.
   const fee = enrollablePriceInPaise(enrollable);
-  const emiDescription = scheme ? describeEmiPlan(fee, scheme) : "";
+  const emiDescription = emi ? describeEmiPlan(emi) : "";
   await sendEnrollmentReceivedEmail(lead.email, {
     name: lead.name,
     courseTitle: productTitle,

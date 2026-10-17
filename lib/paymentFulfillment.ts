@@ -12,8 +12,7 @@ import { resolveStudentIdentity } from "./enrollment";
 import { applyPortalAction } from "./portalState";
 import { readPortalState, writePortalState } from "./portalStateServer";
 import { createInstallmentsForEnrollment } from "./emi";
-import { emiSchemeFor } from "./emiData";
-import { enrollablePriceInPaise, findEnrollableByProductId } from "./courseCatalogData";
+import { productEmiPlan } from "./emiSettingsServer";
 
 function newEnrollmentId(): string {
   return `enroll-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
@@ -190,23 +189,20 @@ export async function fulfillCoursePayment(
     console.error("Failed to insert course enrollment for payment", payment.id, error);
   }
 
-  // The upfront part of an EMI purchase — schedule the remaining
-  // installments against the product's full catalog price (never the
-  // amount charged, which was only the upfront part).
+  // The upfront part of an EMI purchase — schedule the rest of the
+  // product's current EMI plan (Admin → EMI Plans, or the default).
   if (!error && payment.plan === "emi") {
-    const enrollable = findEnrollableByProductId(payment.productId);
-    const scheme = enrollable && emiSchemeFor(enrollable);
-    if (enrollable && scheme) {
+    const product = await productEmiPlan(payment.productId);
+    if (product?.plan) {
       await createInstallmentsForEnrollment(supabase, {
         studentId,
         courseEnrollmentId: enrollmentId,
         productTitle: payment.productTitle,
-        totalPaise: enrollablePriceInPaise(enrollable),
         enrolledAt,
-        scheme,
+        plan: product.plan,
       });
     } else {
-      console.error("EMI payment for unknown product — no installments scheduled", payment.id, payment.productId);
+      console.error("EMI payment for a product with no EMI plan — no installments scheduled", payment.id, payment.productId);
     }
   }
 

@@ -1,0 +1,52 @@
+.title { color: var(--text-primary); font-weight: 600; margin-bottom: .2rem; }
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--hairline-ink);
+  border-radius: var(--r-lg);
+  white-space: normal;
+}
+
+.countField { display: flex; flex-direction: column; gap: .4rem; font-size: .68rem; font-weight: 700; color: var(--text-faint); max-width: 18rem; }
+
+.editor input, .editor select {
+  font: inherit;
+  font-size: .8rem;
+  padding: .45rem .6rem;
+  border: 1px solid var(--hairline-ink);
+  border-radius: var(--r-sm, 8px);
+  background: transparent;
+  color: var(--text-primary);
+  min-width: 0;
+}
+.editor input:focus, .editor select:focus { outline: none; border-color: var(--blue); }
+
+.payments { display: flex; flex-direction: column; gap: .4rem; }
+.paymentHead, .payment {
+  display: grid;
+  grid-template-columns: 1.6rem 8rem 14rem minmax(10rem, 1fr);
+  gap: .6rem;
+  align-items: center;
+}
+.paymentHead { font-size: .66rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-faint); }
+.payment { font-size: .78rem; color: var(--text-muted); }
+.atEnroll { font-size: .76rem; color: var(--text-muted); }
+.days { display: inline-flex; align-items: center; gap: .4rem; font-size: .74rem; white-space: nowrap; }
+.days input { width: 4.8rem; }
+
+.totalOk, .totalBad { margin: .3rem 0 0; font-size: .76rem; font-weight: 700; }
+.totalOk { color: var(--status-available, #3f8a63); }
+.totalBad { color: #B63A3A; }
+
+.actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.error { margin: 0; color: #B63A3A; font-weight: 700; font-size: .74rem; }
+.hint { margin: 0; color: var(--text-faint); font-size: .72rem; }
+
+@media (max-width: 720px) {
+  .paymentHead { display: none; }
+  .payment { grid-template-columns: 1.4rem 1fr; }
+  .payment > :nth-child(n + 3) { grid-column: 2; }
+}

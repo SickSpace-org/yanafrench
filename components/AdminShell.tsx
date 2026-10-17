@@ -17,6 +17,7 @@ const navItems = [
   { label: "Bookings", href: "/admin/bookings" },
   { label: "Payments", href: "/admin/payments" },
   { label: "EMI", href: "/admin/emi" },
+  { label: "EMI Plans", href: "/admin/emi-plans" },
   { label: "Students", href: "/admin/students" },
   { label: "Teachers", href: "/admin/teachers" },
   { label: "Highlights", href: "/admin/highlights" },
