@@ -25,6 +25,8 @@ export type EnrollmentRequest = {
   notes: string | null;
   plan: PaymentPlan | null; // what the student picked on the form
   emiAvailable: boolean;
+  // "3 monthly EMIs after" / "second payment after 12 sessions"; null when no EMI.
+  emiRemaining: string | null;
   feePaise: number | null; // catalog price; null for batches (no list price)
   emiUpfrontPaise: number | null;
   createdAt: string;

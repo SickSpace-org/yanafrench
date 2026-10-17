@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { EMI_INSTALLMENT_COUNT, type PaymentPlan } from "@/lib/emiData";
+import type { PaymentPlan } from "@/lib/emiData";
 import { formatRupees } from "@/lib/formatCurrency";
 import type { EnrollmentRequest } from "@/lib/enrollmentRequestData";
 import styles from "./AdminLeadsPanel.module.css";
@@ -54,7 +54,7 @@ function ConfirmPayment({ request, onDone, onCancel }: { request: EnrollmentRequ
           Plan
           <select value={plan} onChange={(e) => changePlan(e.target.value as PaymentPlan)} disabled={saving}>
             <option value="full">Paid in full</option>
-            <option value="emi">EMI — first payment ({EMI_INSTALLMENT_COUNT} monthly EMIs after)</option>
+            <option value="emi">EMI — first payment ({request.emiRemaining})</option>
           </select>
         </label>
       )}
@@ -79,7 +79,7 @@ function ConfirmPayment({ request, onDone, onCancel }: { request: EnrollmentRequ
       </button>
       <p className={styles.confirmNote}>
         This enrolls {request.name}: they move to Payments and Students and get their Student Hub login by email
-        {plan === "emi" ? `, and their ${EMI_INSTALLMENT_COUNT} monthly EMIs appear under EMI` : ""}.
+        {plan === "emi" ? `, and their remaining EMI (${request.emiRemaining}) appears under EMI` : ""}.
       </p>
       {error && <p className={styles.confirmError}>{error}</p>}
     </div>

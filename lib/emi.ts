@@ -4,36 +4,39 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  EMI_INSTALLMENT_COUNT,
-  addMonths,
   emiInstallmentFromRow,
+  installmentDueDate,
   isInstallmentLocking,
   isoToIndiaDate,
   splitEmi,
   todayInIndia,
   type EmiInstallment,
+  type EmiScheme,
   type EmiInstallmentRow,
 } from "./emiData";
 
-// Creates the 3 monthly installments for an EMI course enrollment, sized
-// from the product's full price. Idempotent: (course_enrollment_id,
+// Creates the installments for an EMI course enrollment (3 monthly, or the
+// single "after 12 sessions" one of a two-part plan), sized from the
+// product's full price. Idempotent: (course_enrollment_id,
 // installment_no) is unique, so a second call (browser verify + webhook
 // both fulfilling the same upfront payment) inserts nothing new.
 export async function createInstallmentsForEnrollment(
   supabase: SupabaseClient,
-  input: { studentId: string; courseEnrollmentId: string; productTitle: string; totalPaise: number; enrolledAt: string }
+  input: { studentId: string; courseEnrollmentId: string; productTitle: string; totalPaise: number; enrolledAt: string; scheme: EmiScheme }
 ) {
-  const { installments } = splitEmi(input.totalPaise);
+  const { scheme } = input;
+  const { installments } = splitEmi(input.totalPaise, scheme);
   const enrolledDate = isoToIndiaDate(input.enrolledAt);
+  const offset = scheme.countsUpfront ? 1 : 0;
   const rows = installments.map((amount, i) => ({
-    id: `emi-${input.courseEnrollmentId}-${i + 1}`,
+    id: `emi-${input.courseEnrollmentId}-${i + 1 + offset}`,
     student_id: input.studentId,
     course_enrollment_id: input.courseEnrollmentId,
     product_title: input.productTitle,
-    installment_no: i + 1,
-    installment_count: EMI_INSTALLMENT_COUNT,
+    installment_no: i + 1 + offset,
+    installment_count: scheme.installmentCount + offset,
     amount,
-    due_date: addMonths(enrolledDate, i + 1),
+    due_date: installmentDueDate(enrolledDate, scheme, i),
     status: "pending",
   }));
   const { error } = await supabase

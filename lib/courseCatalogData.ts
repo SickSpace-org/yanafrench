@@ -5,8 +5,9 @@
 // Batch/BatchCourse (scheduled cohorts + seats, not pricing). Prices are
 // stored in paise (INR * 100), matching lib/paymentData.ts's convention.
 
-export type CourseCategory = "French Levels" | "TEF" | "TCF" | "DELF" | "Orientation";
-export type CourseBadge = "Popular" | "Fast Track" | "Exam Prep" | "CLB 7+";
+// "TEF/TCF" courses prepare for either exam and show under both filters.
+export type CourseCategory = "French Levels" | "TEF" | "TCF" | "TEF/TCF" | "DELF" | "Orientation";
+export type CourseBadge = "Popular" | "Fast Track" | "Exam Prep" | "CLB 7+" | "Speaking" | "Speaking + Writing" | "Intensive";
 
 export type Course = {
   id: string;
@@ -27,7 +28,84 @@ export type Course = {
   whatYouLearn: string[];
   includes: string[];
   target?: string;
+  // EMI scheme (lib/emiData.ts): 3 monthly EMIs by default, or "twoPart" —
+  // half before the course starts, half after 12 sessions.
+  emi?: "monthly" | "twoPart";
 };
+
+export function courseInCategory(course: Course, category: CourseCategory): boolean {
+  return course.category === category || (course.category === "TEF/TCF" && (category === "TEF" || category === "TCF"));
+}
+
+const SPEAKING_INCLUDES = [
+  "Complete coverage of speaking tasks and topics",
+  "Exam-oriented strategies and techniques",
+  "High-scoring vocabulary and expressions",
+  "CLB 7+ sample answers and structures",
+  "Practice questions for all relevant speaking tasks",
+  "Mock tests with detailed evaluation and feedback",
+  "Individual attention to improve fluency, accuracy, and confidence",
+];
+
+const SPEAKING_WRITING_INCLUDES = [
+  "Complete coverage of speaking and writing tasks",
+  "Exam-oriented strategies and techniques",
+  "High-scoring vocabulary and expressions",
+  "CLB 7+ sample answers and structures",
+  "Practice questions for all relevant tasks",
+  "Mock tests with detailed evaluation and feedback",
+  "Individual attention to improve fluency, accuracy, and writing skills",
+];
+
+type ExpressionCourseInput = {
+  id: string;
+  category: "TEF" | "TCF" | "TEF/TCF";
+  exam: string;
+  clb: "CLB 5" | "CLB 7";
+  writing: boolean;
+  rupees: number;
+  duration: string;
+  classes?: number;
+};
+
+// The TEF/TCF Speaking and Speaking + Writing preparation courses — same
+// shape for every exam / CLB target, so built from one template.
+function expressionCourse(c: ExpressionCourseInput): Course {
+  const skills = c.writing ? "Speaking + Writing" : "Speaking";
+  const tasks = c.writing ? "speaking and writing tasks" : "speaking tasks";
+  return {
+    id: c.id,
+    category: c.category,
+    title: `${c.exam} ${c.clb} ${skills} Course`,
+    badge: c.writing ? "Speaking + Writing" : "Speaking",
+    level: c.clb === "CLB 7" ? "CLB 7+" : "CLB 5",
+    ...(c.clb === "CLB 7" ? { minimumLevel: "B1" } : {}),
+    description: `Focused ${c.exam} preparation for the ${tasks}, aimed at a ${c.clb === "CLB 7" ? "CLB 7+" : "CLB 5"} score, with mock tests and detailed feedback.`,
+    overview: `A targeted course covering every ${c.exam} ${tasks.replace(" tasks", "")} task, with exam-oriented strategies, high-scoring vocabulary and expressions, CLB 7+ sample answers, and mock tests evaluated in detail${c.clb === "CLB 7" ? ". Open to learners at a minimum of B1 level" : ""}.`,
+    duration: c.duration,
+    ...(c.classes !== undefined ? { classes: c.classes } : {}),
+    mode: "Live online",
+    priceInPaise: c.rupees * 100,
+    whatYouLearn: c.writing ? ["Speaking", "Writing", "Strategy", "Vocabulary", "Mock tests"] : ["Speaking", "Strategy", "Vocabulary", "Mock tests"],
+    includes: c.writing ? SPEAKING_WRITING_INCLUDES : SPEAKING_INCLUDES,
+    target: c.clb === "CLB 7" ? "Target CLB 7+" : "Target CLB 5",
+  };
+}
+
+const expressionCourses: Course[] = [
+  // Speaking
+  expressionCourse({ id: "tef-clb5-speaking", category: "TEF", exam: "TEF", clb: "CLB 5", writing: false, rupees: 15_000, duration: "20–22 classes" }),
+  expressionCourse({ id: "tcf-clb5-speaking", category: "TCF", exam: "TCF", clb: "CLB 5", writing: false, rupees: 18_500, duration: "20–22 classes" }),
+  expressionCourse({ id: "tef-tcf-clb5-speaking", category: "TEF/TCF", exam: "TEF/TCF", clb: "CLB 5", writing: false, rupees: 16_500, duration: "20–22 classes" }),
+  expressionCourse({ id: "tef-clb7-speaking", category: "TEF", exam: "TEF", clb: "CLB 7", writing: false, rupees: 18_500, duration: "28 sessions", classes: 28 }),
+  expressionCourse({ id: "tcf-clb7-speaking", category: "TCF", exam: "TCF", clb: "CLB 7", writing: false, rupees: 21_500, duration: "As per batch" }),
+  // Speaking + Writing
+  expressionCourse({ id: "tef-clb5-speaking-writing", category: "TEF", exam: "TEF", clb: "CLB 5", writing: true, rupees: 17_000, duration: "20–22 classes" }),
+  expressionCourse({ id: "tcf-clb5-speaking-writing", category: "TCF", exam: "TCF", clb: "CLB 5", writing: true, rupees: 20_500, duration: "20–22 classes" }),
+  expressionCourse({ id: "tef-tcf-clb5-speaking-writing", category: "TEF/TCF", exam: "TEF/TCF", clb: "CLB 5", writing: true, rupees: 18_500, duration: "20–22 classes" }),
+  expressionCourse({ id: "tef-clb7-speaking-writing", category: "TEF", exam: "TEF", clb: "CLB 7", writing: true, rupees: 20_500, duration: "28 sessions", classes: 28 }),
+  expressionCourse({ id: "tcf-clb7-speaking-writing", category: "TCF", exam: "TCF", clb: "CLB 7", writing: true, rupees: 23_500, duration: "As per batch" }),
+];
 
 export const courses: Course[] = [
   {
@@ -126,6 +204,30 @@ export const courses: Course[] = [
     ],
     target: "Target CLB 7+",
   },
+  {
+    id: "tef-tcf-clb5-to-clb7-intensive",
+    category: "TEF/TCF",
+    title: "TEF/TCF Intensive — CLB 5 to CLB 7+",
+    badge: "Intensive",
+    level: "CLB 5 → CLB 7+",
+    minimumLevel: "CLB 5",
+    description: "A super-intensive course for jumping from CLB 5 to CLB 7+, across all four skills, with only 2 students per batch.",
+    overview: "A super-intensive programme for learners already at CLB 5 who want to reach CLB 7+ on the TEF or TCF. It covers listening, reading, writing and speaking, with extensive practice questions in class and detailed feedback on every answer — in a batch of just 2 students.",
+    duration: "2–2.5 months",
+    mode: "Live online · 2 students only",
+    priceInPaise: 4_990_000,
+    whatYouLearn: ["Listening", "Reading", "Writing", "Speaking"],
+    includes: [
+      "All four skills: listening, reading, writing and speaking",
+      "Extensive practice questions in class",
+      "Detailed feedback on every question",
+      "Only 2 students per batch",
+      "Pay in 2 installments",
+    ],
+    target: "CLB 5 → CLB 7+",
+    emi: "twoPart",
+  },
+  ...expressionCourses,
   {
     id: "a1-french",
     category: "French Levels",

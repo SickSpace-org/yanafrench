@@ -75,23 +75,28 @@ function NextStatus({ next, today }: { next: EmiInstallment | null; today: strin
 }
 
 // One line of a plan's schedule, with the admin's manual controls: "Mark
-// paid" (confirm step, since it's money) and "Undo" for a manual mark.
+// paid" (confirm step, since it's money), "Undo" for a manual mark, and
+// "Change date" for a pending one (a two-part plan's "after 12 sessions"
+// date is only an estimate until the class has actually reached it).
 function InstallmentLine({ inst, onChanged }: { inst: EmiInstallment; onChanged: () => void }) {
   const [confirming, setConfirming] = useState(false);
+  const [editingDate, setEditingDate] = useState(false);
+  const [dueDate, setDueDate] = useState(inst.dueDate);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function send(action: "paid" | "unpaid") {
+  async function send(action: "paid" | "unpaid" | "reschedule") {
     setSaving(true);
     setError(null);
     try {
       const res = await fetch(`/api/emi/installments/${encodeURIComponent(inst.id)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify(action === "reschedule" ? { action, dueDate } : { action }),
       });
       if (!res.ok) throw new Error((await res.text()) || "Something went wrong.");
       setConfirming(false);
+      setEditingDate(false);
       onChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -104,7 +109,13 @@ function InstallmentLine({ inst, onChanged }: { inst: EmiInstallment; onChanged:
   return (
     <li className={paid ? emiStyles.paid : undefined}>
       <span>#{inst.installmentNo}</span>
-      <span>{formatIndiaDate(inst.dueDate)}</span>
+      <span>
+        {editingDate ? (
+          <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} disabled={saving} aria-label="New due date" />
+        ) : (
+          formatIndiaDate(inst.dueDate)
+        )}
+      </span>
       <span>{formatRupees(inst.amount)}</span>
       <span>{paid && inst.paidAt ? `Paid ${formatIndiaDate(isoToIndiaDate(inst.paidAt))}` : paid ? "Paid" : "Pending"}</span>
       <span className={emiStyles.lineActions}>
@@ -112,6 +123,15 @@ function InstallmentLine({ inst, onChanged }: { inst: EmiInstallment; onChanged:
           <button type="button" className={emiStyles.undo} disabled={saving} onClick={() => send("unpaid")} title="Undo a payment you marked by hand">
             {saving ? "…" : "Undo"}
           </button>
+        ) : editingDate ? (
+          <>
+            <button type="button" className={emiStyles.markPaid} disabled={saving || !dueDate || dueDate === inst.dueDate} onClick={() => send("reschedule")}>
+              {saving ? "Saving…" : "Save date"}
+            </button>
+            <button type="button" className={emiStyles.undo} disabled={saving} onClick={() => { setEditingDate(false); setDueDate(inst.dueDate); }}>
+              Cancel
+            </button>
+          </>
         ) : confirming ? (
           <>
             <button type="button" className={emiStyles.markPaid} disabled={saving} onClick={() => send("paid")}>
@@ -122,9 +142,14 @@ function InstallmentLine({ inst, onChanged }: { inst: EmiInstallment; onChanged:
             </button>
           </>
         ) : (
-          <button type="button" className={emiStyles.markPaid} onClick={() => setConfirming(true)}>
-            Mark paid
-          </button>
+          <>
+            <button type="button" className={emiStyles.markPaid} onClick={() => setConfirming(true)}>
+              Mark paid
+            </button>
+            <button type="button" className={emiStyles.undo} onClick={() => setEditingDate(true)}>
+              Change date
+            </button>
+          </>
         )}
       </span>
       {error && <span className={emiStyles.lineError}>{error}</span>}

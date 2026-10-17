@@ -2,7 +2,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { coursePaymentToRow, type CoursePayment } from "@/lib/coursePaymentData";
 import { hasActiveCourseEnrollment } from "@/lib/enrollment";
 import { findEnrollableByProductId, enrollablePriceInPaise, enrollableTitle } from "@/lib/courseCatalogData";
-import { emiAvailableFor, splitEmi, type PaymentPlan } from "@/lib/emiData";
+import { emiSchemeFor, splitEmi, type PaymentPlan } from "@/lib/emiData";
 
 type CreateOrderBody = {
   leadId?: string;
@@ -35,14 +35,15 @@ export async function POST(req: Request) {
   if (!enrollable) {
     return new Response("Unknown course.", { status: 400 });
   }
-  if (plan === "emi" && !emiAvailableFor(enrollable)) {
+  const scheme = emiSchemeFor(enrollable);
+  if (plan === "emi" && !scheme) {
     return new Response("EMI isn't available for this course.", { status: 400 });
   }
-  // EMI checkout charges only the 30% upfront part now; the remaining
+  // EMI checkout charges only the upfront part now; the remaining
   // installments are scheduled when this payment is fulfilled (see
   // lib/paymentFulfillment.ts → lib/emi.ts).
   const fullPrice = enrollablePriceInPaise(enrollable);
-  const amount = plan === "emi" ? splitEmi(fullPrice).upfront : fullPrice;
+  const amount = plan === "emi" && scheme ? splitEmi(fullPrice, scheme).upfront : fullPrice;
   const title = enrollableTitle(enrollable);
 
   // Block before any Razorpay order exists — same rule as the Programs

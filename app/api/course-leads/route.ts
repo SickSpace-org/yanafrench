@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { courseLeadToRow, type CourseLead } from "@/lib/courseLeadData";
 import { findEnrollableByProductId, enrollableTitle, enrollablePriceInPaise } from "@/lib/courseCatalogData";
-import { EMI_INSTALLMENT_COUNT, emiAvailableFor, splitEmi } from "@/lib/emiData";
+import { describeEmiPlan, emiSchemeFor } from "@/lib/emiData";
 import { formatRupees } from "@/lib/formatCurrency";
 import { after } from "next/server";
 import { sendEnrollmentReceivedEmail, sendNewEnrollmentAdminEmail } from "@/lib/email";
@@ -68,7 +68,8 @@ export async function POST(req: Request) {
     razorpayPaymentId: null,
   };
 
-  const emiPlan = plan === "emi" && emiAvailableFor(enrollable);
+  const scheme = emiSchemeFor(enrollable);
+  const emiPlan = plan === "emi" && scheme !== null;
   let { error } = await supabase.from("course_leads").insert({ ...courseLeadToRow(lead), plan: emiPlan ? "emi" : "full" });
   // Before migration 20261003150000 adds course_leads.plan, save without it
   // rather than lose the enquiry.
@@ -80,7 +81,7 @@ export async function POST(req: Request) {
 
   // Best-effort: the enquiry is saved even if the email can't be sent.
   const fee = enrollablePriceInPaise(enrollable);
-  const split = splitEmi(fee);
+  const emiDescription = scheme ? describeEmiPlan(fee, scheme) : "";
   await sendEnrollmentReceivedEmail(lead.email, {
     name: lead.name,
     courseTitle: productTitle,
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
       `Course: ${productTitle}`,
       `Course fee: ${formatRupees(fee)}`,
       emiPlan
-        ? `Payment plan: EMI — ${formatRupees(split.upfront)} to start, then ${EMI_INSTALLMENT_COUNT} monthly payments of ${split.installments.map(formatRupees).join(" / ")}`
+        ? `Payment plan: EMI — ${emiDescription}`
         : "Payment plan: Pay in full",
       ...(lead.currentLevel ? [`Your level: ${lead.currentLevel}`] : []),
     ],
@@ -103,7 +104,7 @@ export async function POST(req: Request) {
       rows: [
         ["Course", productTitle],
         ["Course fee", formatRupees(fee)],
-        ["Payment plan", emiPlan ? `EMI — ${formatRupees(split.upfront)} to start, then ${EMI_INSTALLMENT_COUNT} monthly payments` : "Pay in full"],
+        ["Payment plan", emiPlan ? `EMI — ${emiDescription}` : "Pay in full"],
         ["Name", lead.name],
         ["Phone", lead.phone],
         ["WhatsApp", lead.whatsapp ?? ""],

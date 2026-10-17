@@ -5,6 +5,7 @@ const CATEGORY_SLUG: Record<CourseCategory, string> = {
   "French Levels": "levels",
   TEF: "tef",
   TCF: "tcf",
+  "TEF/TCF": "tef",
   DELF: "delf",
   Orientation: "orientation",
 };

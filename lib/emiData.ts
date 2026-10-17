@@ -2,9 +2,15 @@
 // used on both sides: the checkout modal (to show the split before paying),
 // the server (to charge exactly that split and schedule installments), the
 // daily reminder cron, the /student-hub lock in proxy.ts, and the admin
-// roster. Rules:
-//   - 30% upfront at checkout, the remaining 70% in 3 monthly installments.
-//   - Installment n is due n months after the enrollment date.
+// roster. Two schemes (see emiSchemeFor):
+//   - Monthly (most courses): 30% upfront, the remaining 70% in 3 monthly
+//     installments; installment n is due n months after enrolling.
+//   - Two-part (DELF packages and the 2-student intensive TEF/TCF course):
+//     half before the course starts, the other half after 12 sessions.
+//     Course enrollments aren't tied to a batch's attendance, so that
+//     second due date is an estimate (TWO_PART_ESTIMATED_DAYS after
+//     enrolling) that the admin can move in Admin → EMI.
+// For every scheme:
 //   - Reminder emails: 5 days before, on the due date, and each of the 5
 //     grace days after it.
 //   - Still unpaid after those 5 grace days (i.e. from day 6) → the student
@@ -13,13 +19,34 @@
 // today" means the same day for the student, the admin and the cron.
 
 import type { Enrollable } from "./courseCatalogData";
+import { formatRupees } from "./formatCurrency";
 
-export const EMI_UPFRONT_PERCENT = 30;
-export const EMI_INSTALLMENT_COUNT = 3;
 export const EMI_REMINDER_DAYS_BEFORE = 5;
 export const EMI_GRACE_DAYS = 5;
 
 export type PaymentPlan = "full" | "emi";
+
+export type EmiScheme = {
+  upfrontPercent: number;
+  // Installments after the upfront payment.
+  installmentCount: number;
+  // Monthly installments are numbered "EMI 1 of 3" after the upfront part;
+  // two-part plans count the upfront payment as installment 1, so the one
+  // left to pay is "2 of 2".
+  countsUpfront: boolean;
+  due: { kind: "monthly" } | { kind: "afterSessions"; sessions: number; estimatedDays: number };
+};
+
+// ~3 classes a week → 12 sessions in about 4 weeks.
+export const TWO_PART_ESTIMATED_DAYS = 28;
+
+export const MONTHLY_EMI: EmiScheme = { upfrontPercent: 30, installmentCount: 3, countsUpfront: false, due: { kind: "monthly" } };
+export const TWO_PART_EMI: EmiScheme = {
+  upfrontPercent: 50,
+  installmentCount: 1,
+  countsUpfront: true,
+  due: { kind: "afterSessions", sessions: 12, estimatedDays: TWO_PART_ESTIMATED_DAYS },
+};
 
 export type EmiInstallmentStatus = "pending" | "paid";
 
@@ -68,25 +95,55 @@ export function emiInstallmentFromRow(row: EmiInstallmentRow): EmiInstallment {
   };
 }
 
-// EMI is offered on the full courses and DELF packages — not on the small
-// one-off Orientation Test fees.
-export function emiAvailableFor(enrollable: Enrollable): boolean {
-  return enrollable.kind !== "orientation";
+// Which EMI scheme a product is sold on, or null when it can only be paid
+// in full (the small one-off Orientation Test fees).
+export function emiSchemeFor(enrollable: Enrollable): EmiScheme | null {
+  if (enrollable.kind === "orientation") return null;
+  if (enrollable.kind === "delf") return TWO_PART_EMI;
+  return enrollable.course.emi === "twoPart" ? TWO_PART_EMI : MONTHLY_EMI;
 }
 
-// Splits a total (paise) into the upfront part and the 3 installments,
-// in whole rupees so no one is ever asked to pay "₹23,333.33". Any
-// rounding remainder lands on the last installment, so the parts always
-// add back up to the exact total.
-export function splitEmi(totalPaise: number): { upfront: number; installments: number[] } {
+export function emiAvailableFor(enrollable: Enrollable): boolean {
+  return emiSchemeFor(enrollable) !== null;
+}
+
+// Splits a total (paise) into the upfront part and the installments, in
+// whole rupees so no one is ever asked to pay "₹23,333.33". Any rounding
+// remainder lands on the last installment, so the parts always add back up
+// to the exact total.
+export function splitEmi(totalPaise: number, scheme: EmiScheme): { upfront: number; installments: number[] } {
   const totalRupees = Math.round(totalPaise / 100);
-  const upfrontRupees = Math.round((totalRupees * EMI_UPFRONT_PERCENT) / 100);
+  const upfrontRupees = Math.round((totalRupees * scheme.upfrontPercent) / 100);
   const rest = totalRupees - upfrontRupees;
-  const each = Math.floor(rest / EMI_INSTALLMENT_COUNT);
-  const installments = Array.from({ length: EMI_INSTALLMENT_COUNT }, (_, i) =>
-    i === EMI_INSTALLMENT_COUNT - 1 ? rest - each * (EMI_INSTALLMENT_COUNT - 1) : each
-  );
+  const count = scheme.installmentCount;
+  const each = Math.floor(rest / count);
+  const installments = Array.from({ length: count }, (_, i) => (i === count - 1 ? rest - each * (count - 1) : each));
   return { upfront: upfrontRupees * 100, installments: installments.map((r) => r * 100) };
+}
+
+// Due date of the i-th installment (0-based) for an enrollment on `enrolledDate`.
+export function installmentDueDate(enrolledDate: string, scheme: EmiScheme, i: number): string {
+  return scheme.due.kind === "monthly" ? addMonths(enrolledDate, i + 1) : addDays(enrolledDate, scheme.due.estimatedDays);
+}
+
+// One-line description of the plan for the checkout modal, emails and
+// admin: "₹6,000 to start (30%), then 3 monthly EMIs of ₹4,667 / … " or
+// "₹5,000 before the course starts, then ₹5,000 after 12 sessions".
+export function describeEmiPlan(totalPaise: number, scheme: EmiScheme): string {
+  const { upfront, installments } = splitEmi(totalPaise, scheme);
+  if (scheme.due.kind === "afterSessions") {
+    return `${formatRupees(upfront)} before the course starts, then ${installments.map(formatRupees).join(" / ")} after ${scheme.due.sessions} sessions`;
+  }
+  const amounts = installments.every((a) => a === installments[0]) ? formatRupees(installments[0]) : installments.map(formatRupees).join(" / ");
+  return `${formatRupees(upfront)} to start (${scheme.upfrontPercent}%), then ${scheme.installmentCount} monthly EMIs of ${amounts}`;
+}
+
+// Short form for the admin's plan picker: "3 monthly EMIs after" /
+// "second payment after 12 sessions".
+export function describeRemainingEmis(scheme: EmiScheme): string {
+  return scheme.due.kind === "afterSessions"
+    ? `second payment after ${scheme.due.sessions} sessions`
+    : `${scheme.installmentCount} monthly EMIs after`;
 }
 
 // Today's calendar date in India, as YYYY-MM-DD.

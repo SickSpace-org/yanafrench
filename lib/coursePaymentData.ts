@@ -18,8 +18,8 @@ export type CoursePayment = {
   amount: number; // paise
   currency: string;
   status: CoursePaymentStatus;
-  // "emi" = this was the 30% upfront part; fulfillment then schedules the
-  // 3 monthly installments (see lib/emiData.ts).
+  // "emi" = this was the upfront part; fulfillment then schedules the
+  // remaining installments (see lib/emiData.ts).
   plan: PaymentPlan;
   razorpayPaymentId?: string | null;
   createdAt: string;

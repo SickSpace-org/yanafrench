@@ -8,6 +8,11 @@ import { MANUAL_PAYMENT_PREFIX } from "@/lib/enrollmentRequestData";
 //                             this was the overdue one (see isStudentHubLocked).
 // POST { action: "unpaid" } → undo a manual mark. Refused for installments
 //                             the student paid online, which can't be undone here.
+// POST { action: "reschedule", dueDate: "YYYY-MM-DD" } → move a pending
+//                             installment's due date (e.g. a DELF second
+//                             payment to the real 12th-session date). Clears
+//                             the reminders already sent so the new date gets
+//                             its own reminders.
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await requireAdmin();
@@ -18,7 +23,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!supabase) return new Response("Supabase isn't configured.", { status: 501 });
 
   const { id } = await params;
-  const body = (await req.json().catch(() => null)) as { action?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { action?: unknown; dueDate?: unknown } | null;
   const { data: inst } = await supabase.from("emi_installments").select("*").eq("id", id).maybeSingle();
   if (!inst) return new Response("Installment not found.", { status: 404 });
 
@@ -57,6 +62,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (error) {
       console.error("Failed to undo EMI installment payment", id, error);
       return new Response("Couldn't undo it.", { status: 500 });
+    }
+    return Response.json({ ok: true });
+  }
+
+  if (body?.action === "reschedule") {
+    if (inst.status !== "pending") return new Response("Only a pending installment can be moved.", { status: 409 });
+    const dueDate = typeof body.dueDate === "string" ? body.dueDate : "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate) || Number.isNaN(Date.parse(dueDate))) {
+      return new Response("Pick a valid date.", { status: 400 });
+    }
+    const { error } = await supabase.from("emi_installments").update({ due_date: dueDate, reminders_sent: [] }).eq("id", id).eq("status", "pending");
+    if (error) {
+      console.error("Failed to reschedule EMI installment", id, error);
+      return new Response("Couldn't change the date.", { status: 500 });
     }
     return Response.json({ ok: true });
   }

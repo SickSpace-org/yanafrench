@@ -10,7 +10,7 @@ import { DelfPricingTable } from "./DelfPricingTable";
 import { OrientationTestCard } from "./OrientationTestCard";
 import { DemoClassCard } from "./DemoClassCard";
 import { BookingModal, prefetchBookingSlots } from "./BookingModal";
-import { courses, type Course, type CourseCategory, type Enrollable, type OrientationLevel } from "@/lib/courseCatalogData";
+import { courses, courseInCategory, type Course, type CourseCategory, type Enrollable, type OrientationLevel } from "@/lib/courseCatalogData";
 import type { BookingKind } from "@/lib/bookingData";
 
 const FILTERS: ("All" | CourseCategory | "Demo Class")[] = ["All", "French Levels", "TEF", "TCF", "DELF", "Orientation", "Demo Class"];
@@ -31,7 +31,7 @@ export function CourseCatalog() {
   const visibleCourses = useMemo(() => {
     if (filter === "All") return courses;
     if (filter === "DELF" || filter === "Orientation" || filter === "Demo Class") return [];
-    return courses.filter((c) => c.category === filter);
+    return courses.filter((c) => courseInCategory(c, filter));
   }, [filter]);
 
   const showDelf = filter === "All" || filter === "DELF";
