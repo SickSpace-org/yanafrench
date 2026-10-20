@@ -10,13 +10,13 @@ import { DelfPricingTable } from "./DelfPricingTable";
 import { OrientationTestCard } from "./OrientationTestCard";
 import { DemoClassCard } from "./DemoClassCard";
 import { BookingModal, prefetchBookingSlots } from "./BookingModal";
-import { courses, courseInCategory, type Course, type CourseCategory, type Enrollable, type OrientationLevel } from "@/lib/courseCatalogData";
+import { courseInCategory, type Course, type CourseCategory, type Enrollable, type OrientationLevel } from "@/lib/courseCatalogData";
 import type { BookingKind } from "@/lib/bookingData";
 import { prefetchEmiSettings } from "@/lib/useEmiSettings";
 
 const FILTERS: ("All" | CourseCategory | "Demo Class")[] = ["All", "French Levels", "TEF", "TCF", "DELF", "Orientation", "Demo Class"];
 
-export function CourseCatalog() {
+export function CourseCatalog({ courses }: { courses: Course[] }) {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [detailsCourse, setDetailsCourse] = useState<Course | null>(null);
   const [enrolling, setEnrolling] = useState<Enrollable | null>(null);
@@ -34,7 +34,7 @@ export function CourseCatalog() {
     if (filter === "All") return courses;
     if (filter === "DELF" || filter === "Orientation" || filter === "Demo Class") return [];
     return courses.filter((c) => courseInCategory(c, filter));
-  }, [filter]);
+  }, [filter, courses]);
 
   const showDelf = filter === "All" || filter === "DELF";
   const showOrientation = filter === "All" || filter === "Orientation";

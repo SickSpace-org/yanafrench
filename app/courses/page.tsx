@@ -3,6 +3,7 @@ import { PageHero } from "@/components/PageHero";
 import { CourseCatalog } from "@/components/CourseCatalog";
 import { FinalCta } from "@/components/FinalCta";
 import { SITE_URL } from "@/lib/site";
+import { readCourses } from "@/lib/courseCatalogServer";
 
 const TITLE = "French Courses for TEF, TCF, DELF & PR Prep | The Français Hub";
 const DESCRIPTION =
@@ -15,7 +16,9 @@ export const metadata: Metadata = {
   openGraph: { title: TITLE, description: DESCRIPTION, url: `${SITE_URL}/courses`, siteName: "The Français Hub", type: "website" },
 };
 
-export default function CoursesPage() {
+// Static, rebuilt when Admin → Courses saves (app/api/courses revalidates it).
+export default async function CoursesPage() {
+  const courses = await readCourses();
   return <>
     <PageHero
       eyebrow="Courses"
@@ -24,7 +27,7 @@ export default function CoursesPage() {
       body="Choose the right French learning program for your goals. From complete beginner courses to advanced exam preparation, find a program designed around your target."
       trail={[{ label: "Discover", href: "/" }, { label: "Courses" }]}
     />
-    <CourseCatalog />
+    <CourseCatalog courses={courses} />
     <FinalCta />
   </>;
 }

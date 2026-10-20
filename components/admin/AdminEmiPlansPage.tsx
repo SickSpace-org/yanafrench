@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
-import { emiProducts, enrollablePriceInPaise, type EmiProduct } from "@/lib/courseCatalogData";
+import { emiProducts, enrollablePriceInPaise, type Course, type EmiProduct } from "@/lib/courseCatalogData";
 import {
   EMI_MAX_PAYMENTS,
   EMI_NOTE_MAX,
@@ -199,15 +199,17 @@ function PlanEditor({
 // Admin → EMI Plans: every course and DELF option with the EMI plan it's
 // sold on. Saving a plan updates the course page's checkout straight away.
 export function AdminEmiPlansPage() {
-  const products = useMemo(() => emiProducts(), []);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const products = useMemo(() => emiProducts(courses), [courses]);
   const [settings, setSettings] = useState<EmiSettings>({});
   const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/emi-settings", { cache: "no-store" });
+      const [res, coursesRes] = await Promise.all([fetch("/api/emi-settings", { cache: "no-store" }), fetch("/api/courses", { cache: "no-store" })]);
       if (res.ok) setSettings(await res.json());
+      if (coursesRes.ok) setCourses(await coursesRes.json());
     } finally {
       setLoaded(true);
     }

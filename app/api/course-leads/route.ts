@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { courseLeadToRow, type CourseLead } from "@/lib/courseLeadData";
-import { findEnrollableByProductId, enrollableTitle, enrollablePriceInPaise } from "@/lib/courseCatalogData";
+import { enrollableTitle, enrollablePriceInPaise } from "@/lib/courseCatalogData";
+import { findEnrollable } from "@/lib/courseCatalogServer";
 import { describeEmiPlan } from "@/lib/emiData";
 import { productEmiPlan } from "@/lib/emiSettingsServer";
 import { formatRupees } from "@/lib/formatCurrency";
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
   // the catalog by productId, same principle as
   // app/api/course-payment/create-order/route.ts's price re-derivation, so
   // course_leads.product_title always matches course_payments.product_title.
-  const enrollable = findEnrollableByProductId(productId);
+  const enrollable = await findEnrollable(productId);
   if (!enrollable) {
     return new Response("Unknown course.", { status: 400 });
   }

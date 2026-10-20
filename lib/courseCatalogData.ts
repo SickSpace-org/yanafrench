@@ -423,9 +423,9 @@ export function enrollablePriceInPaise(e: Enrollable): number {
 // Every product that can be bought on EMI (all courses and DELF options —
 // not the Orientation Test), for Admin → EMI Plans.
 export type EmiProduct = { productId: string; title: string; group: string; enrollable: Enrollable };
-export function emiProducts(): EmiProduct[] {
+export function emiProducts(courseList: Course[] = courses): EmiProduct[] {
   const list: Enrollable[] = [
-    ...courses.map((course): Enrollable => ({ kind: "course", course })),
+    ...courseList.map((course): Enrollable => ({ kind: "course", course })),
     ...delfCourses.flatMap((d) => d.options.map((option): Enrollable => ({ kind: "delf", level: d.level, option }))),
   ];
   return list.map((enrollable) => ({
@@ -440,8 +440,8 @@ export function emiProducts(): EmiProduct[] {
 // app/api/course-payment/create-order so the charged amount is always
 // re-derived here — never trusted from the client. Mirrors
 // enrollableProductId's id shapes exactly.
-export function findEnrollableByProductId(productId: string): Enrollable | null {
-  const course = courses.find((c) => c.id === productId);
+export function findEnrollableByProductId(productId: string, courseList: Course[] = courses): Enrollable | null {
+  const course = courseList.find((c) => c.id === productId);
   if (course) return { kind: "course", course };
 
   const delfMatch = productId.match(/^delf-([a-z0-9]+)-(speaking|writing|speakingWriting)$/i);
@@ -461,4 +461,111 @@ export function findEnrollableByProductId(productId: string): Enrollable | null 
   }
 
   return null;
+}
+
+// The `courses` above are the defaults; Admin → Courses saves an edited
+// list (lib/courseCatalogServer.ts) that replaces them. This validates a
+// list coming from the admin API or storage — never trusted as-is, since
+// prices and ids drive checkout.
+export const COURSE_CATEGORIES: CourseCategory[] = ["French Levels", "TEF", "TCF", "TEF/TCF", "DELF", "Orientation"];
+export const COURSE_BADGES: CourseBadge[] = ["Popular", "Fast Track", "Exam Prep", "CLB 7+", "Speaking", "Speaking + Writing", "Intensive"];
+export const COURSE_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,59}$/;
+const MAX_PRICE_PAISE = 100_000_000; // Rs 10,00,000
+
+// Trimmed text, undefined when optional and empty, null when invalid.
+function text(v: unknown, max: number, required: boolean): string | undefined | null {
+  if (v === undefined || v === null || v === "") return required ? null : undefined;
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  if (!t) return required ? null : undefined;
+  return t.length > max ? null : t;
+}
+
+function lines(v: unknown): string[] | null {
+  if (!Array.isArray(v) || v.length > 30) return null;
+  const out: string[] = [];
+  for (const item of v) {
+    if (typeof item !== "string") return null;
+    const t = item.trim();
+    if (t.length > 200) return null;
+    if (t) out.push(t);
+  }
+  return out;
+}
+
+function paise(v: unknown): number | undefined | null {
+  if (v === undefined || v === null) return undefined;
+  return Number.isInteger(v) && (v as number) > 0 && (v as number) <= MAX_PRICE_PAISE ? (v as number) : null;
+}
+
+export function sanitizeCourses(raw: unknown): { courses: Course[] } | { error: string } {
+  if (!Array.isArray(raw) || raw.length > 100) return { error: "Invalid course list." };
+  const seen = new Set<string>();
+  const out: Course[] = [];
+  for (const r of raw as Record<string, unknown>[]) {
+    if (!r || typeof r !== "object") return { error: "Invalid course." };
+    const id = typeof r.id === "string" ? r.id : "";
+    if (!COURSE_ID_PATTERN.test(id) || /^(delf|orientation)-/.test(id)) return { error: `Invalid course id "${id}".` };
+    if (seen.has(id)) return { error: `Duplicate course id "${id}".` };
+    seen.add(id);
+
+    const title = text(r.title, 120, true);
+    if (!title) return { error: `"${id}": enter a title (up to 120 characters).` };
+    if (!COURSE_CATEGORIES.includes(r.category as CourseCategory)) return { error: `"${title}": choose a category.` };
+    if (r.badge !== undefined && r.badge !== null && r.badge !== "" && !COURSE_BADGES.includes(r.badge as CourseBadge)) {
+      return { error: `"${title}": invalid badge.` };
+    }
+    const description = text(r.description, 500, true);
+    const overview = text(r.overview, 2000, true);
+    const duration = text(r.duration, 60, true);
+    const mode = text(r.mode, 60, true);
+    if (!description || !overview || !duration || !mode) {
+      return { error: `"${title}": description, overview, duration and mode are required (check the lengths).` };
+    }
+    const level = text(r.level, 60, false);
+    const minimumLevel = text(r.minimumLevel, 60, false);
+    const maxDuration = text(r.maxDuration, 60, false);
+    const target = text(r.target, 60, false);
+    if (level === null || minimumLevel === null || maxDuration === null || target === null) {
+      return { error: `"${title}": a text field is too long.` };
+    }
+
+    const priceInPaise = paise(r.priceInPaise);
+    const regularPriceInPaise = paise(r.regularPriceInPaise);
+    const savingsInPaise = paise(r.savingsInPaise);
+    if (!priceInPaise || regularPriceInPaise === null || savingsInPaise === null) return { error: `"${title}": enter a valid price.` };
+    const classes = r.classes === undefined || r.classes === null ? undefined : Number(r.classes);
+    if (classes !== undefined && (!Number.isInteger(classes) || classes < 1 || classes > 500)) {
+      return { error: `"${title}": invalid number of classes.` };
+    }
+    const whatYouLearn = lines(r.whatYouLearn);
+    const includes = lines(r.includes);
+    if (!whatYouLearn || !includes) return { error: `"${title}": invalid "what you learn" / "includes" list.` };
+    if (r.emi !== undefined && r.emi !== null && r.emi !== "monthly" && r.emi !== "twoPart") {
+      return { error: `"${title}": invalid EMI scheme.` };
+    }
+
+    out.push({
+      id,
+      category: r.category as CourseCategory,
+      title,
+      ...(r.badge ? { badge: r.badge as CourseBadge } : {}),
+      ...(level ? { level } : {}),
+      ...(minimumLevel ? { minimumLevel } : {}),
+      description,
+      overview,
+      duration,
+      ...(maxDuration ? { maxDuration } : {}),
+      ...(classes !== undefined ? { classes } : {}),
+      mode,
+      priceInPaise,
+      ...(regularPriceInPaise ? { regularPriceInPaise } : {}),
+      ...(savingsInPaise ? { savingsInPaise } : {}),
+      whatYouLearn,
+      includes,
+      ...(target ? { target } : {}),
+      ...(r.emi ? { emi: r.emi as "monthly" | "twoPart" } : {}),
+    });
+  }
+  return { courses: out };
 }

@@ -1,5 +1,6 @@
 import { authErrorResponse, requireAdmin } from "@/lib/auth";
-import { enrollablePriceInPaise, findEnrollableByProductId } from "@/lib/courseCatalogData";
+import { enrollablePriceInPaise } from "@/lib/courseCatalogData";
+import { findEnrollable } from "@/lib/courseCatalogServer";
 import { EMI_MAX_PAYMENTS, emiSettingProblem, type EmiSetting } from "@/lib/emiData";
 import { readEmiSettings, writeEmiSetting } from "@/lib/emiSettingsServer";
 
@@ -22,7 +23,7 @@ export async function PUT(req: Request) {
 
   const body = (await req.json().catch(() => null)) as { productId?: unknown; setting?: unknown } | null;
   const productId = typeof body?.productId === "string" ? body.productId : "";
-  const enrollable = findEnrollableByProductId(productId);
+  const enrollable = await findEnrollable(productId);
   if (!enrollable || enrollable.kind === "orientation") return new Response("Unknown course.", { status: 400 });
 
   if (body?.setting === null) {

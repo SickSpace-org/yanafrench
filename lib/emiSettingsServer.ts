@@ -5,7 +5,8 @@
 // has no setting.
 
 import { readJson, writeJson } from "./r2";
-import { enrollablePriceInPaise, findEnrollableByProductId, type Enrollable } from "./courseCatalogData";
+import { enrollablePriceInPaise, type Enrollable } from "./courseCatalogData";
+import { findEnrollable } from "./courseCatalogServer";
 import { resolveEmiPlan, type EmiPlan, type EmiSetting, type EmiSettings } from "./emiData";
 
 export const EMI_SETTINGS_KEY = "data/emi-settings.json";
@@ -30,7 +31,7 @@ export async function productEmiPlan(
   productId: string,
   settings?: EmiSettings
 ): Promise<{ enrollable: Enrollable; pricePaise: number; plan: EmiPlan | null } | null> {
-  const enrollable = findEnrollableByProductId(productId);
+  const enrollable = await findEnrollable(productId);
   if (!enrollable) return null;
   const pricePaise = enrollablePriceInPaise(enrollable);
   const all = settings ?? (await readEmiSettings());
