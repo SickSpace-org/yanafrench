@@ -12,7 +12,7 @@ import {
   type BookingKind,
   type PublicSlot,
 } from "@/lib/bookingData";
-import { orientationLevels, type OrientationLevel } from "@/lib/courseCatalogData";
+import { orientationLevels as defaultOrientationLevels, type OrientationLevel } from "@/lib/courseCatalogData";
 import { CURRENT_LEVELS } from "@/lib/courseLeadData";
 import { formatRupees } from "@/lib/formatCurrency";
 import { whatsappDisplay } from "@/lib/site";
@@ -78,10 +78,12 @@ function bookedWhatsappMessage(kind: BookingKind, startsAt: string, name: string
 export function BookingModal({
   kind,
   initialLevel,
+  levels: orientationLevels = defaultOrientationLevels,
   onClose,
 }: {
   kind: BookingKind;
   initialLevel?: OrientationLevel["level"];
+  levels?: OrientationLevel[]; // the live Orientation Test fees (Admin → Courses)
   onClose: () => void;
 }) {
   const [slots, setSlots] = useState<PublicSlot[] | null>(() => slotCache.get(kind) ?? null);

@@ -2,7 +2,7 @@ import { after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { BOOKING_IS_PAID, BOOKING_LABELS, formatSlotWhen, isBookingKind } from "@/lib/bookingData";
 import { bookSlot, type BookSlotFailure } from "@/lib/bookings";
-import { orientationLevels } from "@/lib/courseCatalogData";
+import { readCatalog } from "@/lib/courseCatalogServer";
 import { formatRupees } from "@/lib/formatCurrency";
 import { sendBookingConfirmationEmail, sendNewEnrollmentAdminEmail } from "@/lib/email";
 import { checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rateLimit";
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
   if (!name || !phone || !EMAIL_RE.test(email)) return new Response("Please fill in your name, email and phone.", { status: 400 });
 
   // The Orientation Test is taken at a level, with that level's fee.
-  const orientation = kind === "orientation" ? orientationLevels.find((o) => o.level === str(body.level)) : undefined;
+  const orientation = kind === "orientation" ? (await readCatalog()).orientation.find((o) => o.level === str(body.level)) : undefined;
   if (kind === "orientation" && !orientation) return new Response("Please pick a test level.", { status: 400 });
   const level = orientation?.level ?? (str(body.level).slice(0, 40) || null);
 

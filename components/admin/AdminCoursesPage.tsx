@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { COURSE_BADGES, COURSE_CATEGORIES, type Course } from "@/lib/courseCatalogData";
+import { COURSE_BADGES, COURSE_CATEGORIES, defaultCatalog, type Catalog, type Course } from "@/lib/courseCatalogData";
 import { formatRupees } from "@/lib/formatCurrency";
 import { AdminShell } from "../AdminShell";
 import styles from "./AdminLessonsManager.module.css";
@@ -121,15 +121,15 @@ function slugify(title: string): string {
     .slice(0, 50);
 }
 
-async function saveList(list: Course[]): Promise<{ ok: true; courses: Course[] } | { ok: false; error: string }> {
+async function saveCatalog(catalog: Catalog): Promise<{ ok: true; catalog: Catalog } | { ok: false; error: string }> {
   try {
     const res = await fetch("/api/courses", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(list),
+      body: JSON.stringify(catalog),
     });
     if (!res.ok) return { ok: false, error: (await res.text()) || "Couldn't save." };
-    return { ok: true, courses: (await res.json()) as Course[] };
+    return { ok: true, catalog: (await res.json()) as Catalog };
   } catch {
     return { ok: false, error: "Couldn't save — check your connection." };
   }
@@ -221,8 +221,8 @@ function CourseEditor({
       </div>
 
       <p className={courseStyles.hint}>
-        Changes apply to the website and to new enrollments straight away. Students who already enrolled keep what they paid for. After
-        changing a price, check this course&rsquo;s plan in EMI Plans.
+        Changes apply to the website and to new enrollments straight away. If you change the price, this course&rsquo;s EMI plan is
+        scaled to the new fee (check it in EMI Plans). Students who already enrolled keep what they agreed to pay.
       </p>
       {error && <p className={courseStyles.error}>{error}</p>}
       <div className={courseStyles.actions}>
@@ -237,10 +237,118 @@ function CourseEditor({
   );
 }
 
+type PriceState = {
+  delf: { level: string; options: { kind: string; label: string; rupees: string; sessions: string }[] }[];
+  orientation: { level: string; rupees: string }[];
+};
+
+function toPriceState(c: Catalog): PriceState {
+  return {
+    delf: c.delf.map((d) => ({
+      level: d.level,
+      options: d.options.map((o) => ({ kind: o.kind, label: o.label, rupees: String(o.priceInPaise / 100), sessions: String(o.sessions) })),
+    })),
+    orientation: c.orientation.map((o) => ({ level: o.level, rupees: String(o.priceInPaise / 100) })),
+  };
+}
+
+// DELF preparation and Orientation Test prices — a fixed lineup, so only the
+// price (and DELF's number of sessions) can change.
+function FixedPrices({ catalog, onSave }: { catalog: Catalog; onSave: (next: Catalog) => Promise<string | null> }) {
+  const [state, setState] = useState<PriceState>(() => toPriceState(catalog));
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const setDelf = (di: number, oi: number, patch: { rupees?: string; sessions?: string }) =>
+    setState((s) => ({
+      ...s,
+      delf: s.delf.map((d, i) => (i !== di ? d : { ...d, options: d.options.map((o, j) => (j !== oi ? o : { ...o, ...patch })) })),
+    }));
+
+  const save = async () => {
+    setSaving(true);
+    setError("");
+    setMessage("");
+    const problem = await onSave({
+      ...catalog,
+      delf: catalog.delf.map((d, di) => ({
+        ...d,
+        options: d.options.map((o, oi) => ({
+          ...o,
+          priceInPaise: paise(state.delf[di].options[oi].rupees) as number,
+          sessions: Number(state.delf[di].options[oi].sessions),
+        })),
+      })),
+      orientation: catalog.orientation.map((o, i) => ({ ...o, priceInPaise: paise(state.orientation[i].rupees) as number })),
+    });
+    setSaving(false);
+    if (problem) setError(problem);
+    else setMessage("Saved — the website is updated.");
+  };
+
+  return (
+    <div className={courseStyles.editor}>
+      <h3 className={courseStyles.title}>DELF preparation prices</h3>
+      <div style={{ overflowX: "auto" }}>
+        <table className={leadStyles.table}>
+          <thead>
+            <tr>
+              <th>Level</th>
+              {state.delf[0]?.options.map((o) => (
+                <th key={o.kind}>{o.label} (₹ · sessions)</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {state.delf.map((d, di) => (
+              <tr key={d.level}>
+                <td>DELF {d.level}</td>
+                {d.options.map((o, oi) => (
+                  <td key={o.kind}>
+                    <div className={courseStyles.pair}>
+                      <input type="number" min="1" aria-label={`DELF ${d.level} ${o.label} price`} value={o.rupees} onChange={(e) => setDelf(di, oi, { rupees: e.target.value })} />
+                      <input type="number" min="1" aria-label={`DELF ${d.level} ${o.label} sessions`} value={o.sessions} onChange={(e) => setDelf(di, oi, { sessions: e.target.value })} />
+                    </div>
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h3 className={courseStyles.title}>Orientation Test prices</h3>
+      <div className={courseStyles.pair}>
+        {state.orientation.map((o, i) => (
+          <label key={o.level} className={courseStyles.field}>
+            <span>{o.level} (₹)</span>
+            <input
+              type="number"
+              min="1"
+              value={o.rupees}
+              onChange={(e) => setState((s) => ({ ...s, orientation: s.orientation.map((x, j) => (j !== i ? x : { ...x, rupees: e.target.value })) }))}
+            />
+          </label>
+        ))}
+      </div>
+
+      {error && <p className={courseStyles.error}>{error}</p>}
+      <div className={courseStyles.actions}>
+        <button type="button" className={leadStyles.action} onClick={save} disabled={saving}>
+          {saving ? "Saving…" : "Save prices"}
+        </button>
+        {message && <span className={courseStyles.hint}>{message}</span>}
+      </div>
+    </div>
+  );
+}
+
 // Admin → Courses: the list shown on the website's Courses page. Add, edit,
 // reorder and delete; every change saves the whole list.
 export function AdminCoursesPage() {
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [catalog, setCatalog] = useState<Catalog>(defaultCatalog);
+  const { courses } = catalog;
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [editing, setEditing] = useState<string | null>(null); // course id, or "new"
@@ -250,7 +358,7 @@ export function AdminCoursesPage() {
     try {
       const res = await fetch("/api/courses", { cache: "no-store" });
       if (!res.ok) throw new Error();
-      setCourses(await res.json());
+      setCatalog(await res.json());
       setLoadError(false);
     } catch {
       setLoadError(true);
@@ -264,10 +372,10 @@ export function AdminCoursesPage() {
   }, [load]);
 
   // Saves `next`; returns an error message, or null on success.
-  const commit = async (next: Course[]): Promise<string | null> => {
-    const result = await saveList(next);
+  const commit = async (next: Catalog): Promise<string | null> => {
+    const result = await saveCatalog(next);
     if (!result.ok) return result.error;
-    setCourses(result.courses);
+    setCatalog(result.catalog);
     setEditing(null);
     setNotice("Saved — the website is updated.");
     return null;
@@ -276,13 +384,13 @@ export function AdminCoursesPage() {
   const move = async (index: number, by: -1 | 1) => {
     const next = [...courses];
     [next[index], next[index + by]] = [next[index + by], next[index]];
-    const problem = await commit(next);
+    const problem = await commit({ ...catalog, courses: next });
     if (problem) setNotice(problem);
   };
 
   const remove = async (course: Course) => {
     if (!window.confirm(`Delete "${course.title}" from the website? New students won't be able to enroll in it.`)) return;
-    const problem = await commit(courses.filter((c) => c.id !== course.id));
+    const problem = await commit({ ...catalog, courses: courses.filter((c) => c.id !== course.id) });
     if (problem) setNotice(problem);
   };
 
@@ -292,8 +400,8 @@ export function AdminCoursesPage() {
         <small>ADMIN</small>
         <h1>Courses.</h1>
         <p>
-          The courses on the website&rsquo;s Courses page — add, edit or delete them, and change their prices and details. DELF and
-          Orientation Test prices are separate and not editable here yet.
+          The courses and prices on the website&rsquo;s Courses page — add, edit or delete courses, and change DELF and Orientation Test
+          prices below. When a price changes, its EMI plan is adjusted to the new fee.
         </p>
       </div>
 
@@ -317,7 +425,7 @@ export function AdminCoursesPage() {
                 isNew
                 existingIds={courses.map((c) => c.id)}
                 onCancel={() => setEditing(null)}
-                onSave={(course) => commit([...courses, course])}
+                onSave={(course) => commit({ ...catalog, courses: [...courses, course] })}
               />
             )}
 
@@ -366,7 +474,7 @@ export function AdminCoursesPage() {
                               isNew={false}
                               existingIds={[]}
                               onCancel={() => setEditing(null)}
-                              onSave={(updated) => commit(courses.map((c) => (c.id === course.id ? updated : c)))}
+                              onSave={(updated) => commit({ ...catalog, courses: courses.map((c) => (c.id === course.id ? updated : c)) })}
                             />
                           </td>
                         </tr>
@@ -377,6 +485,8 @@ export function AdminCoursesPage() {
               </table>
               {courses.length === 0 && <p className={styles.tabHint}>No courses yet — add one.</p>}
             </div>
+
+            <FixedPrices catalog={catalog} onSave={commit} />
           </>
         )}
       </div>

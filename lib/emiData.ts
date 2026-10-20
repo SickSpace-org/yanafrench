@@ -140,6 +140,19 @@ export function emiSettingProblem(setting: EmiSetting, totalPaise: number): stri
   return null;
 }
 
+// An admin plan carried over to a new fee when the course price changes:
+// every payment scales in proportion (to whole rupees, the last one taking
+// the remainder), keeping the timing. null when it can't be scaled sensibly,
+// in which case the default plan applies.
+export function rescaleEmiSetting(setting: EmiSetting, oldTotalRupees: number, newTotalRupees: number): EmiSetting | null {
+  const { payments } = setting;
+  if (!setting.enabled || payments.length < 2 || oldTotalRupees < 1) return setting;
+  const scaled = payments.map((p) => Math.round((p.rupees * newTotalRupees) / oldTotalRupees));
+  scaled[scaled.length - 1] = newTotalRupees - scaled.slice(0, -1).reduce((s, r) => s + r, 0);
+  if (scaled.some((r) => r < 1)) return null;
+  return { ...setting, payments: payments.map((p, i) => ({ ...p, rupees: scaled[i] })) };
+}
+
 // The plan a product is sold on right now (null = pay in full only): the
 // admin's setting when there's a usable one, otherwise the default.
 export function resolveEmiPlan(enrollable: Enrollable, totalPaise: number, setting: EmiSetting | undefined): EmiPlan | null {

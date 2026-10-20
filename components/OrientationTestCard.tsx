@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { orientationLevels, type OrientationLevel } from "@/lib/courseCatalogData";
+import type { OrientationLevel } from "@/lib/courseCatalogData";
 import { formatRupees } from "@/lib/formatCurrency";
 import { Reveal } from "./Reveal";
 
-export function OrientationTestCard({ onEnroll }: { onEnroll: (level: OrientationLevel) => void }) {
+export function OrientationTestCard({ levels: orientationLevels, onEnroll }: { levels: OrientationLevel[]; onEnroll: (level: OrientationLevel) => void }) {
   const [selected, setSelected] = useState<OrientationLevel["level"]>("A1");
   const active = orientationLevels.find((o) => o.level === selected) ?? orientationLevels[0];
 

@@ -1,10 +1,10 @@
 "use client";
 
-import { delfCourses, type DelfLevel, type DelfOption } from "@/lib/courseCatalogData";
+import type { DelfCourse, DelfLevel, DelfOption } from "@/lib/courseCatalogData";
 import { formatRupees } from "@/lib/formatCurrency";
 import { Reveal } from "./Reveal";
 
-export function DelfPricingTable({ onEnroll }: { onEnroll: (level: DelfLevel, option: DelfOption) => void }) {
+export function DelfPricingTable({ delfCourses, onEnroll }: { delfCourses: DelfCourse[]; onEnroll: (level: DelfLevel, option: DelfOption) => void }) {
   return (
     <Reveal className="delf-pricing">
       <div className="delf-pricing__head">

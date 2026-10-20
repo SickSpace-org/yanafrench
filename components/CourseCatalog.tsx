@@ -10,13 +10,14 @@ import { DelfPricingTable } from "./DelfPricingTable";
 import { OrientationTestCard } from "./OrientationTestCard";
 import { DemoClassCard } from "./DemoClassCard";
 import { BookingModal, prefetchBookingSlots } from "./BookingModal";
-import { courseInCategory, type Course, type CourseCategory, type Enrollable, type OrientationLevel } from "@/lib/courseCatalogData";
+import { courseInCategory, type Catalog, type Course, type CourseCategory, type Enrollable, type OrientationLevel } from "@/lib/courseCatalogData";
 import type { BookingKind } from "@/lib/bookingData";
 import { prefetchEmiSettings } from "@/lib/useEmiSettings";
 
 const FILTERS: ("All" | CourseCategory | "Demo Class")[] = ["All", "French Levels", "TEF", "TCF", "DELF", "Orientation", "Demo Class"];
 
-export function CourseCatalog({ courses }: { courses: Course[] }) {
+export function CourseCatalog({ catalog }: { catalog: Catalog }) {
+  const { courses } = catalog;
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
   const [detailsCourse, setDetailsCourse] = useState<Course | null>(null);
   const [enrolling, setEnrolling] = useState<Enrollable | null>(null);
@@ -85,11 +86,11 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
         )}
 
         {showDelf && (
-          <DelfPricingTable onEnroll={(level, option) => setEnrolling({ kind: "delf", level, option })} />
+          <DelfPricingTable delfCourses={catalog.delf} onEnroll={(level, option) => setEnrolling({ kind: "delf", level, option })} />
         )}
 
         {showOrientation && (
-          <OrientationTestCard onEnroll={(level) => setBooking({ kind: "orientation", level: level.level })} />
+          <OrientationTestCard levels={catalog.orientation} onEnroll={(level) => setBooking({ kind: "orientation", level: level.level })} />
         )}
 
         {showDemo && <DemoClassCard onBook={() => setBooking({ kind: "demo" })} />}
@@ -114,7 +115,7 @@ export function CourseCatalog({ courses }: { courses: Course[] }) {
       </AnimatePresence>
 
       <AnimatePresence>
-        {booking && <BookingModal kind={booking.kind} initialLevel={booking.level} onClose={() => setBooking(null)} />}
+        {booking && <BookingModal kind={booking.kind} levels={catalog.orientation} initialLevel={booking.level} onClose={() => setBooking(null)} />}
       </AnimatePresence>
     </section>
   );

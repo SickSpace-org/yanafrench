@@ -388,6 +388,11 @@ export const orientationLevels: OrientationLevel[] = [
   { level: "B2", priceInPaise: 40_000 },
 ];
 
+// Everything with a price on the Courses page. The values above are the
+// defaults; Admin → Courses saves an edited copy (lib/courseCatalogServer.ts).
+export type Catalog = { courses: Course[]; delf: DelfCourse[]; orientation: OrientationLevel[] };
+export const defaultCatalog: Catalog = { courses, delf: delfCourses, orientation: orientationLevels };
+
 // Discriminated union the enroll/payment flow accepts, so one modal handles
 // a plain Course, a DELF skill option, or an Orientation Test level.
 export type Enrollable =
@@ -423,10 +428,10 @@ export function enrollablePriceInPaise(e: Enrollable): number {
 // Every product that can be bought on EMI (all courses and DELF options —
 // not the Orientation Test), for Admin → EMI Plans.
 export type EmiProduct = { productId: string; title: string; group: string; enrollable: Enrollable };
-export function emiProducts(courseList: Course[] = courses): EmiProduct[] {
+export function emiProducts(catalog: Catalog = defaultCatalog): EmiProduct[] {
   const list: Enrollable[] = [
-    ...courseList.map((course): Enrollable => ({ kind: "course", course })),
-    ...delfCourses.flatMap((d) => d.options.map((option): Enrollable => ({ kind: "delf", level: d.level, option }))),
+    ...catalog.courses.map((course): Enrollable => ({ kind: "course", course })),
+    ...catalog.delf.flatMap((d) => d.options.map((option): Enrollable => ({ kind: "delf", level: d.level, option }))),
   ];
   return list.map((enrollable) => ({
     productId: enrollableProductId(enrollable),
@@ -440,15 +445,15 @@ export function emiProducts(courseList: Course[] = courses): EmiProduct[] {
 // app/api/course-payment/create-order so the charged amount is always
 // re-derived here — never trusted from the client. Mirrors
 // enrollableProductId's id shapes exactly.
-export function findEnrollableByProductId(productId: string, courseList: Course[] = courses): Enrollable | null {
-  const course = courseList.find((c) => c.id === productId);
+export function findEnrollableByProductId(productId: string, catalog: Catalog = defaultCatalog): Enrollable | null {
+  const course = catalog.courses.find((c) => c.id === productId);
   if (course) return { kind: "course", course };
 
   const delfMatch = productId.match(/^delf-([a-z0-9]+)-(speaking|writing|speakingWriting)$/i);
   if (delfMatch) {
     const level = delfMatch[1].toUpperCase() as DelfLevel;
     const kind = delfMatch[2] as DelfOptionKind;
-    const delfCourse = delfCourses.find((d) => d.level === level);
+    const delfCourse = catalog.delf.find((d) => d.level === level);
     const option = delfCourse?.options.find((o) => o.kind === kind);
     if (delfCourse && option) return { kind: "delf", level, option };
   }
@@ -456,7 +461,7 @@ export function findEnrollableByProductId(productId: string, courseList: Course[
   const orientationMatch = productId.match(/^orientation-([a-z0-9]+)$/i);
   if (orientationMatch) {
     const level = orientationMatch[1].toUpperCase();
-    const found = orientationLevels.find((o) => o.level === level);
+    const found = catalog.orientation.find((o) => o.level === level);
     if (found) return { kind: "orientation", level: found };
   }
 
@@ -568,4 +573,40 @@ export function sanitizeCourses(raw: unknown): { courses: Course[] } | { error: 
     });
   }
   return { courses: out };
+}
+
+// DELF and Orientation Test prices are editable but the lineup is fixed: the
+// same levels and options as the defaults, with a new price (and, for DELF,
+// number of sessions) each. Anything missing keeps its default.
+export function sanitizeCatalog(raw: unknown): { catalog: Catalog } | { error: string } {
+  const r = raw as { courses?: unknown; delf?: unknown; orientation?: unknown } | null;
+  if (!r || typeof r !== "object") return { error: "Invalid catalog." };
+  const parsed = sanitizeCourses(r.courses);
+  if ("error" in parsed) return parsed;
+
+  const delfIn = Array.isArray(r.delf) ? (r.delf as { level?: unknown; options?: { kind?: unknown; priceInPaise?: unknown; sessions?: unknown }[] }[]) : [];
+  const delf: DelfCourse[] = [];
+  for (const d of delfCourses) {
+    const given = delfIn.find((x) => x?.level === d.level);
+    const options: DelfOption[] = [];
+    for (const o of d.options) {
+      const g = Array.isArray(given?.options) ? given.options.find((x) => x?.kind === o.kind) : undefined;
+      const price = g?.priceInPaise === undefined ? o.priceInPaise : paise(g.priceInPaise);
+      const sessions = g?.sessions === undefined ? o.sessions : Number(g.sessions);
+      if (!price) return { error: `DELF ${d.level} ${o.label}: enter a valid price.` };
+      if (!Number.isInteger(sessions) || sessions < 1 || sessions > 500) return { error: `DELF ${d.level} ${o.label}: invalid number of sessions.` };
+      options.push({ ...o, priceInPaise: price, sessions });
+    }
+    delf.push({ level: d.level, options });
+  }
+
+  const orientIn = Array.isArray(r.orientation) ? (r.orientation as { level?: unknown; priceInPaise?: unknown }[]) : [];
+  const orientation: OrientationLevel[] = [];
+  for (const o of orientationLevels) {
+    const g = orientIn.find((x) => x?.level === o.level);
+    const price = g?.priceInPaise === undefined ? o.priceInPaise : paise(g.priceInPaise);
+    if (!price) return { error: `Orientation Test ${o.level}: enter a valid price.` };
+    orientation.push({ level: o.level, priceInPaise: price });
+  }
+  return { catalog: { courses: parsed.courses, delf, orientation } };
 }

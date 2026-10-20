@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { authErrorResponse, requireAdmin } from "@/lib/auth";
 import { BOOKING_LABELS, formatSlotWhen, isTeacher } from "@/lib/bookingData";
-import { orientationLevels } from "@/lib/courseCatalogData";
+import { readCatalog } from "@/lib/courseCatalogServer";
 import { formatRupees } from "@/lib/formatCurrency";
 import { sendBookingPaymentConfirmedEmail } from "@/lib/email";
 import { whatsappDisplay, whatsappUrl } from "@/lib/site";
@@ -51,7 +51,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   let emailed = false;
   if (setsPaid && body.paid && !booking.paid_at && slot) {
     const when = formatSlotWhen(slot.starts_at);
-    const level = orientationLevels.find((o) => o.level === booking.level);
+    const level = (await readCatalog()).orientation.find((o) => o.level === booking.level);
     const teacher = (setsTeacher ? body.teacher : booking.teacher) as string | null;
     emailed = await sendBookingPaymentConfirmedEmail(booking.email, {
       name: booking.name,

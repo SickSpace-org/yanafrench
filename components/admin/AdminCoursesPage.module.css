@@ -29,6 +29,9 @@
 .editor textarea { resize: vertical; }
 .editor input:focus, .editor select:focus, .editor textarea:focus { outline: none; border-color: var(--blue); }
 
+.pair { display: flex; flex-wrap: wrap; gap: .5rem; }
+.pair input { width: 6.5rem; }
+
 .actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .error { margin: 0; color: #B63A3A; font-weight: 700; font-size: .74rem; }
 .hint { margin: 0; color: var(--text-faint); font-size: .72rem; }

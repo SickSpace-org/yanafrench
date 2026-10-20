@@ -2,7 +2,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { authErrorResponse, requireStudent, type Viewer } from "@/lib/auth";
 import { fetchStudentInstallments } from "@/lib/emi";
 import { enrollablePriceInPaise, findEnrollableByProductId } from "@/lib/courseCatalogData";
-import { readCourses } from "@/lib/courseCatalogServer";
+import { readCatalog } from "@/lib/courseCatalogServer";
 import { nextPendingInstallment, todayInIndia } from "@/lib/emiData";
 import type { MyCourse } from "@/lib/myCourseData";
 
@@ -42,7 +42,7 @@ export async function GET() {
   }
 
   // A course the admin has since deleted just has no fee to show.
-  const catalog = await readCourses();
+  const catalog = await readCatalog();
   const courses: MyCourse[] = [
     ...(courseRows ?? []).map((row) => {
       const plan = installments.filter((i) => i.courseEnrollmentId === row.id).sort((a, b) => a.installmentNo - b.installmentNo);
