@@ -18,6 +18,9 @@ import type {
 // Cheapest Gemini tier at low thinking effort — these are short, structured
 // tasks, so deeper reasoning would only add cost and latency.
 const MODEL = "gemini-3.5-flash-lite";
+// Appended to every system prompt: at low effort the model sometimes drops
+// French accents, which is unacceptable in a learning product.
+const ACCENTS = " Always write French with every accent and diacritic exactly as in correct spelling (é è ê à â ç î ô û ù œ ë ï), never stripped.";
 const LOW_EFFORT = { google: { thinkingConfig: { thinkingLevel: "low" } } } as const;
 
 export class AiRateLimitError extends Error {}
@@ -57,7 +60,7 @@ export async function translateText(text: string): Promise<TranslationResult> {
       system:
         "You are a precise French–English translator and tutor for learners. If the input is French, translate it " +
         "to natural English; if it is English, translate it to natural French; otherwise set from to Other and " +
-        "translate to English. Keep notes brief and in English.",
+        "translate to English. Keep notes brief and in English." + ACCENTS,
       prompt: text,
       output: Output.object({ schema: translationSchema }),
     });
@@ -79,7 +82,7 @@ export async function generatePhrase(level: AiHubLevel, topic: string): Promise<
       providerOptions: LOW_EFFORT,
       system:
         "You write short French sentences for pronunciation practice. Pick sentences that exercise real " +
-        "pronunciation challenges at the given CEFR level, and vary the vocabulary and topic every time.",
+        "pronunciation challenges at the given CEFR level, and vary the vocabulary and topic every time." + ACCENTS,
       prompt: `Level ${level}. ${topic ? `Topic: ${topic}.` : "Choose a fresh everyday topic."} Random seed: ${Math.random().toString(36).slice(2)}`,
       output: Output.object({ schema: phraseSchema }),
     });
@@ -115,7 +118,7 @@ export async function evaluatePronunciation(phrase: string, audio: Buffer, media
       system:
         "You are a kind, exacting French pronunciation coach. Listen to the audio and judge the actual sounds " +
         "(vowels, nasals, the French r, liaisons, silent letters, stress), not just whether the words were right. " +
-        "Compare against the target sentence. Score every number from 0 to 10 (NOT out of 100). Write feedback in English; keep French examples in French.",
+        "Compare against the target sentence. Score every number from 0 to 10 (NOT out of 100). Write feedback in English; keep French examples in French." + ACCENTS,
       messages: [
         {
           role: "user",
@@ -161,7 +164,7 @@ export async function generateQuiz(level: AiHubLevel, date: string): Promise<Sto
       system:
         "You write the Daily French Quiz for adult learners (TEF/TCF/DELF style). Questions are in French, " +
         "explanations in English. Make every day different: new topics, vocabulary and scenarios. Each question " +
-        "must have exactly one defensible answer.",
+        "must have exactly one defensible answer." + ACCENTS,
       prompt: `Write the quiz for ${date} at CEFR level ${level}.`,
       output: Output.object({ schema: quizSchema }),
     });
@@ -239,7 +242,7 @@ export async function generateNews(date: string): Promise<{ articles: NewsArticl
         "sentences from sources. Stay factual and neutral; do not invent quotes or statistics. A2 uses short " +
         "present-tense sentences and common words; B1 adds past tenses and connectors; B2 uses richer " +
         "vocabulary and complex sentences. If no stories are supplied, write about timeless, general-interest " +
-        "topics and avoid claiming anything happened 'today'.",
+        "topics and avoid claiming anything happened 'today'." + ACCENTS,
       prompt: headlines
         ? `Date: ${date}\n\nToday's stories:\n${headlines}\n\nWrite three articles, each on a different story, plus the word of the day, an expression and a language/culture fact.`
         : `Date: ${date}\n\nNo headlines available. Write three general-interest articles.`,
