@@ -12,11 +12,43 @@ import styles from "./AiHubApp.module.css";
 
 type RecState = "idle" | "recording" | "recorded" | "submitting";
 
-const MAX_RECORD_MS = 30_000;
+type Mode = "read" | "monologue";
 
-// AI Pronunciation: get a French sentence, hear it, record yourself, and
-// receive scores plus word-level fixes from the AI.
+const MAX_RECORD_MS = 30_000;
+const MAX_MONOLOGUE_MS = 120_000;
+
+type Topic = { fr: string; en: string; points: string[] };
+
+// Random prompts for the monologue mode; the points are things to cover.
+const TOPICS: Topic[] = [
+  { fr: "Décrivez votre journée idéale.", en: "Describe your ideal day.", points: ["le matin", "ce que vous mangez", "avec qui vous êtes", "le soir"] },
+  { fr: "Parlez de votre ville ou de votre village.", en: "Talk about your town or village.", points: ["où c'est", "ce que vous aimez", "ce qui manque", "un endroit à visiter"] },
+  { fr: "Racontez vos dernières vacances.", en: "Tell us about your last holiday.", points: ["où vous êtes allé(e)", "ce que vous avez fait", "un bon souvenir", "où partir ensuite"] },
+  { fr: "Parlez de votre famille et de vos amis.", en: "Talk about your family and friends.", points: ["qui ils sont", "ce qu'ils font", "ce que vous faites ensemble"] },
+  { fr: "Décrivez votre plat préféré.", en: "Describe your favourite dish.", points: ["les ingrédients", "comment on le prépare", "quand vous le mangez"] },
+  { fr: "Parlez de votre travail ou de vos études.", en: "Talk about your work or studies.", points: ["ce que vous faites", "ce que vous aimez", "vos projets"] },
+  { fr: "Pourquoi apprenez-vous le français ?", en: "Why are you learning French?", points: ["votre motivation", "ce qui est difficile", "ce que vous voulez faire avec le français"] },
+  { fr: "Parlez d'un film, d'un livre ou d'une série que vous aimez.", en: "Talk about a film, book or series you like.", points: ["l'histoire", "les personnages", "pourquoi vous le recommandez"] },
+  { fr: "Quel est votre sport ou votre hobby préféré ?", en: "What is your favourite sport or hobby?", points: ["depuis quand", "où et avec qui", "pourquoi vous l'aimez"] },
+  { fr: "Décrivez votre maison ou votre appartement.", en: "Describe your home.", points: ["les pièces", "votre pièce préférée", "ce que vous voudriez changer"] },
+  { fr: "Que feriez-vous si vous gagniez à la loterie ?", en: "What would you do if you won the lottery?", points: ["vos achats", "vos voyages", "ce que vous donneriez aux autres"] },
+  { fr: "Parlez d'une personne qui vous inspire.", en: "Talk about someone who inspires you.", points: ["qui c'est", "ce qu'elle a fait", "ce que vous avez appris d'elle"] },
+  { fr: "Comment imaginez-vous votre vie dans dix ans ?", en: "How do you imagine your life in ten years?", points: ["votre travail", "où vous habitez", "votre famille"] },
+  { fr: "Parlez de la météo et de votre saison préférée.", en: "Talk about the weather and your favourite season.", points: ["le temps qu'il fait", "ce que vous portez", "vos activités"] },
+  { fr: "Racontez un souvenir d'enfance.", en: "Tell a childhood memory.", points: ["où vous étiez", "qui était là", "ce qui s'est passé"] },
+  { fr: "Les réseaux sociaux : pour ou contre ?", en: "Social media: for or against?", points: ["les avantages", "les dangers", "votre opinion"] },
+];
+
+function randomTopic(exclude?: Topic | null): Topic {
+  const pool = TOPICS.filter((t) => t !== exclude);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// AI Speaking: either read a French sentence aloud, or speak freely on a
+// random topic; record yourself and receive scores plus fixes from the AI.
 export function Pronunciation() {
+  const [mode, setMode] = useState<Mode>("read");
+  const [mono, setMono] = useState<Topic | null>(null);
   const [level, setLevel] = useState<AiHubLevel>("A2");
   const [topic, setTopic] = useState("");
   const [phrase, setPhrase] = useState<PronunciationPhrase | null>(null);
@@ -102,7 +134,7 @@ export function Pronunciation() {
       recorderRef.current = recorder;
       recorder.start();
       setRec("recording");
-      stopTimerRef.current = setTimeout(stopRecording, MAX_RECORD_MS);
+      stopTimerRef.current = setTimeout(stopRecording, mode === "monologue" ? MAX_MONOLOGUE_MS : MAX_RECORD_MS);
     } catch {
       setError("Couldn't reach your microphone. Check your browser's permission and try again.");
     }
@@ -113,14 +145,33 @@ export function Pronunciation() {
     if (recorderRef.current?.state === "recording") recorderRef.current.stop();
   }
 
+  function chooseMode(next: Mode) {
+    if (next === mode || rec === "recording" || rec === "submitting") return;
+    setMode(next);
+    setError(null);
+    setResult(null);
+    resetRecording();
+    if (next === "monologue" && !mono) setMono(randomTopic());
+  }
+
+  function shuffleTopic() {
+    setResult(null);
+    setError(null);
+    resetRecording();
+    setMono(randomTopic(mono));
+  }
+
   async function submit() {
-    if (!blobRef.current || !phrase) return;
+    const target = mode === "monologue" ? mono?.fr : phrase?.phrase;
+    if (!blobRef.current || !target) return;
     setRec("submitting");
     setError(null);
     try {
       const form = new FormData();
       form.append("audio", blobRef.current, "recording.webm");
-      form.append("phrase", phrase.phrase);
+      form.append("phrase", target);
+      form.append("mode", mode);
+      form.append("level", level);
       const attempt = await aiFetch<PronunciationAttempt>("/api/ai-hub/pronunciation/evaluate", { method: "POST", body: form });
       setResult(attempt);
       setHistory((h) => [attempt, ...h].slice(0, 20));
@@ -133,18 +184,86 @@ export function Pronunciation() {
 
   const ev = result?.evaluation;
 
+  const recorder = (
+    <div className={styles.rec}>
+      {rec === "idle" && (
+        <button type="button" className={`${styles.btn} ${styles.btnRed}`} onClick={startRecording}>
+          ● Record
+        </button>
+      )}
+      {rec === "recording" && (
+        <>
+          <span className={styles.recDot} aria-hidden="true" />
+          <button type="button" className={styles.btn} onClick={stopRecording}>
+            ■ Stop
+          </button>
+        </>
+      )}
+      {(rec === "recorded" || rec === "submitting") && (
+        <>
+          {audioUrl && <audio src={audioUrl} controls style={{ height: 36 }} />}
+          <button type="button" className={styles.btn} onClick={submit} disabled={rec === "submitting" || Boolean(result)}>
+            {rec === "submitting" ? "Listening…" : "Get feedback"}
+          </button>
+          <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={resetRecording} disabled={rec === "submitting"}>
+            Re-record
+          </button>
+        </>
+      )}
+    </div>
+  );
+
+
   return (
     <div className={styles.narrow}>
       <div className={styles.head}>
-        <small>PRONUNCIATION</small>
+        <small>SPEAKING</small>
         <h1>
           Say it out loud.
           <br />
           <em>Hear what to fix.</em>
         </h1>
-        <p>Get a sentence at your level, listen, record yourself, and the AI listens to your actual sounds — not just your words.</p>
+        <p>Read a sentence at your level, or talk freely on a random topic. The AI listens to your actual sounds — not just your words.</p>
       </div>
 
+      <div className={styles.row} style={{ marginBottom: "1rem" }}>
+        <button type="button" className={`${styles.btn} ${mode === "read" ? "" : styles.btnGhost}`} onClick={() => chooseMode("read")}>
+          Read &amp; speak
+        </button>
+        <button type="button" className={`${styles.btn} ${mode === "monologue" ? "" : styles.btnGhost}`} onClick={() => chooseMode("monologue")}>
+          Speak as monologue
+        </button>
+      </div>
+
+      {mode === "monologue" ? (
+        <section className={styles.card}>
+          <div className={styles.row} style={{ alignItems: "flex-end" }}>
+            <label className={styles.field} style={{ width: 110 }}>
+              Level
+              <select className={styles.select} value={level} onChange={(e) => chooseLevel(e.target.value as AiHubLevel)}>
+                {AI_HUB_LEVELS.map((l) => (
+                  <option key={l}>{l}</option>
+                ))}
+              </select>
+            </label>
+            <button type="button" className={styles.btn} onClick={mono ? shuffleTopic : () => setMono(randomTopic())} disabled={rec === "recording" || rec === "submitting"}>
+              {mono ? "🎲 Another topic" : "🎲 Give me a topic"}
+            </button>
+          </div>
+          {mono && (
+            <div style={{ marginTop: "1.4rem" }}>
+              <p className={styles.phrase} style={{ lineHeight: 1.7 }}>
+                {mono.fr} Parlez pendant une minute environ, sans vous arrêter : {mono.points.join(", ")}.
+              </p>
+              <p className={styles.phraseEn}>
+                {mono.en} Speak for about a minute without stopping (up to 2 minutes).
+              </p>
+              {recorder}
+            </div>
+          )}
+          {error && <p className={styles.error}>{error}</p>}
+        </section>
+      ) : (
       <section className={styles.card}>
         <div className={styles.row} style={{ alignItems: "flex-end" }}>
           <label className={styles.field} style={{ width: 110 }}>
@@ -178,36 +297,12 @@ export function Pronunciation() {
               </button>
             </div>
 
-            <div className={styles.rec}>
-              {rec === "idle" && (
-                <button type="button" className={`${styles.btn} ${styles.btnRed}`} onClick={startRecording}>
-                  ● Record
-                </button>
-              )}
-              {rec === "recording" && (
-                <>
-                  <span className={styles.recDot} aria-hidden="true" />
-                  <button type="button" className={styles.btn} onClick={stopRecording}>
-                    ■ Stop
-                  </button>
-                </>
-              )}
-              {(rec === "recorded" || rec === "submitting") && (
-                <>
-                  {audioUrl && <audio src={audioUrl} controls style={{ height: 36 }} />}
-                  <button type="button" className={styles.btn} onClick={submit} disabled={rec === "submitting" || Boolean(result)}>
-                    {rec === "submitting" ? "Listening…" : "Get feedback"}
-                  </button>
-                  <button type="button" className={`${styles.btn} ${styles.btnGhost}`} onClick={resetRecording} disabled={rec === "submitting"}>
-                    Re-record
-                  </button>
-                </>
-              )}
-            </div>
+            {recorder}
           </div>
         )}
         {error && <p className={styles.error}>{error}</p>}
       </section>
+      )}
 
       {ev && (
         <section className={styles.card}>

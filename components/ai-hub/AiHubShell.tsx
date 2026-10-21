@@ -9,7 +9,7 @@ import styles from "./AiHubApp.module.css";
 
 const NAV = [
   { label: "Aujourd'hui", href: "/kiosque/app" },
-  { label: "Pronunciation", href: "/kiosque/app/pronunciation" },
+  { label: "Speaking", href: "/kiosque/app/pronunciation" },
   { label: "Translate & Library", href: "/kiosque/app/library" },
   { label: "Daily Quiz", href: "/kiosque/app/quiz" },
   { label: "Daily News", href: "/kiosque/app/news" },

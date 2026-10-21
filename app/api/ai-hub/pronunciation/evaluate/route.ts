@@ -2,7 +2,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { authErrorResponse } from "@/lib/auth";
 import { aiLimit, requireAiMember } from "@/lib/aiHub";
 import { AiRateLimitError, evaluatePronunciation } from "@/lib/aiHubAi";
-import type { PronunciationAttempt } from "@/lib/aiHubData";
+import { AI_HUB_LEVELS, type AiHubLevel, type PronunciationAttempt } from "@/lib/aiHubData";
 
 const MAX_AUDIO_BYTES = 6 * 1024 * 1024;
 
@@ -28,14 +28,17 @@ export async function POST(req: Request) {
       return new Response("Missing audio or phrase.", { status: 400 });
     }
     if (audio.size === 0 || audio.size > MAX_AUDIO_BYTES) {
-      return new Response("The recording is empty or too long — keep it to one sentence.", { status: 400 });
+      return new Response("The recording is empty or too long — keep it under two minutes.", { status: 400 });
     }
 
-    const evaluation = await evaluatePronunciation(phrase.trim().slice(0, 300), Buffer.from(await audio.arrayBuffer()), audio.type || "audio/webm");
+    const monologue = form.get("mode") === "monologue";
+    const levelField = form.get("level");
+    const level = (AI_HUB_LEVELS as readonly string[]).includes(String(levelField)) ? (levelField as AiHubLevel) : undefined;
+    const evaluation = await evaluatePronunciation(phrase.trim().slice(0, 300), Buffer.from(await audio.arrayBuffer()), audio.type || "audio/webm", level, monologue);
 
     const attempt: PronunciationAttempt = {
       id: `pron-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      phrase: phrase.trim().slice(0, 300),
+      phrase: (monologue ? "Monologue: " : "") + phrase.trim().slice(0, 300),
       evaluation,
       createdAt: new Date().toISOString(),
     };

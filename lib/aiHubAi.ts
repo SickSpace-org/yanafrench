@@ -111,20 +111,35 @@ const pronunciationSchema = z.object({
   improve: z.string().describe("The single most useful thing to practise next"),
 });
 
-export async function evaluatePronunciation(phrase: string, audio: Buffer, mediaType: string): Promise<PronunciationEvaluation> {
+export async function evaluatePronunciation(
+  phrase: string,
+  audio: Buffer,
+  mediaType: string,
+  level?: AiHubLevel,
+  monologue = false
+): Promise<PronunciationEvaluation> {
   return guarded(async () => {
     const { output } = await generateText({
       model: google(MODEL),
       providerOptions: LOW_EFFORT,
       system:
-        "You are a kind, exacting French pronunciation coach. Listen to the audio and judge the actual sounds " +
+        "You are a kind, exacting French speaking coach. Listen to the audio and judge the actual sounds " +
         "(vowels, nasals, the French r, liaisons, silent letters, stress), not just whether the words were right. " +
-        "Compare against the target sentence. Score every number from 0 to 10 (NOT out of 100). Write feedback in English; keep French examples in French." + ACCENTS,
+        (monologue
+          ? "The student is speaking freely on a topic, so there is no target text: judge pronunciation, fluency and flow, and whether they stayed on topic. " +
+            "Accuracy means clarity and correctness of sounds; problemWords are words they actually said that were mispronounced. "
+          : "Compare against the target sentence. ") +
+        "Score every number from 0 to 10 (NOT out of 100). Write feedback in English; keep French examples in French." + ACCENTS,
       messages: [
         {
           role: "user",
           content: [
-            { type: "text", text: `The student was asked to read this sentence aloud: "${phrase}"\n\nListen to their recording and evaluate their pronunciation.` },
+            {
+              type: "text",
+              text: monologue
+                ? `The student (level ${level ?? "A2"}) was asked to speak in French for about a minute on this topic: "${phrase}"\n\nListen to their recording and evaluate their speaking.`
+                : `The student was asked to read this sentence aloud: "${phrase}"\n\nListen to their recording and evaluate their pronunciation.`,
+            },
             { type: "file", mediaType, data: audio },
           ],
         },

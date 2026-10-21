@@ -110,7 +110,7 @@ export function KiosqueHome({ firstName }: { firstName: string }) {
             go={quizDone ? "Review answers" : "Start the quiz"}
           />
           <Todo href={NEWS_HREF} title="Read today's news" text="One article at your level, then check the glossary." go="Open the news" />
-          <Todo href="/kiosque/app/pronunciation" title="Practise pronunciation" text="Say one sentence out loud and get feedback." go="Start speaking" />
+          <Todo href="/kiosque/app/pronunciation" title="Practise speaking" text="Read a sentence or talk on a topic, and get feedback." go="Start speaking" />
           <Todo
             href="/kiosque/app/library?tab=translate"
             title="Translate & save words"

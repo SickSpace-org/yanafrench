@@ -6,7 +6,7 @@ import { AI_HUB_PRICE_CAD, aiHubJoinWhatsappUrl } from "@/lib/aiHubData";
 import styles from "./AiHubLanding.module.css";
 
 const FEATURES = [
-  { n: "01", title: "AI Pronunciation", text: "Hear a sentence, say it out loud, and get feedback on your real sounds — the French r, nasals, liaisons — with word-by-word fixes." },
+  { n: "01", title: "AI Speaking", text: "Hear a sentence, say it out loud, and get feedback on your real sounds — the French r, nasals, liaisons — with word-by-word fixes." },
   { n: "02", title: "AI Translate & Library", text: "Translate French ⇄ English with grammar notes and examples, then save words to a personal library you can search any time." },
   { n: "03", title: "AI Daily Quiz", text: "A fresh quiz written for your level every day. Instant marking, explanations, and a streak to keep you coming back." },
   { n: "04", title: "AI Daily News", text: "Today's stories in French at A2, B1 and B2, each with a glossary and a read-aloud button — real French for real habits." },
