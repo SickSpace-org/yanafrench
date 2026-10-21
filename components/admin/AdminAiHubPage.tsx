@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAdminCollection } from "@/lib/useAdminCollection";
-import { AI_HUB_PRICE_LABEL, type AdminAiHubMember, type AiHubAccess } from "@/lib/aiHubData";
+import { AI_HUB_PRICE_LABEL, type AdminAiHubMember, type AiHubAccess, type AiHubTopic } from "@/lib/aiHubData";
 import { AdminShell } from "../AdminShell";
 import styles from "./AdminLessonsManager.module.css";
 import leadStyles from "./AdminLeadsPanel.module.css";
@@ -109,7 +109,109 @@ export function AdminAiHubPage() {
           </>
         )}
       </div>
+
+      <TopicsPanel />
     </AdminShell>
+  );
+}
+
+// Speaking topics: students get one of these (or a built-in one) at random
+// when they press "Give me a topic" in Speak as monologue.
+function TopicsPanel() {
+  const { items: topics, loaded, remove, refresh } = useAdminCollection<AiHubTopic>("/api/ai-hub/topics");
+  const [topic, setTopic] = useState("");
+  const [points, setPoints] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function add(e: React.FormEvent) {
+    e.preventDefault();
+    if (!topic.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/ai-hub/topics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic, points }),
+      });
+      if (!res.ok) {
+        setError((await res.text().catch(() => "")) || "Couldn't save the topic.");
+        return;
+      }
+      setTopic("");
+      setPoints("");
+      refresh();
+    } catch {
+      setError("Couldn't save the topic.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const field = { padding: ".6rem .8rem", font: "inherit", borderRadius: 8, border: "1px solid #ccc" } as const;
+
+  return (
+    <div className={styles.tabPanel}>
+      <h2 style={{ fontSize: "1.1rem", margin: ".4rem 0 0" }}>Speaking topics</h2>
+      <p className={styles.tabHint}>
+        Add topics for the <strong>Speak as monologue</strong> practice. When a student presses <em>Give me a topic</em> they get one of yours (or one of the built-in
+        topics) at random. Write them in French, or in English if you want the student to work out the French.
+      </p>
+      <form onSubmit={add} style={{ display: "grid", gap: ".6rem", maxWidth: 640 }}>
+        <textarea
+          value={topic}
+          onChange={(e) => setTopic(e.target.value)}
+          maxLength={300}
+          rows={3}
+          placeholder="e.g. Faut-il interdire les téléphones à l'école ? Défendez votre opinion."
+          style={field}
+        />
+        <input value={points} onChange={(e) => setPoints(e.target.value)} maxLength={300} placeholder="Points to cover, separated by commas (optional)" style={field} />
+        <div>
+          <button type="submit" className={leadStyles.action} disabled={saving || !topic.trim()}>
+            {saving ? "Adding…" : "Add topic"}
+          </button>
+        </div>
+        {error && <p className={leadStyles.confirmError}>{error}</p>}
+      </form>
+
+      {!loaded ? (
+        <p className={styles.tabHint}>Loading…</p>
+      ) : topics.length === 0 ? (
+        <div className={leadStyles.empty}>No topics added yet — students are getting the built-in ones.</div>
+      ) : (
+        <table className={leadStyles.table}>
+          <thead>
+            <tr>
+              <th>Your topics ({topics.length})</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {topics.map((t) => (
+              <tr key={t.id}>
+                <td>
+                  <strong>{t.topic}</strong>
+                  {t.points && <div className={leadStyles.muted}>{t.points}</div>}
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className={leadStyles.remove}
+                    onClick={() => {
+                      if (window.confirm("Remove this topic?")) remove(t.id);
+                    }}
+                  >
+                    Remove
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
   );
 }
 

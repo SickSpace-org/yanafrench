@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   AI_HUB_LEVELS,
   type AiHubLevel,
+  type AiHubTopic,
   type PronunciationAttempt,
   type PronunciationPhrase,
 } from "@/lib/aiHubData";
@@ -33,9 +34,15 @@ const TOPICS: Topic[] = [
   { fr: "Les voyages forment-ils mieux la jeunesse que l'école ? Comparez les deux.", en: "Does travel teach young people better than school? Compare the two.", points: ["ce qu'on apprend en voyageant", "ce qu'on apprend à l'école", "votre conclusion"] },
 ];
 
-function randomTopic(exclude?: Topic | null): Topic {
-  const pool = TOPICS.filter((t) => t !== exclude);
-  return pool[Math.floor(Math.random() * pool.length)];
+// Topics Yana added in the admin portal, as monologue prompts.
+function fromAdmin(t: AiHubTopic): Topic {
+  return { fr: t.topic, en: "", points: t.points.split(",").map((p) => p.trim()).filter(Boolean) };
+}
+
+function randomTopic(pool: Topic[], exclude?: Topic | null): Topic {
+  const choices = pool.filter((t) => t.fr !== exclude?.fr);
+  const from = choices.length ? choices : pool;
+  return from[Math.floor(Math.random() * from.length)];
 }
 
 // AI Speaking: either read a French paragraph aloud, or speak freely on a
@@ -43,6 +50,7 @@ function randomTopic(exclude?: Topic | null): Topic {
 export function Pronunciation() {
   const [mode, setMode] = useState<Mode>("read");
   const [mono, setMono] = useState<Topic | null>(null);
+  const [adminTopics, setAdminTopics] = useState<Topic[]>([]);
   const [level, setLevel] = useState<AiHubLevel>("A2");
   const [topic, setTopic] = useState("");
   const [phrase, setPhrase] = useState<PronunciationPhrase | null>(null);
@@ -67,6 +75,7 @@ export function Pronunciation() {
       // storage unavailable — keep the default level
     }
     aiFetch<PronunciationAttempt[]>("/api/ai-hub/pronunciation/history").then(setHistory).catch(() => {});
+    aiFetch<AiHubTopic[]>("/api/ai-hub/topics").then((t) => setAdminTopics(t.map(fromAdmin))).catch(() => {});
     return () => {
       if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
       streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -139,20 +148,22 @@ export function Pronunciation() {
     if (recorderRef.current?.state === "recording") recorderRef.current.stop();
   }
 
+  const allTopics = [...adminTopics, ...TOPICS];
+
   function chooseMode(next: Mode) {
     if (next === mode || rec === "recording" || rec === "submitting") return;
     setMode(next);
     setError(null);
     setResult(null);
     resetRecording();
-    if (next === "monologue" && !mono) setMono(randomTopic());
+    if (next === "monologue" && !mono) setMono(randomTopic(allTopics));
   }
 
   function shuffleTopic() {
     setResult(null);
     setError(null);
     resetRecording();
-    setMono(randomTopic(mono));
+    setMono(randomTopic(allTopics, mono));
   }
 
   async function submit() {
@@ -240,17 +251,17 @@ export function Pronunciation() {
                 ))}
               </select>
             </label>
-            <button type="button" className={styles.btn} onClick={mono ? shuffleTopic : () => setMono(randomTopic())} disabled={rec === "recording" || rec === "submitting"}>
+            <button type="button" className={styles.btn} onClick={mono ? shuffleTopic : () => setMono(randomTopic(allTopics))} disabled={rec === "recording" || rec === "submitting"}>
               {mono ? "🎲 Another topic" : "🎲 Give me a topic"}
             </button>
           </div>
           {mono && (
             <div style={{ marginTop: "1.4rem" }}>
               <p className={styles.phrase} style={{ lineHeight: 1.7 }}>
-                {mono.fr} Parlez pendant une minute environ, sans vous arrêter : {mono.points.join(", ")}.
+                {mono.fr} Parlez pendant une minute environ, sans vous arrêter{mono.points.length ? ` : ${mono.points.join(", ")}` : ""}.
               </p>
               <p className={styles.phraseEn}>
-                {mono.en} Speak for about a minute without stopping (up to 2 minutes).
+                {mono.en && `${mono.en} `}Speak for about a minute without stopping (up to 2 minutes).
               </p>
               {recorder}
             </div>
