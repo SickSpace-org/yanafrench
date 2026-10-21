@@ -19,23 +19,8 @@ const MAX_MONOLOGUE_MS = 120_000;
 
 type Topic = { fr: string; en: string; points: string[] };
 
-// Random prompts for the monologue mode; the points are things to cover.
+// Challenging prompts for the monologue mode; the points are things to cover.
 const TOPICS: Topic[] = [
-  { fr: "Décrivez votre journée idéale.", en: "Describe your ideal day.", points: ["le matin", "ce que vous mangez", "avec qui vous êtes", "le soir"] },
-  { fr: "Parlez de votre ville ou de votre village.", en: "Talk about your town or village.", points: ["où c'est", "ce que vous aimez", "ce qui manque", "un endroit à visiter"] },
-  { fr: "Racontez vos dernières vacances.", en: "Tell us about your last holiday.", points: ["où vous êtes allé(e)", "ce que vous avez fait", "un bon souvenir", "où partir ensuite"] },
-  { fr: "Parlez de votre famille et de vos amis.", en: "Talk about your family and friends.", points: ["qui ils sont", "ce qu'ils font", "ce que vous faites ensemble"] },
-  { fr: "Décrivez votre plat préféré.", en: "Describe your favourite dish.", points: ["les ingrédients", "comment on le prépare", "quand vous le mangez"] },
-  { fr: "Parlez de votre travail ou de vos études.", en: "Talk about your work or studies.", points: ["ce que vous faites", "ce que vous aimez", "vos projets"] },
-  { fr: "Pourquoi apprenez-vous le français ?", en: "Why are you learning French?", points: ["votre motivation", "ce qui est difficile", "ce que vous voulez faire avec le français"] },
-  { fr: "Parlez d'un film, d'un livre ou d'une série que vous aimez.", en: "Talk about a film, book or series you like.", points: ["l'histoire", "les personnages", "pourquoi vous le recommandez"] },
-  { fr: "Quel est votre sport ou votre hobby préféré ?", en: "What is your favourite sport or hobby?", points: ["depuis quand", "où et avec qui", "pourquoi vous l'aimez"] },
-  { fr: "Décrivez votre maison ou votre appartement.", en: "Describe your home.", points: ["les pièces", "votre pièce préférée", "ce que vous voudriez changer"] },
-  { fr: "Que feriez-vous si vous gagniez à la loterie ?", en: "What would you do if you won the lottery?", points: ["vos achats", "vos voyages", "ce que vous donneriez aux autres"] },
-  { fr: "Parlez d'une personne qui vous inspire.", en: "Talk about someone who inspires you.", points: ["qui c'est", "ce qu'elle a fait", "ce que vous avez appris d'elle"] },
-  { fr: "Comment imaginez-vous votre vie dans dix ans ?", en: "How do you imagine your life in ten years?", points: ["votre travail", "où vous habitez", "votre famille"] },
-  { fr: "Parlez de la météo et de votre saison préférée.", en: "Talk about the weather and your favourite season.", points: ["le temps qu'il fait", "ce que vous portez", "vos activités"] },
-  { fr: "Racontez un souvenir d'enfance.", en: "Tell a childhood memory.", points: ["où vous étiez", "qui était là", "ce qui s'est passé"] },
   { fr: "Faut-il interdire les téléphones portables à l'école ? Défendez votre opinion.", en: "Should phones be banned in schools? Defend your opinion.", points: ["votre position", "deux arguments", "un contre-argument", "votre conclusion"] },
   { fr: "Le télétravail est-il l'avenir du travail ?", en: "Is remote work the future of work?", points: ["les avantages", "les inconvénients", "l'impact sur la vie privée", "votre avis"] },
   { fr: "Si vous pouviez changer une loi dans votre pays, laquelle choisiriez-vous et pourquoi ?", en: "If you could change one law in your country, which and why?", points: ["la situation actuelle", "le changement", "les conséquences possibles"] },
@@ -46,7 +31,6 @@ const TOPICS: Topic[] = [
   { fr: "Le changement climatique : que peut faire chacun de nous, et que doivent faire les gouvernements ?", en: "Climate change: what can individuals do, and what must governments do?", points: ["les gestes individuels", "le rôle de l'État", "les obstacles", "votre espoir ou votre crainte"] },
   { fr: "Racontez une décision difficile que vous avez prise et ce que vous feriez autrement aujourd'hui.", en: "Tell about a hard decision and what you would do differently today.", points: ["le contexte", "les options", "le résultat", "ce que vous avez appris"] },
   { fr: "Les voyages forment-ils mieux la jeunesse que l'école ? Comparez les deux.", en: "Does travel teach young people better than school? Compare the two.", points: ["ce qu'on apprend en voyageant", "ce qu'on apprend à l'école", "votre conclusion"] },
-  { fr: "Les réseaux sociaux : pour ou contre ?", en: "Social media: for or against?", points: ["les avantages", "les dangers", "votre opinion"] },
 ];
 
 function randomTopic(exclude?: Topic | null): Topic {
