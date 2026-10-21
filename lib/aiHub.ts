@@ -27,14 +27,42 @@ export type AiHubSession =
   | { kind: "blocked"; reason: Exclude<AiHubAccess, "active">; viewer: AiHubIdentity; name: string }
   | { kind: "none" };
 
-export async function getAiHubSession(): Promise<AiHubSession> {
-  const admin = await getViewer().catch(() => null);
-  if (admin?.role === "admin") {
-    return { kind: "active", viewer: { userId: `admin-${admin.userId}` }, isAdmin: true, daysLeft: 0, name: "Admin preview" };
+const ADMIN_SESSION: Omit<Extract<AiHubSession, { kind: "active" }>, "viewer"> = { kind: "active", isAdmin: true, daysLeft: 0, name: "Admin" };
+
+// The auth user id behind an admin email, or null if that email isn't an
+// admin's. Looked up live from user_roles, so every current admin works and
+// a newly added (or removed) one is picked up with no change here.
+export async function findAdminUserIdByEmail(email: string): Promise<string | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+  const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
+  for (const { user_id } of roles ?? []) {
+    const { data } = await supabase.auth.admin.getUserById(user_id as string);
+    if (data.user?.email?.toLowerCase() === email) return user_id as string;
   }
+  return null;
+}
+
+async function isAdminUser(userId: string): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return false;
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
+  return data?.role === "admin";
+}
+
+export async function getAiHubSession(): Promise<AiHubSession> {
+  // An admin signed in to the admin panel can open Le Kiosque directly.
+  const admin = await getViewer().catch(() => null);
+  if (admin?.role === "admin") return { ...ADMIN_SESSION, viewer: { userId: `admin-${admin.userId}` } };
 
   const memberId = await readMemberCookie();
   if (!memberId) return { kind: "none" };
+
+  // An admin who entered their email on /kiosque/enter. Re-checked every
+  // time, so removing someone's admin role closes this door too.
+  if (memberId.startsWith("admin-")) {
+    return (await isAdminUser(memberId.slice("admin-".length))) ? { ...ADMIN_SESSION, viewer: { userId: memberId } } : { kind: "none" };
+  }
 
   const supabase = getSupabaseAdmin();
   if (!supabase) return { kind: "none" };

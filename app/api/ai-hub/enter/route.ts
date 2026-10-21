@@ -1,9 +1,11 @@
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { checkRateLimit, clientIp, rateLimitResponse } from "@/lib/rateLimit";
 import { setMemberCookie } from "@/lib/aiHubSession";
+import { findAdminUserIdByEmail } from "@/lib/aiHub";
 import { accessFor, AI_HUB_MEMBER_COLUMNS, type AiHubMemberRow } from "@/lib/aiHubData";
 
-// POST { email }: the "enter with your email" step. If that email belongs to
+// POST { email }: the "enter with your email" step. An admin's email always
+// works. Otherwise, if that email belongs to
 // a member whose payment Yana has confirmed (and whose month hasn't run out),
 // a signed cookie is set and they can open Le Kiosque. Otherwise they're told
 // why — still waiting on payment, expired, paused, or never signed up.
@@ -16,6 +18,13 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase().slice(0, 200) : "";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return new Response("Enter a valid email address.", { status: 400 });
+
+  // Admins (anyone with the admin role) go straight in with their own email.
+  const adminId = await findAdminUserIdByEmail(email).catch(() => null);
+  if (adminId) {
+    await setMemberCookie(`admin-${adminId}`);
+    return Response.json({ ok: true });
+  }
 
   const { data, error } = await supabase.from("ai_hub_members").select(AI_HUB_MEMBER_COLUMNS).eq("email", email).maybeSingle();
   if (error) {
