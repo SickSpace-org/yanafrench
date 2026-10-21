@@ -14,6 +14,7 @@ export function Footer() {
           <Link href="/delf">DELF</Link>
           <Link href="/find-your-batch">Find your batch</Link>
           <Link href="/le-hub">Le Hub</Link>
+          <Link href="/kiosque">Le Kiosque</Link>
         </div>
         <div className="footer__col">
           <span className="footer__heading">Learn</span>
