@@ -36,6 +36,16 @@ const TOPICS: Topic[] = [
   { fr: "Comment imaginez-vous votre vie dans dix ans ?", en: "How do you imagine your life in ten years?", points: ["votre travail", "où vous habitez", "votre famille"] },
   { fr: "Parlez de la météo et de votre saison préférée.", en: "Talk about the weather and your favourite season.", points: ["le temps qu'il fait", "ce que vous portez", "vos activités"] },
   { fr: "Racontez un souvenir d'enfance.", en: "Tell a childhood memory.", points: ["où vous étiez", "qui était là", "ce qui s'est passé"] },
+  { fr: "Faut-il interdire les téléphones portables à l'école ? Défendez votre opinion.", en: "Should phones be banned in schools? Defend your opinion.", points: ["votre position", "deux arguments", "un contre-argument", "votre conclusion"] },
+  { fr: "Le télétravail est-il l'avenir du travail ?", en: "Is remote work the future of work?", points: ["les avantages", "les inconvénients", "l'impact sur la vie privée", "votre avis"] },
+  { fr: "Si vous pouviez changer une loi dans votre pays, laquelle choisiriez-vous et pourquoi ?", en: "If you could change one law in your country, which and why?", points: ["la situation actuelle", "le changement", "les conséquences possibles"] },
+  { fr: "L'intelligence artificielle : une chance ou une menace pour l'emploi ?", en: "Artificial intelligence: an opportunity or a threat to jobs?", points: ["les métiers concernés", "les opportunités", "les risques", "ce qu'il faudrait faire"] },
+  { fr: "Peut-on être heureux sans argent ?", en: "Can you be happy without money?", points: ["ce qui rend heureux", "le rôle de l'argent", "un exemple personnel"] },
+  { fr: "Vivre à l'étranger : une chance ou un sacrifice ?", en: "Living abroad: an opportunity or a sacrifice?", points: ["ce qu'on gagne", "ce qu'on perd", "l'intégration", "votre expérience ou votre rêve"] },
+  { fr: "Que feriez-vous si vous étiez maire de votre ville pendant un an ?", en: "What would you do as mayor of your town for a year?", points: ["les problèmes à résoudre", "vos trois mesures", "le budget", "les critiques possibles"] },
+  { fr: "Le changement climatique : que peut faire chacun de nous, et que doivent faire les gouvernements ?", en: "Climate change: what can individuals do, and what must governments do?", points: ["les gestes individuels", "le rôle de l'État", "les obstacles", "votre espoir ou votre crainte"] },
+  { fr: "Racontez une décision difficile que vous avez prise et ce que vous feriez autrement aujourd'hui.", en: "Tell about a hard decision and what you would do differently today.", points: ["le contexte", "les options", "le résultat", "ce que vous avez appris"] },
+  { fr: "Les voyages forment-ils mieux la jeunesse que l'école ? Comparez les deux.", en: "Does travel teach young people better than school? Compare the two.", points: ["ce qu'on apprend en voyageant", "ce qu'on apprend à l'école", "votre conclusion"] },
   { fr: "Les réseaux sociaux : pour ou contre ?", en: "Social media: for or against?", points: ["les avantages", "les dangers", "votre opinion"] },
 ];
 
