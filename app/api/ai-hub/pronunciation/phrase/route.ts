@@ -3,7 +3,7 @@ import { aiLimit, requireAiMember } from "@/lib/aiHub";
 import { AiRateLimitError, generatePhrase } from "@/lib/aiHubAi";
 import { isAiHubLevel } from "@/lib/aiHubData";
 
-// POST { level, topic? }: a fresh French sentence to practise, with its
+// POST { level, topic? }: a fresh French paragraph to read aloud, with its
 // translation and a tip on the trickiest sound.
 export async function POST(req: Request) {
   let userId: string;

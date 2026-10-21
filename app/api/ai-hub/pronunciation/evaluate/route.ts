@@ -34,11 +34,11 @@ export async function POST(req: Request) {
     const monologue = form.get("mode") === "monologue";
     const levelField = form.get("level");
     const level = (AI_HUB_LEVELS as readonly string[]).includes(String(levelField)) ? (levelField as AiHubLevel) : undefined;
-    const evaluation = await evaluatePronunciation(phrase.trim().slice(0, 300), Buffer.from(await audio.arrayBuffer()), audio.type || "audio/webm", level, monologue);
+    const evaluation = await evaluatePronunciation(phrase.trim().slice(0, 1200), Buffer.from(await audio.arrayBuffer()), audio.type || "audio/webm", level, monologue);
 
     const attempt: PronunciationAttempt = {
       id: `pron-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      phrase: (monologue ? "Monologue: " : "") + phrase.trim().slice(0, 300),
+      phrase: (monologue ? "Monologue: " : "") + phrase.trim().slice(0, 1200),
       evaluation,
       createdAt: new Date().toISOString(),
     };

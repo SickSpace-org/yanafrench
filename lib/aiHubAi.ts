@@ -70,8 +70,8 @@ export async function translateText(text: string): Promise<TranslationResult> {
 
 // ── Pronunciation ────────────────────────────────────────────────────────
 const phraseSchema = z.object({
-  phrase: z.string().describe("One French sentence, 6–14 words, natural and useful in real life"),
-  translation: z.string().describe("English translation"),
+  phrase: z.string().describe("A French paragraph of 4–6 connected sentences (60–90 words) that reads like natural speech, useful in real life"),
+  translation: z.string().describe("English translation of the whole paragraph"),
   tip: z.string().describe("One short English tip on the trickiest sound in the sentence (liaison, nasal vowel, silent letter, the French r...)"),
 });
 
@@ -81,9 +81,9 @@ export async function generatePhrase(level: AiHubLevel, topic: string): Promise<
       model: google(MODEL),
       providerOptions: LOW_EFFORT,
       system:
-        "You write short French sentences for pronunciation practice. Pick sentences that exercise real " +
+        "You write short French paragraphs for read-aloud speaking practice. Pick text that exercises real " +
         "pronunciation challenges at the given CEFR level, and vary the vocabulary and topic every time. The tip must only " +
-        "mention words and sounds that actually appear in your sentence, and be one short, concrete sentence." + ACCENTS,
+        "mention words and sounds that actually appear in your paragraph, and be one short, concrete sentence." + ACCENTS,
       prompt: `Level ${level}. ${topic ? `Topic: ${topic}.` : "Choose a fresh everyday topic."} Random seed: ${Math.random().toString(36).slice(2)}`,
       output: Output.object({ schema: phraseSchema }),
     });
@@ -101,7 +101,7 @@ const pronunciationSchema = z.object({
   problemWords: z
     .array(
       z.object({
-        word: z.string().describe("A word from the target sentence that was mispronounced"),
+        word: z.string().describe("A word from the target text that was mispronounced"),
         issue: z.string().describe("What was off, in plain English"),
         howToSay: z.string().describe("A simple respelling or tip to fix it, e.g. 'roo' not 'rue' with a rounded 'u'"),
       })
@@ -128,7 +128,7 @@ export async function evaluatePronunciation(
         (monologue
           ? "The student is speaking freely on a topic, so there is no target text: judge pronunciation, fluency and flow, and whether they stayed on topic. " +
             "Accuracy means clarity and correctness of sounds; problemWords are words they actually said that were mispronounced. "
-          : "Compare against the target sentence. ") +
+          : "Compare against the target text. ") +
         "Score every number from 0 to 10 (NOT out of 100). Write feedback in English; keep French examples in French." + ACCENTS,
       messages: [
         {
@@ -138,7 +138,7 @@ export async function evaluatePronunciation(
               type: "text",
               text: monologue
                 ? `The student (level ${level ?? "A2"}) was asked to speak in French for about a minute on this topic: "${phrase}"\n\nListen to their recording and evaluate their speaking.`
-                : `The student was asked to read this sentence aloud: "${phrase}"\n\nListen to their recording and evaluate their pronunciation.`,
+                : `The student was asked to read this text aloud: "${phrase}"\n\nListen to their recording and evaluate their pronunciation.`,
             },
             { type: "file", mediaType, data: audio },
           ],

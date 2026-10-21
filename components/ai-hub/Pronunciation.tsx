@@ -14,7 +14,7 @@ type RecState = "idle" | "recording" | "recorded" | "submitting";
 
 type Mode = "read" | "monologue";
 
-const MAX_RECORD_MS = 30_000;
+const MAX_RECORD_MS = 90_000;
 const MAX_MONOLOGUE_MS = 120_000;
 
 type Topic = { fr: string; en: string; points: string[] };
@@ -44,7 +44,7 @@ function randomTopic(exclude?: Topic | null): Topic {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// AI Speaking: either read a French sentence aloud, or speak freely on a
+// AI Speaking: either read a French paragraph aloud, or speak freely on a
 // random topic; record yourself and receive scores plus fixes from the AI.
 export function Pronunciation() {
   const [mode, setMode] = useState<Mode>("read");
@@ -223,7 +223,7 @@ export function Pronunciation() {
           <br />
           <em>Hear what to fix.</em>
         </h1>
-        <p>Read a sentence at your level, or talk freely on a random topic. The AI listens to your actual sounds — not just your words.</p>
+        <p>Read a paragraph at your level, or talk freely on a random topic. The AI listens to your actual sounds — not just your words.</p>
       </div>
 
       <div className={styles.row} style={{ marginBottom: "1rem" }}>
@@ -279,13 +279,13 @@ export function Pronunciation() {
             <input className={styles.input} value={topic} maxLength={80} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. food, travel, work" />
           </label>
           <button type="button" className={styles.btn} onClick={newPhrase} disabled={loadingPhrase}>
-            {loadingPhrase ? "Thinking…" : phrase ? "New sentence" : "Give me a sentence"}
+            {loadingPhrase ? "Thinking…" : phrase ? "New paragraph" : "Give me a paragraph"}
           </button>
         </div>
 
         {phrase && (
           <div style={{ marginTop: "1.4rem" }}>
-            <p className={styles.phrase}>{phrase.phrase}</p>
+            <p className={styles.phrase} style={{ fontSize: "clamp(1.1rem, 3vw, 1.45rem)", lineHeight: 1.7 }}>{phrase.phrase}</p>
             <p className={styles.phraseEn}>{phrase.translation}</p>
             {phrase.tip && <p className={styles.tip}>Watch out: {phrase.tip}</p>}
             <div className={styles.row}>
@@ -330,7 +330,7 @@ export function Pronunciation() {
           <h2 className={styles.cardTitle}>Recent attempts</h2>
           {history.map((h) => (
             <div key={h.id} className={styles.historyItem}>
-              <span>{h.phrase}</span>
+              <span>{h.phrase.length > 90 ? `${h.phrase.slice(0, 90)}…` : h.phrase}</span>
               <span className={styles.historyScore}>{h.evaluation.overall.toFixed(1)}/10</span>
             </div>
           ))}
