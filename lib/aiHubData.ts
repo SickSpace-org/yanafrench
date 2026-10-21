@@ -155,3 +155,6 @@ export type NewsExtras = {
 
 // `extras` is optional so an edition written before it existed still loads.
 export type NewsEdition = { date: string; articles: NewsArticle[]; extras?: NewsExtras };
+
+// ── Speaking topics (added by the admin) ─────────────────────────────────
+export type AiHubTopic = { id: string; topic: string; points: string; createdAt: string };

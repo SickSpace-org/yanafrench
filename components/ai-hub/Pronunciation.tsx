@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   AI_HUB_LEVELS,
   type AiHubLevel,
+  type AiHubTopic,
   type PronunciationAttempt,
   type PronunciationPhrase,
 } from "@/lib/aiHubData";
@@ -36,12 +37,28 @@ const TOPICS: Topic[] = [
   { fr: "Comment imaginez-vous votre vie dans dix ans ?", en: "How do you imagine your life in ten years?", points: ["votre travail", "où vous habitez", "votre famille"] },
   { fr: "Parlez de la météo et de votre saison préférée.", en: "Talk about the weather and your favourite season.", points: ["le temps qu'il fait", "ce que vous portez", "vos activités"] },
   { fr: "Racontez un souvenir d'enfance.", en: "Tell a childhood memory.", points: ["où vous étiez", "qui était là", "ce qui s'est passé"] },
+  { fr: "Faut-il interdire les téléphones portables à l'école ? Défendez votre opinion.", en: "Should phones be banned in schools? Defend your opinion.", points: ["votre position", "deux arguments", "un contre-argument", "votre conclusion"] },
+  { fr: "Le télétravail est-il l'avenir du travail ?", en: "Is remote work the future of work?", points: ["les avantages", "les inconvénients", "l'impact sur la vie privée", "votre avis"] },
+  { fr: "Si vous pouviez changer une loi dans votre pays, laquelle choisiriez-vous et pourquoi ?", en: "If you could change one law in your country, which and why?", points: ["la situation actuelle", "le changement", "les conséquences possibles"] },
+  { fr: "L'intelligence artificielle : une chance ou une menace pour l'emploi ?", en: "Artificial intelligence: an opportunity or a threat to jobs?", points: ["les métiers concernés", "les opportunités", "les risques", "ce qu'il faudrait faire"] },
+  { fr: "Peut-on être heureux sans argent ?", en: "Can you be happy without money?", points: ["ce qui rend heureux", "le rôle de l'argent", "un exemple personnel"] },
+  { fr: "Vivre à l'étranger : une chance ou un sacrifice ?", en: "Living abroad: an opportunity or a sacrifice?", points: ["ce qu'on gagne", "ce qu'on perd", "l'intégration", "votre expérience ou votre rêve"] },
+  { fr: "Que feriez-vous si vous étiez maire de votre ville pendant un an ?", en: "What would you do as mayor of your town for a year?", points: ["les problèmes à résoudre", "vos trois mesures", "le budget", "les critiques possibles"] },
+  { fr: "Le changement climatique : que peut faire chacun de nous, et que doivent faire les gouvernements ?", en: "Climate change: what can individuals do, and what must governments do?", points: ["les gestes individuels", "le rôle de l'État", "les obstacles", "votre espoir ou votre crainte"] },
+  { fr: "Racontez une décision difficile que vous avez prise et ce que vous feriez autrement aujourd'hui.", en: "Tell about a hard decision and what you would do differently today.", points: ["le contexte", "les options", "le résultat", "ce que vous avez appris"] },
+  { fr: "Les voyages forment-ils mieux la jeunesse que l'école ? Comparez les deux.", en: "Does travel teach young people better than school? Compare the two.", points: ["ce qu'on apprend en voyageant", "ce qu'on apprend à l'école", "votre conclusion"] },
   { fr: "Les réseaux sociaux : pour ou contre ?", en: "Social media: for or against?", points: ["les avantages", "les dangers", "votre opinion"] },
 ];
 
-function randomTopic(exclude?: Topic | null): Topic {
-  const pool = TOPICS.filter((t) => t !== exclude);
-  return pool[Math.floor(Math.random() * pool.length)];
+// Topics Yana added in the admin portal, as monologue prompts.
+function fromAdmin(t: AiHubTopic): Topic {
+  return { fr: t.topic, en: "", points: t.points.split(",").map((p) => p.trim()).filter(Boolean) };
+}
+
+function randomTopic(pool: Topic[], exclude?: Topic | null): Topic {
+  const choices = pool.filter((t) => t.fr !== exclude?.fr);
+  const from = choices.length ? choices : pool;
+  return from[Math.floor(Math.random() * from.length)];
 }
 
 // AI Speaking: either read a French paragraph aloud, or speak freely on a
@@ -49,6 +66,7 @@ function randomTopic(exclude?: Topic | null): Topic {
 export function Pronunciation() {
   const [mode, setMode] = useState<Mode>("read");
   const [mono, setMono] = useState<Topic | null>(null);
+  const [adminTopics, setAdminTopics] = useState<Topic[]>([]);
   const [level, setLevel] = useState<AiHubLevel>("A2");
   const [topic, setTopic] = useState("");
   const [phrase, setPhrase] = useState<PronunciationPhrase | null>(null);
@@ -73,6 +91,7 @@ export function Pronunciation() {
       // storage unavailable — keep the default level
     }
     aiFetch<PronunciationAttempt[]>("/api/ai-hub/pronunciation/history").then(setHistory).catch(() => {});
+    aiFetch<AiHubTopic[]>("/api/ai-hub/topics").then((t) => setAdminTopics(t.map(fromAdmin))).catch(() => {});
     return () => {
       if (stopTimerRef.current) clearTimeout(stopTimerRef.current);
       streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -145,20 +164,22 @@ export function Pronunciation() {
     if (recorderRef.current?.state === "recording") recorderRef.current.stop();
   }
 
+  const allTopics = [...adminTopics, ...TOPICS];
+
   function chooseMode(next: Mode) {
     if (next === mode || rec === "recording" || rec === "submitting") return;
     setMode(next);
     setError(null);
     setResult(null);
     resetRecording();
-    if (next === "monologue" && !mono) setMono(randomTopic());
+    if (next === "monologue" && !mono) setMono(randomTopic(allTopics));
   }
 
   function shuffleTopic() {
     setResult(null);
     setError(null);
     resetRecording();
-    setMono(randomTopic(mono));
+    setMono(randomTopic(allTopics, mono));
   }
 
   async function submit() {
@@ -246,17 +267,17 @@ export function Pronunciation() {
                 ))}
               </select>
             </label>
-            <button type="button" className={styles.btn} onClick={mono ? shuffleTopic : () => setMono(randomTopic())} disabled={rec === "recording" || rec === "submitting"}>
+            <button type="button" className={styles.btn} onClick={mono ? shuffleTopic : () => setMono(randomTopic(allTopics))} disabled={rec === "recording" || rec === "submitting"}>
               {mono ? "🎲 Another topic" : "🎲 Give me a topic"}
             </button>
           </div>
           {mono && (
             <div style={{ marginTop: "1.4rem" }}>
               <p className={styles.phrase} style={{ lineHeight: 1.7 }}>
-                {mono.fr} Parlez pendant une minute environ, sans vous arrêter : {mono.points.join(", ")}.
+                {mono.fr} Parlez pendant une minute environ, sans vous arrêter{mono.points.length ? ` : ${mono.points.join(", ")}` : ""}.
               </p>
               <p className={styles.phraseEn}>
-                {mono.en} Speak for about a minute without stopping (up to 2 minutes).
+                {mono.en && `${mono.en} `}Speak for about a minute without stopping (up to 2 minutes).
               </p>
               {recorder}
             </div>
