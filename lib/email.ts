@@ -283,3 +283,15 @@ export async function sendEnrollmentConfirmedEmail(
     `<p style="color:#666">${escapeHtml(help)}</p><p>À bientôt !<br>— The Français Hub</p>`;
   return sendEmail(to, `Payment received — you're enrolled in ${input.courseTitle}`, text, html);
 }
+
+// Admin -> Le Kiosque, "Accept payment" (and "Resend setup link"). Same
+// one-time setup-link mechanism as students and teachers.
+export async function sendAiHubWelcomeEmail(to: string, fullName: string, setupUrl: string): Promise<boolean> {
+  const firstName = fullName.trim().split(/\s+/)[0] || "there";
+  return sendEmail(
+    to,
+    "Welcome to Le Kiosque",
+    `Hi ${firstName},\n\nYour payment is confirmed and your Le Kiosque access is active. Set a password for your account here:\n${setupUrl}\n\nAfter that, sign in any time at the Français Hub login page.\n\nThis link is one-time use and expires after a while — if it's stopped working, ask Yana to send you a new one.`,
+    `<p>Hi ${escapeHtml(firstName)},</p><p>Your payment is confirmed and your Le Kiosque access is active. Set a password for your account here:</p><p><a href="${setupUrl}">${setupUrl}</a></p><p>After that, sign in any time at the Français Hub login page.</p><p>This link is one-time use and expires after a while — if it's stopped working, ask Yana to send you a new one.</p>`
+  );
+}

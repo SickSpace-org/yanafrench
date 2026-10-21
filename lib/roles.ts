@@ -4,14 +4,15 @@
 // supabase/migrations/20261009120000_add_teacher_role.sql). One role per
 // login: a teacher's email can never also be a student or admin.
 
-export type ViewerRole = "admin" | "student" | "teacher" | null;
+export type ViewerRole = "admin" | "student" | "teacher" | "ai_member" | null;
 
 export function roleFromClaim(value: unknown): ViewerRole {
-  return value === "admin" || value === "student" || value === "teacher" ? value : null;
+  return value === "admin" || value === "student" || value === "teacher" || value === "ai_member" ? value : null;
 }
 
 export function homeForRole(role: ViewerRole): string {
   if (role === "admin") return "/admin";
   if (role === "teacher") return "/teacher";
+  if (role === "ai_member") return "/kiosque/app";
   return "/student-hub";
 }

@@ -21,6 +21,7 @@ const navItems = [
   { label: "EMI Plans", href: "/admin/emi-plans" },
   { label: "Students", href: "/admin/students" },
   { label: "Teachers", href: "/admin/teachers" },
+  { label: "Le Kiosque", href: "/admin/kiosque" },
   { label: "Highlights", href: "/admin/highlights" },
   { label: "Messages", href: "/admin/messages" },
   { label: "Announcements", href: "/admin/announcements" },

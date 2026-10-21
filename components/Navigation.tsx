@@ -10,6 +10,7 @@ const links = [
   ["Programs", "/#programs"],
   ["Courses", "/courses"],
   ["Le Hub", "/le-hub"],
+  ["Le Kiosque", "/kiosque"],
   ["About", "/about"],
   ["Results", "/results"],
   ["Resources", "/resources"],

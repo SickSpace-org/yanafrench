@@ -42,11 +42,13 @@ export async function proxy(request: NextRequest) {
   const needsAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
   const needsStudent = pathname === "/student-hub" || pathname.startsWith("/student-hub/");
   const needsTeacher = pathname === "/teacher" || pathname.startsWith("/teacher/");
+  // Only the members' app is gated; the /kiosque sales page stays public.
+  const needsAiMember = pathname === "/kiosque/app" || pathname.startsWith("/kiosque/app/");
   const isLogin = pathname === "/login";
 
   // /auth/* handlers and the other auth screens manage their own session;
   // everything public skips the Supabase round trip entirely.
-  if (!needsAdmin && !needsStudent && !needsTeacher && !isLogin) {
+  if (!needsAdmin && !needsStudent && !needsTeacher && !needsAiMember && !isLogin) {
     return NextResponse.next();
   }
 
@@ -84,11 +86,24 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
+  // Le Kiosque members' app — ai_member logins, plus admins previewing it.
+  // Whether the subscription is still paid up is checked by
+  // app/kiosque/app/layout.tsx and every /api/ai-hub route (lib/aiHub.ts).
+  if (needsAiMember) {
+    if (!userId) return loginRedirect(request, response);
+    if (role !== "ai_member" && role !== "admin") {
+      if (!role) return loginRedirect(request, response);
+      return redirectPreservingSession(new URL(homeForRole(role), request.url), response);
+    }
+    response.headers.set("Cache-Control", "no-store");
+    return response;
+  }
+
   // needsStudent — admins may view the student hub ("View as student"); a
   // teacher is sent to their own portal; a signed-in user with no role is
   // sent back to login.
   if (!userId) return loginRedirect(request, response);
-  if (role === "teacher") {
+  if (role === "teacher" || role === "ai_member") {
     return redirectPreservingSession(new URL(homeForRole(role), request.url), response);
   }
   if (role !== "student" && role !== "admin") {
