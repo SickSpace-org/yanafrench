@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   if (existing) {
     const row = existing as Pick<AiHubMemberRow, "id" | "status" | "expires_at">;
     if (accessFor(row.status, row.expires_at) === "active") {
-      return new Response("This email already has an active Le Kiosque membership — just log in.", { status: 409 });
+      return new Response("This email already has an active Le Kiosque membership — just enter with your email.", { status: 409 });
     }
     const { error } = await supabase
       .from("ai_hub_members")

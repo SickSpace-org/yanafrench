@@ -84,10 +84,10 @@ export function AiHubLanding() {
           <ol className={styles.steps}>
             <li>Fill in the form and we open WhatsApp with your message to Yana.</li>
             <li>Yana sends you the payment details and confirms when she receives your payment.</li>
-            <li>You get an email to set your password — then everything unlocks for 30 days.</li>
+            <li>Once she confirms it, come back here, type your email, and Le Kiosque opens for 30 days. No password needed.</li>
           </ol>
           <p className={styles.login}>
-            Already a member? <Link href="/login" style={{ color: "#fff", textDecoration: "underline", fontWeight: 700 }}>Log in</Link>
+            Already paid? <Link href="/kiosque/enter" style={{ color: "#fff", textDecoration: "underline", fontWeight: 700 }}>Enter with your email</Link>
           </p>
         </div>
 
@@ -106,7 +106,7 @@ export function AiHubLanding() {
               <input value={fullName} onChange={(e) => setFullName(e.target.value)} required maxLength={120} autoComplete="name" />
             </label>
             <label>
-              Email (this will be your login)
+              Email (you’ll use this to enter)
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required maxLength={200} autoComplete="email" />
             </label>
             <label>

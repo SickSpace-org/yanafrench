@@ -28,13 +28,12 @@ export type AiHubMemberRow = {
   full_name: string;
   email: string;
   whatsapp: string;
-  user_id: string | null;
   status: AiHubMemberStatus;
   expires_at: string | null;
   requested_at: string;
 };
 
-export const AI_HUB_MEMBER_COLUMNS = "id, full_name, email, whatsapp, user_id, status, expires_at, requested_at";
+export const AI_HUB_MEMBER_COLUMNS = "id, full_name, email, whatsapp, status, expires_at, requested_at";
 
 // What Admin -> Le Kiosque shows. `access` is derived from status + expiry so
 // the page never has to re-implement the rule.
@@ -50,7 +49,8 @@ export type AdminAiHubMember = {
   expiresAt: string | null;
   daysLeft: number;
   requestedAt: string;
-  hasLogin: boolean;
+  // Has Yana confirmed a payment for this person at least once?
+  hasPaid: boolean;
 };
 
 export function daysUntil(iso: string | null, now = Date.now()): number {
@@ -75,7 +75,7 @@ export function memberFromRow(row: AiHubMemberRow): AdminAiHubMember {
     expiresAt: row.expires_at,
     daysLeft: daysUntil(row.expires_at),
     requestedAt: row.requested_at,
-    hasLogin: Boolean(row.user_id),
+    hasPaid: row.expires_at !== null,
   };
 }
 

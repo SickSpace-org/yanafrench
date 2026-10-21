@@ -31,10 +31,10 @@ function formatDate(iso: string) {
 // app/api/ai-hub/members.
 export function AdminAiHubPage() {
   const { items: members, loaded, remove, refresh } = useAdminCollection<AdminAiHubMember>("/api/ai-hub/members");
-  const [notice, setNotice] = useState<{ ok: boolean; text: string; link?: string } | null>(null);
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  async function act(m: AdminAiHubMember, action: "payment" | "resend" | "deactivate" | "reactivate") {
+  async function act(m: AdminAiHubMember, action: "payment" | "deactivate" | "reactivate") {
     setBusyId(m.id);
     setNotice(null);
     try {
@@ -50,23 +50,11 @@ export function AdminAiHubPage() {
       const data = await res.json().catch(() => ({}));
       if (action === "payment") {
         const until = data.expiresAt ? ` Access runs until ${formatDate(data.expiresAt)}.` : "";
-        if (data.setupUrl) {
-          setNotice({
-            ok: Boolean(data.emailSent),
-            text: data.emailSent
-              ? `Payment recorded for ${m.fullName} — their setup link is on its way to ${m.email}.${until}`
-              : `Payment recorded for ${m.fullName}, but the email couldn't be sent — send them this setup link yourself.${until}`,
-            link: data.emailSent ? undefined : data.setupUrl,
-          });
+        if (data.emailSent === false) {
+          setNotice({ ok: true, text: `Payment recorded for ${m.fullName} — they can enter with ${m.email} now. (The welcome email couldn't be sent, so tell them yourself.)${until}` });
         } else {
-          setNotice({ ok: true, text: `Another 30 days added for ${m.fullName}.${until}` });
+          setNotice({ ok: true, text: `Payment recorded for ${m.fullName} — they can now enter with ${m.email}.${until}` });
         }
-      } else if (action === "resend") {
-        setNotice({
-          ok: Boolean(data.emailSent),
-          text: data.emailSent ? `A new setup link is on its way to ${m.email}.` : "The email couldn't be sent — use this setup link instead.",
-          link: data.emailSent ? undefined : data.setupUrl,
-        });
       } else {
         setNotice({ ok: true, text: action === "deactivate" ? `${m.fullName}'s access is paused.` : `${m.fullName} has access again.` });
       }
@@ -88,7 +76,7 @@ export function AdminAiHubPage() {
         <h1>Le Kiosque.</h1>
         <p>
           Le Kiosque costs {AI_HUB_PRICE_LABEL}. People ask to join on the public Le Kiosque page and message you on WhatsApp. When their
-          payment arrives, press <strong>Payment received</strong> — it creates their login and emails a setup link, and starts 30 days of access.
+          payment arrives, press <strong>Payment received</strong> — they can then enter Le Kiosque just by typing their email (no password), and get 30 days of access.
           Press it again each month when they renew.
         </p>
       </div>
@@ -97,12 +85,6 @@ export function AdminAiHubPage() {
         {notice && (
           <p className={notice.ok ? leadStyles.banner : leadStyles.confirmError}>
             {notice.text}
-            {notice.link && (
-              <>
-                <br />
-                <input readOnly value={notice.link} style={{ width: "100%", marginTop: ".5rem" }} onFocus={(e) => e.currentTarget.select()} />
-              </>
-            )}
           </p>
         )}
 
@@ -139,7 +121,7 @@ function MemberTable({
 }: {
   members: AdminAiHubMember[];
   busyId: string | null;
-  act: (m: AdminAiHubMember, action: "payment" | "resend" | "deactivate" | "reactivate") => void;
+  act: (m: AdminAiHubMember, action: "payment" | "deactivate" | "reactivate") => void;
   remove: (id: string) => void;
 }) {
   return (
@@ -186,14 +168,9 @@ function MemberTable({
             <td>
               <div className={leadStyles.actions}>
                 <button type="button" className={leadStyles.action} disabled={busyId === m.id} onClick={() => act(m, "payment")}>
-                  {m.hasLogin ? "Payment received (+30 days)" : "Payment received"}
+                  {m.hasPaid ? "Payment received (+30 days)" : "Payment received"}
                 </button>
-                {m.hasLogin && (
-                  <button type="button" className={leadStyles.action} disabled={busyId === m.id} onClick={() => act(m, "resend")}>
-                    Resend setup link
-                  </button>
-                )}
-                {m.hasLogin && m.access !== "deactivated" && (
+                {m.hasPaid && m.access !== "deactivated" && (
                   <button type="button" className={leadStyles.action} disabled={busyId === m.id} onClick={() => act(m, "deactivate")}>
                     Pause access
                   </button>
@@ -210,7 +187,7 @@ function MemberTable({
                 type="button"
                 className={leadStyles.remove}
                 onClick={() => {
-                  if (window.confirm(`Remove ${m.fullName}? ${m.hasLogin ? "Their login and saved words are deleted too." : ""}`)) remove(m.id);
+                  if (window.confirm(`Remove ${m.fullName}? Their saved words and quiz history are deleted too.`)) remove(m.id);
                 }}
               >
                 Remove

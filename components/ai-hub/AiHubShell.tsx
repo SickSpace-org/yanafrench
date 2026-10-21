@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { BfcacheGuard } from "../BfcacheGuard";
+import { SignOutButton } from "./SignOutButton";
 import styles from "./AiHubApp.module.css";
 
 const NAV = [
@@ -29,9 +30,7 @@ export function AiHubShell({ children, daysLeft, isAdmin }: { children: ReactNod
               {daysLeft} day{daysLeft === 1 ? "" : "s"} left
             </span>
           )}
-          <form action="/auth/signout" method="post">
-            <button type="submit" className={styles.signOut}>Log out</button>
-          </form>
+          <SignOutButton className={styles.signOut} label={isAdmin ? "Exit preview" : "Use a different email"} />
         </div>
       </header>
       {isAdmin && (
