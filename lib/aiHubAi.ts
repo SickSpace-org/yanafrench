@@ -82,7 +82,8 @@ export async function generatePhrase(level: AiHubLevel, topic: string): Promise<
       providerOptions: LOW_EFFORT,
       system:
         "You write short French sentences for pronunciation practice. Pick sentences that exercise real " +
-        "pronunciation challenges at the given CEFR level, and vary the vocabulary and topic every time." + ACCENTS,
+        "pronunciation challenges at the given CEFR level, and vary the vocabulary and topic every time. The tip must only " +
+        "mention words and sounds that actually appear in your sentence, and be one short, concrete sentence." + ACCENTS,
       prompt: `Level ${level}. ${topic ? `Topic: ${topic}.` : "Choose a fresh everyday topic."} Random seed: ${Math.random().toString(36).slice(2)}`,
       output: Output.object({ schema: phraseSchema }),
     });
