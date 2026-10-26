@@ -144,7 +144,7 @@ export const courses: Course[] = [
     duration: "8–9 months",
     maxDuration: "10 months",
     mode: "Live online",
-    priceInPaise: 11_000_000,
+    priceInPaise: 11_500_000,
     whatYouLearn: ["Listening", "Speaking", "Reading", "Writing", "Grammar", "Vocabulary", "Practice"],
     includes: [
       "Structured training for all TEF modules",
@@ -238,7 +238,7 @@ export const courses: Course[] = [
     duration: "50 classes",
     classes: 50,
     mode: "Live online",
-    priceInPaise: 2_000_000,
+    priceInPaise: 2_250_000,
     whatYouLearn: ["Listening", "Speaking", "Reading", "Writing"],
     includes: [
       "Strong grammar foundation",
@@ -258,7 +258,7 @@ export const courses: Course[] = [
     duration: "50 classes",
     classes: 50,
     mode: "Live online",
-    priceInPaise: 2_250_000,
+    priceInPaise: 2_500_000,
     whatYouLearn: ["Listening", "Speaking", "Reading", "Writing"],
     includes: [
       "Grammar strengthening",
@@ -279,8 +279,8 @@ export const courses: Course[] = [
     duration: "90 classes",
     classes: 90,
     mode: "Live online · Fast-Track Program",
-    priceInPaise: 3_800_000,
-    regularPriceInPaise: 4_250_000,
+    priceInPaise: 4_300_000,
+    regularPriceInPaise: 4_750_000,
     savingsInPaise: 450_000,
     whatYouLearn: ["Listening", "Speaking", "Reading", "Writing"],
     includes: [
@@ -302,7 +302,7 @@ export const courses: Course[] = [
     duration: "50 classes",
     classes: 50,
     mode: "Live online",
-    priceInPaise: 2_500_000,
+    priceInPaise: 2_750_000,
     whatYouLearn: ["Listening", "Speaking", "Reading", "Writing"],
     includes: [
       "Advanced grammar",
@@ -322,7 +322,7 @@ export const courses: Course[] = [
     duration: "60 classes",
     classes: 60,
     mode: "Live online",
-    priceInPaise: 3_300_000,
+    priceInPaise: 3_550_000,
     whatYouLearn: ["Listening", "Speaking", "Reading", "Writing"],
     includes: [
       "Intensive training for all four skills",
@@ -342,7 +342,7 @@ export const courses: Course[] = [
     duration: "60 classes",
     classes: 60,
     mode: "Live online",
-    priceInPaise: 4_000_000,
+    priceInPaise: 4_250_000,
     whatYouLearn: ["Listening", "Speaking", "Reading", "Writing"],
     includes: [
       "Advanced language mastery",
