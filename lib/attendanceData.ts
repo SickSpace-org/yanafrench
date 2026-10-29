@@ -8,6 +8,8 @@
 //   - Once that window has closed with no join, the student is absent.
 //   - An admin can mark present/absent by hand at any time; a manual mark
 //     always wins over the automatic one.
+//   - A cancelled class (lib/classCancellations.ts) wins over everything:
+//     no join window, no present/absent, left out of every percentage.
 
 import { addDays, todayInIndia } from "./emiData";
 import { slotForDate, type Batch } from "./batchData";
@@ -60,7 +62,15 @@ export function attendanceFromRow(row: AttendanceRow): AttendanceRecord {
 //   present / absent — decided (by a join, a manual mark, or the window closing)
 //   open             — the join window is open right now, not joined yet
 //   upcoming         — the class hasn't started yet
-export type SessionStatus = AttendanceStatus | "open" | "upcoming";
+//   cancelled        — the whole class was called off
+export type SessionStatus = AttendanceStatus | "open" | "upcoming" | "cancelled";
+
+// A cancelled class of a batch, as the Student Hub sees it.
+export type ClassCancellation = { batchId: string; date: string; note: string | null };
+
+export function cancellationKey(batchId: string, date: string) {
+  return `${batchId}|${date}`;
+}
 
 type Schedule = Pick<Batch, "slots" | "start_date" | "end_date">;
 

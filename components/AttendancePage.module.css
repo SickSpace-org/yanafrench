@@ -19,3 +19,4 @@
 .chip_absent { background: rgba(182,58,58,.1); color: #B63A3A; }
 .chip_open { background: rgba(31,58,95,.1); color: var(--blue); }
 .chip_upcoming { background: rgba(23,25,28,.06); color: var(--text-faint); }
+.chip_cancelled { background: rgba(23,25,28,.08); color: var(--text-muted); }

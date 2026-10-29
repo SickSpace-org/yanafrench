@@ -97,3 +97,8 @@
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }
 }
+
+/* Cancelled classes (Admin / teacher → Attendance) */
+.dots i.dotCancelled { background: transparent; box-shadow: inset 0 0 0 1px #B63A3A; }
+.cancelledClass { color: #B63A3A !important; font-weight: 700; }
+.cancelledClass span { font-weight: 400; color: var(--text-muted); }

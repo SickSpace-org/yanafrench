@@ -8,12 +8,13 @@ import styles from "./AttendancePage.module.css";
 
 type Session = { batchId: string; batchName: string; course: string; date: string; status: SessionStatus; source: "auto" | "manual" | null };
 
-const LABELS: Record<SessionStatus, string> = { present: "Present", absent: "Absent", open: "Join now", upcoming: "Upcoming" };
+const LABELS: Record<SessionStatus, string> = { present: "Present", absent: "Absent", open: "Join now", upcoming: "Upcoming", cancelled: "Class cancelled" };
 
 // The student's own class attendance. Present is recorded automatically
 // when they click "Join class" from 5 minutes before a class until 15
 // minutes after it starts;
-// the teacher can also mark it by hand.
+// the teacher can also mark it by hand. A cancelled class is shown but not
+// counted.
 export function AttendancePage() {
   const [sessions, setSessions] = useState<Session[] | null>(null);
 

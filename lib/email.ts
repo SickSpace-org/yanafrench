@@ -304,3 +304,47 @@ There's no password to set up. If you ever need to renew or have a question, mes
     `<p>Hi ${escapeHtml(firstName)},</p><p>Your payment is confirmed and your Le Kiosque access is active.</p><p>To start, open this page and type this email address (<strong>${escapeHtml(to)}</strong>):</p><p><a href="${enterUrl}">${enterUrl}</a></p><p>There's no password to set up. If you ever need to renew or have a question, message Yana on WhatsApp.</p>`
   );
 }
+
+// Admin -> Attendance or the teacher portal, "Cancel class"
+// (lib/classCancellations.ts) — one email to each student in the batch.
+export async function sendClassCancelledEmail(
+  to: string,
+  input: {
+    name: string;
+    course: string;
+    batchName: string;
+    when: string; // already formatted, e.g. "Thursday, 30 Oct 2026 at 7:00 PM IST"
+    note: string | null;
+    hubUrl: string;
+  }
+): Promise<boolean> {
+  const first = input.name.split(" ")[0] || "there";
+  const intro = `Your ${input.course} class (${input.batchName}) on ${input.when} has been cancelled. There's no need to join.`;
+  const after = "Your next classes are on your Student Hub as usual.";
+
+  const text = [`Hi ${first},`, intro, ...(input.note ? [`Note from your teacher: ${input.note}`] : []), after, `${input.hubUrl}`, "À bientôt !\n— The Français Hub"].join("\n\n");
+  const html =
+    `<p>Hi ${escapeHtml(first)},</p><p style="font-weight:700">${escapeHtml(intro)}</p>` +
+    (input.note ? `<p style="padding:10px 14px;background:#f6f1ea;border-radius:8px"><span style="color:#666">Note from your teacher:</span><br>${escapeHtml(input.note)}</p>` : "") +
+    `<p>${escapeHtml(after)}</p>` +
+    `<p><a href="${input.hubUrl}" style="display:inline-block;padding:10px 18px;background:#1F3A5F;color:#fff;border-radius:999px;text-decoration:none;font-weight:700">Open your Student Hub</a></p>` +
+    `<p>À bientôt !<br>— The Français Hub</p>`;
+  return sendEmail(to, `Class cancelled: ${input.course} · ${input.when}`, text, html);
+}
+
+// Undoing a cancellation of a class that's still ahead.
+export async function sendClassRestoredEmail(
+  to: string,
+  input: { name: string; course: string; batchName: string; when: string; hubUrl: string }
+): Promise<boolean> {
+  const first = input.name.split(" ")[0] || "there";
+  const intro = `Good news — your ${input.course} class (${input.batchName}) on ${input.when} is back on. Please ignore the earlier cancellation email.`;
+  const after = "Join from your Student Hub as usual.";
+
+  const text = [`Hi ${first},`, intro, after, `${input.hubUrl}`, "À bientôt !\n— The Français Hub"].join("\n\n");
+  const html =
+    `<p>Hi ${escapeHtml(first)},</p><p style="font-weight:700">${escapeHtml(intro)}</p><p>${escapeHtml(after)}</p>` +
+    `<p><a href="${input.hubUrl}" style="display:inline-block;padding:10px 18px;background:#1F3A5F;color:#fff;border-radius:999px;text-decoration:none;font-weight:700">Open your Student Hub</a></p>` +
+    `<p>À bientôt !<br>— The Français Hub</p>`;
+  return sendEmail(to, `Back on: ${input.course} class · ${input.when}`, text, html);
+}

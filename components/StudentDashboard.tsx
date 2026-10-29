@@ -8,8 +8,10 @@ import { useSpeakingHistory } from "@/lib/useSpeakingHistory";
 import { useQuizState } from "@/lib/useQuizState";
 import { usePortalState } from "@/lib/usePortalState";
 import { useStudentProfile, displayName } from "@/lib/useStudentProfile";
-import { generateClassEvents } from "@/lib/batchData";
+import { generateClassEvents, type ClassEvent } from "@/lib/batchData";
+import { cancellationKey } from "@/lib/attendanceData";
 import { joinClassUrl, useClassLinks } from "@/lib/useClassLinks";
+import { classDateKey, useClassCancellations } from "@/lib/useClassCancellations";
 import { site } from "@/lib/site";
 import { ClassLinkLine } from "./ClassLinkLine";
 import { DashboardShell } from "./DashboardShell";
@@ -56,12 +58,20 @@ export function StudentDashboard() {
   // across every enrollment, labelled by course, with a link to see the
   // rest on Calendar rather than a full multi-enrollment switcher.
   const myBatchIds = profile.kind === "student" ? new Set(profile.student.batchEnrollments.map((e) => e.batchId)) : new Set<string>();
-  const myUpcomingClasses = batches
-    .filter((b) => myBatchIds.has(b.id))
-    .map((b) => generateClassEvents(b, zoomLink, 30)[0])
+  // Cancelled classes (Admin / teacher → Attendance) are skipped for "next
+  // class" and listed on the card instead, up to that next class.
+  const cancellations = useClassCancellations();
+  const cancellationFor = (e: ClassEvent) => cancellations.get(cancellationKey(e.batchId, classDateKey(e.date)));
+  const myBatchEvents = batches.filter((b) => myBatchIds.has(b.id)).map((b) => generateClassEvents(b, zoomLink, 30));
+  const myUpcomingClasses = myBatchEvents
+    .map((events) => events.find((e) => !cancellationFor(e)))
     .filter((e): e is NonNullable<typeof e> => Boolean(e))
     .sort((a, b) => a.date.getTime() - b.date.getTime());
   const nextClass = myUpcomingClasses[0] ?? null;
+  const cancelledSoon = myBatchEvents
+    .flat()
+    .filter((e) => cancellationFor(e) && (!nextClass || e.date <= nextClass.date))
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
   // The batch's own link, set in Admin → Attendance.
   const nextClassLink = nextClass ? classLinks[nextClass.batchId] ?? "" : "";
   const moreUpcomingCount = Math.max(0, myUpcomingClasses.length - 1);
@@ -78,6 +88,18 @@ export function StudentDashboard() {
       <div className={styles.grid}>
         <div className={styles.card}>
           <span className={styles.cardLabel}>NEXT CLASS</span>
+          {cancelledSoon.map((e) => {
+            const note = cancellationFor(e)?.note;
+            return (
+              <div key={e.id} className={styles.cancelNotice} role="status">
+                <strong>Class cancelled</strong>
+                <span>
+                  {e.course} · {e.date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })} · {e.time}
+                </span>
+                {note && <small>{note}</small>}
+              </div>
+            );
+          })}
           {nextClass ? (
             <>
               <strong className={styles.cardTitle}>
