@@ -157,9 +157,14 @@ function CourseEditor({
   const submit = async () => {
     const draft = { ...d };
     if (isNew) {
-      const base = slugify(draft.title) || "course";
+      // "delf-" / "orientation-" ids are reserved for the fixed DELF and
+      // Orientation Test products (the server rejects them), so a title like
+      // "DELF B1 Preparation" gets a "course-" prefix — a numeric suffix alone
+      // could never get it out of the reserved range.
+      let base = slugify(draft.title) || "course";
+      if (/^(delf|orientation)-/.test(base)) base = `course-${base}`;
       let id = base;
-      for (let n = 2; existingIds.includes(id) || /^(delf|orientation)-/.test(id); n++) id = `${base}-${n}`;
+      for (let n = 2; existingIds.includes(id); n++) id = `${base}-${n}`;
       draft.id = id;
     }
     setSaving(true);
