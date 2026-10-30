@@ -8,6 +8,7 @@ import {
   defaultEmiPlan,
   describeEmiPlan,
   emiSettingProblem,
+  isFullPaymentOnly,
   planToSetting,
   resolveEmiPlan,
   splitRupees,
@@ -250,6 +251,7 @@ export function AdminEmiPlansPage() {
                   const setting = settings[product.productId];
                   const stale = !!setting && !!emiSettingProblem(setting, fee);
                   const plan = resolveEmiPlan(product.enrollable, fee, setting);
+                  const fullOnly = isFullPaymentOnly(product.enrollable);
                   const isDefault = !setting || stale;
                   const sameAsDefault = JSON.stringify(plan) === JSON.stringify(defaultEmiPlan(product.enrollable, fee));
                   return (
@@ -263,15 +265,17 @@ export function AdminEmiPlansPage() {
                         <td>
                           {plan ? `${plan.length} payments: ${describeEmiPlan(plan)}` : "Pay in full only"}
                           <div className={leadStyles.muted}>
-                            {stale
-                              ? "Your saved plan no longer adds up to the fee — using the default"
-                              : isDefault || sameAsDefault
-                                ? "Default"
-                                : "Custom"}
+                            {fullOnly
+                              ? "Set to No EMI in Courses"
+                              : stale
+                                ? "Your saved plan no longer adds up to the fee — using the default"
+                                : isDefault || sameAsDefault
+                                  ? "Default"
+                                  : "Custom"}
                           </div>
                         </td>
                         <td>
-                          {editing !== product.productId && (
+                          {editing !== product.productId && !fullOnly && (
                             <button type="button" className={leadStyles.action} onClick={() => setEditing(product.productId)}>
                               Edit
                             </button>
