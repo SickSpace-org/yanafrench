@@ -106,10 +106,16 @@ export function splitRupees(totalRupees: number, count: number): number[] {
   return Array.from({ length: count }, (_, i) => (i === count - 1 ? totalRupees - each * (count - 1) : each));
 }
 
+// A course the admin marked "No EMI" in Admin → Courses: pay in full only.
+export function isFullPaymentOnly(enrollable: Enrollable): boolean {
+  return enrollable.kind === "course" && enrollable.course.emi === "none";
+}
+
 // The built-in plan for a product when Admin → EMI Plans hasn't set one;
-// null when it can only be paid in full (the small Orientation Test fees).
+// null when it can only be paid in full (the small Orientation Test fees, or
+// a course set to "No EMI").
 export function defaultEmiPlan(enrollable: Enrollable, totalPaise: number): EmiPlan | null {
-  if (enrollable.kind === "orientation") return null;
+  if (enrollable.kind === "orientation" || isFullPaymentOnly(enrollable)) return null;
   const totalRupees = Math.round(totalPaise / 100);
   if (enrollable.kind === "delf" || enrollable.course.emi === "twoPart") {
     const [first, second] = splitRupees(totalRupees, 2);
@@ -154,9 +160,10 @@ export function rescaleEmiSetting(setting: EmiSetting, oldTotalRupees: number, n
 }
 
 // The plan a product is sold on right now (null = pay in full only): the
-// admin's setting when there's a usable one, otherwise the default.
+// admin's setting when there's a usable one, otherwise the default. A
+// course set to "No EMI" in Admin → Courses wins over any saved setting.
 export function resolveEmiPlan(enrollable: Enrollable, totalPaise: number, setting: EmiSetting | undefined): EmiPlan | null {
-  if (enrollable.kind === "orientation") return null;
+  if (enrollable.kind === "orientation" || isFullPaymentOnly(enrollable)) return null;
   if (!setting || emiSettingProblem(setting, totalPaise)) return defaultEmiPlan(enrollable, totalPaise);
   if (!setting.enabled || setting.payments.length < 2) return null;
   return setting.payments.map((p, i) => ({

@@ -29,8 +29,9 @@ export type Course = {
   includes: string[];
   target?: string;
   // EMI scheme (lib/emiData.ts): 3 monthly EMIs by default, or "twoPart" —
-  // half before the course starts, half after 12 sessions.
-  emi?: "monthly" | "twoPart";
+  // half before the course starts, half after 12 sessions — or "none", pay in
+  // full only (no EMI offered at all).
+  emi?: "monthly" | "twoPart" | "none";
 };
 
 export function courseInCategory(course: Course, category: CourseCategory): boolean {
@@ -546,7 +547,7 @@ export function sanitizeCourses(raw: unknown): { courses: Course[] } | { error: 
     const whatYouLearn = lines(r.whatYouLearn);
     const includes = lines(r.includes);
     if (!whatYouLearn || !includes) return { error: `"${title}": invalid "what you learn" / "includes" list.` };
-    if (r.emi !== undefined && r.emi !== null && r.emi !== "monthly" && r.emi !== "twoPart") {
+    if (r.emi !== undefined && r.emi !== null && r.emi !== "monthly" && r.emi !== "twoPart" && r.emi !== "none") {
       return { error: `"${title}": invalid EMI scheme.` };
     }
 
@@ -569,7 +570,7 @@ export function sanitizeCourses(raw: unknown): { courses: Course[] } | { error: 
       whatYouLearn,
       includes,
       ...(target ? { target } : {}),
-      ...(r.emi ? { emi: r.emi as "monthly" | "twoPart" } : {}),
+      ...(r.emi ? { emi: r.emi as "monthly" | "twoPart" | "none" } : {}),
     });
   }
   return { courses: out };

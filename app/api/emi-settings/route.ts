@@ -1,7 +1,7 @@
 import { authErrorResponse, requireAdmin } from "@/lib/auth";
 import { enrollablePriceInPaise } from "@/lib/courseCatalogData";
 import { findEnrollable } from "@/lib/courseCatalogServer";
-import { EMI_MAX_PAYMENTS, emiSettingProblem, type EmiSetting } from "@/lib/emiData";
+import { EMI_MAX_PAYMENTS, emiSettingProblem, isFullPaymentOnly, type EmiSetting } from "@/lib/emiData";
 import { readEmiSettings, writeEmiSetting } from "@/lib/emiSettingsServer";
 
 // GET: public — the course page's checkout reads it to show each product's
@@ -29,6 +29,8 @@ export async function PUT(req: Request) {
   if (body?.setting === null) {
     return (await writeEmiSetting(productId, null)) ? Response.json({ ok: true }) : new Response("Couldn't save.", { status: 502 });
   }
+
+  if (isFullPaymentOnly(enrollable)) return new Response("This course is set to No EMI in Admin → Courses.", { status: 400 });
 
   const raw = body?.setting as Partial<EmiSetting> | undefined;
   if (!raw || !Array.isArray(raw.payments) || raw.payments.length > EMI_MAX_PAYMENTS) {

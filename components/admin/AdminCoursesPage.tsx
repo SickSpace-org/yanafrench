@@ -212,6 +212,7 @@ function CourseEditor({
           <select value={d.emi} onChange={set("emi")}>
             <option value="monthly">3 monthly installments</option>
             <option value="twoPart">2 parts (half now, half after 12 sessions)</option>
+            <option value="none">No EMI (full payment only)</option>
           </select>,
         )}
         {field("Short description (card)", <textarea rows={2} value={d.description} onChange={set("description")} maxLength={500} />, true)}
