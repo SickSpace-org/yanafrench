@@ -32,7 +32,20 @@ export type Course = {
   // half before the course starts, half after 12 sessions — or "none", pay in
   // full only (no EMI offered at all).
   emi?: "monthly" | "twoPart" | "none";
+  // ISO timestamp: until then the course is highlighted — pinned to the top
+  // of the Courses page with a "Featured" tag (Admin → Courses).
+  highlightUntil?: string;
 };
+
+// Is the course's highlight running at `now` (ms)? `now` is null while
+// rendering the static /courses page, before the visitor's clock is known:
+// any highlight counts then, and the page re-checks once it's in the browser.
+export function isHighlighted(course: Course, now: number | null): boolean {
+  if (!course.highlightUntil) return false;
+  return now === null || Date.parse(course.highlightUntil) > now;
+}
+
+const MAX_HIGHLIGHT_DAYS = 366;
 
 export function courseInCategory(course: Course, category: CourseCategory): boolean {
   return course.category === category || (course.category === "TEF/TCF" && (category === "TEF" || category === "TCF"));
@@ -550,6 +563,14 @@ export function sanitizeCourses(raw: unknown): { courses: Course[] } | { error: 
     if (r.emi !== undefined && r.emi !== null && r.emi !== "monthly" && r.emi !== "twoPart" && r.emi !== "none") {
       return { error: `"${title}": invalid EMI scheme.` };
     }
+    let highlightUntil: string | undefined;
+    if (r.highlightUntil !== undefined && r.highlightUntil !== null && r.highlightUntil !== "") {
+      const ms = typeof r.highlightUntil === "string" ? Date.parse(r.highlightUntil) : NaN;
+      if (!Number.isFinite(ms) || ms > Date.now() + MAX_HIGHLIGHT_DAYS * 86_400_000) {
+        return { error: `"${title}": invalid highlight end date (at most ${MAX_HIGHLIGHT_DAYS} days ahead).` };
+      }
+      highlightUntil = new Date(ms).toISOString();
+    }
 
     out.push({
       id,
@@ -571,6 +592,7 @@ export function sanitizeCourses(raw: unknown): { courses: Course[] } | { error: 
       includes,
       ...(target ? { target } : {}),
       ...(r.emi ? { emi: r.emi as "monthly" | "twoPart" | "none" } : {}),
+      ...(highlightUntil ? { highlightUntil } : {}),
     });
   }
   return { courses: out };

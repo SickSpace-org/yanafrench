@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { COURSE_BADGES, COURSE_CATEGORIES, defaultCatalog, type Catalog, type Course } from "@/lib/courseCatalogData";
+import { COURSE_BADGES, COURSE_CATEGORIES, defaultCatalog, isHighlighted, type Catalog, type Course } from "@/lib/courseCatalogData";
 import { formatRupees } from "@/lib/formatCurrency";
 import { AdminShell } from "../AdminShell";
 import styles from "./AdminLessonsManager.module.css";
@@ -26,9 +26,18 @@ type Draft = {
   regularRupees: string;
   savingsRupees: string;
   emi: string;
+  // "" = not highlighted, "keep" = leave the running highlight as it is,
+  // otherwise a number of days from now.
+  highlight: string;
+  highlightUntil: string; // the course's current end time, used by "keep"
   whatYouLearn: string;
   includes: string;
 };
+
+const HIGHLIGHT_DAYS = [1, 3, 7, 14, 30, 60, 90];
+
+const formatHighlightEnd = (iso: string) =>
+  new Date(iso).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Kolkata" });
 
 const toRupees = (paise?: number) => (paise ? String(paise / 100) : "");
 
@@ -51,6 +60,8 @@ function toDraft(c: Course): Draft {
     regularRupees: toRupees(c.regularPriceInPaise),
     savingsRupees: toRupees(c.savingsInPaise),
     emi: c.emi ?? "monthly",
+    highlight: isHighlighted(c, Date.now()) ? "keep" : "",
+    highlightUntil: c.highlightUntil ?? "",
     whatYouLearn: c.whatYouLearn.join("\n"),
     includes: c.includes.join("\n"),
   };
@@ -74,6 +85,8 @@ const EMPTY: Draft = {
   regularRupees: "",
   savingsRupees: "",
   emi: "monthly",
+  highlight: "",
+  highlightUntil: "",
   whatYouLearn: "",
   includes: "",
 };
@@ -108,6 +121,12 @@ function fromDraft(d: Draft): Course {
     regularPriceInPaise: paise(d.regularRupees),
     savingsInPaise: paise(d.savingsRupees),
     emi: d.emi as Course["emi"],
+    highlightUntil:
+      d.highlight === "keep"
+        ? d.highlightUntil || undefined
+        : d.highlight
+          ? new Date(Date.now() + Number(d.highlight) * 86_400_000).toISOString()
+          : undefined,
     whatYouLearn: splitLines(d.whatYouLearn),
     includes: splitLines(d.includes),
   };
@@ -220,6 +239,18 @@ function CourseEditor({
             <option value="none">No EMI (full payment only)</option>
           </select>,
         )}
+        {field(
+          "Highlight on top of the Courses page",
+          <select value={d.highlight} onChange={set("highlight")}>
+            <option value="">Not highlighted</option>
+            {initial.highlight === "keep" && <option value="keep">Keep current (until {formatHighlightEnd(d.highlightUntil)})</option>}
+            {HIGHLIGHT_DAYS.map((n) => (
+              <option key={n} value={String(n)}>
+                For {n} {n === 1 ? "day" : "days"} from now
+              </option>
+            ))}
+          </select>,
+        )}
         {field("Short description (card)", <textarea rows={2} value={d.description} onChange={set("description")} maxLength={500} />, true)}
         {field("Overview (details popup)", <textarea rows={4} value={d.overview} onChange={set("overview")} maxLength={2000} />, true)}
         {field("What you learn (one per line)", <textarea rows={5} value={d.whatYouLearn} onChange={set("whatYouLearn")} />)}
@@ -227,7 +258,8 @@ function CourseEditor({
       </div>
 
       <p className={courseStyles.hint}>
-        Changes apply to the website and to new enrollments straight away. If you change the price, this course&rsquo;s EMI plan is
+        Changes apply to the website and to new enrollments straight away. A highlighted course shows first on the Courses page, with a
+        &ldquo;Featured&rdquo; tag, until its time runs out. If you change the price, this course&rsquo;s EMI plan is
         scaled to the new fee (check it in EMI Plans). Students who already enrolled keep what they agreed to pay.
       </p>
       {error && <p className={courseStyles.error}>{error}</p>}
@@ -452,6 +484,9 @@ export function AdminCoursesPage() {
                         <td>
                           <div className={courseStyles.title}>{course.title}</div>
                           <div className={leadStyles.muted}>{course.duration}</div>
+                          {course.highlightUntil && isHighlighted(course, Date.now()) && (
+                            <div className={leadStyles.muted}>★ Highlighted until {formatHighlightEnd(course.highlightUntil)}</div>
+                          )}
                         </td>
                         <td>{course.category}</td>
                         <td>{formatRupees(course.priceInPaise)}</td>
