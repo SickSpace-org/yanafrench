@@ -12,20 +12,23 @@ const CATEGORY_SLUG: Record<CourseCategory, string> = {
 
 export function CourseCard({
   course,
+  highlighted = false,
   onViewDetails,
   onEnroll,
 }: {
   course: Course;
+  highlighted?: boolean;
   onViewDetails: () => void;
   onEnroll: () => void;
 }) {
   return (
-    <article className={`course-capsule course-capsule--${CATEGORY_SLUG[course.category]}`}>
+    <article className={`course-capsule course-capsule--${CATEGORY_SLUG[course.category]}${highlighted ? " course-capsule--highlighted" : ""}`}>
       <span className="course-capsule__sheen" aria-hidden="true" />
       <span className="course-capsule__shimmer" aria-hidden="true" />
 
       <div className="course-capsule__row">
         <div className="course-capsule__rail">
+          {highlighted && <span className="course-capsule__featured">★ Featured</span>}
           <span className="course-capsule__category">{course.category}</span>
           {course.badge && <span className="course-capsule__badge">{course.badge}</span>}
         </div>

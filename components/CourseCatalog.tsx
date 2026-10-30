@@ -10,7 +10,7 @@ import { DelfPricingTable } from "./DelfPricingTable";
 import { OrientationTestCard } from "./OrientationTestCard";
 import { DemoClassCard } from "./DemoClassCard";
 import { BookingModal, prefetchBookingSlots } from "./BookingModal";
-import { courseInCategory, type Catalog, type Course, type CourseCategory, type Enrollable, type OrientationLevel } from "@/lib/courseCatalogData";
+import { courseInCategory, isHighlighted, type Catalog, type Course, type CourseCategory, type Enrollable, type OrientationLevel } from "@/lib/courseCatalogData";
 import type { BookingKind } from "@/lib/bookingData";
 import { prefetchEmiSettings } from "@/lib/useEmiSettings";
 
@@ -23,6 +23,12 @@ export function CourseCatalog({ catalog }: { catalog: Catalog }) {
   const [enrolling, setEnrolling] = useState<Enrollable | null>(null);
   const [booking, setBooking] = useState<{ kind: BookingKind; level?: OrientationLevel["level"] } | null>(null);
 
+  // This page is built ahead of time, so whether a course's highlight has
+  // run out is decided here, against the visitor's clock. null until then:
+  // the first render (server and hydration) treats any highlight as running.
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => setNow(Date.now()), []);
+
   // Load the time slots and EMI plans in the background so the booking and
   // enroll modals open with them already there.
   useEffect(() => {
@@ -31,11 +37,17 @@ export function CourseCatalog({ catalog }: { catalog: Catalog }) {
     prefetchEmiSettings();
   }, []);
 
+  // Highlighted courses first, each group keeping the admin's order.
+  const ordered = useMemo(
+    () => [...courses.filter((c) => isHighlighted(c, now)), ...courses.filter((c) => !isHighlighted(c, now))],
+    [courses, now]
+  );
+
   const visibleCourses = useMemo(() => {
-    if (filter === "All") return courses;
+    if (filter === "All") return ordered;
     if (filter === "DELF" || filter === "Orientation" || filter === "Demo Class") return [];
-    return courses.filter((c) => courseInCategory(c, filter));
-  }, [filter, courses]);
+    return ordered.filter((c) => courseInCategory(c, filter));
+  }, [filter, ordered]);
 
   const showDelf = filter === "All" || filter === "DELF";
   const showOrientation = filter === "All" || filter === "Orientation";
@@ -77,6 +89,7 @@ export function CourseCatalog({ catalog }: { catalog: Catalog }) {
               <Reveal key={course.id} delay={i * 0.05}>
                 <CourseCard
                   course={course}
+                  highlighted={isHighlighted(course, now)}
                   onViewDetails={() => setDetailsCourse(course)}
                   onEnroll={() => setEnrolling({ kind: "course", course })}
                 />
