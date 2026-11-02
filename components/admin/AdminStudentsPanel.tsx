@@ -93,7 +93,7 @@ export function AdminStudentsPanel({
   failedId: string | null;
 }) {
   if (students.length === 0) {
-    return <div className={styles.empty}>No paying students yet.</div>;
+    return <div className={styles.empty}>No students yet.</div>;
   }
 
   return (

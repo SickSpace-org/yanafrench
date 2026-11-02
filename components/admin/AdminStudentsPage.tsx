@@ -6,11 +6,12 @@ import { usePortalState } from "@/lib/usePortalState";
 import type { Student } from "@/lib/studentData";
 import { AdminShell } from "../AdminShell";
 import { AdminStudentsPanel } from "./AdminStudentsPanel";
+import { AdminAddStudentForm } from "./AdminAddStudentForm";
 import styles from "./AdminLessonsManager.module.css";
 
-// The roster of confirmed, paying students, persisted in Supabase (see
+// The roster of confirmed students, persisted in Supabase (see
 // app/api/students) — created automatically the moment a Razorpay payment
-// is verified (see app/api/payment/verify).
+// is verified (see app/api/payment/verify), or by hand via "Add student".
 export function AdminStudentsPage() {
   const { items: students, loaded, remove, refresh } = useAdminCollection<Student>("/api/students");
   const [sendingId, setSendingId] = useState<string | null>(null);
@@ -74,7 +75,7 @@ export function AdminStudentsPage() {
       <div className={styles.head}>
         <small>ADMIN</small>
         <h1>Students.</h1>
-        <p>Everyone who has actually paid to enroll, newest first.</p>
+        <p>Everyone who has paid to enroll or been added by hand, newest first.</p>
       </div>
 
       {!loaded ? (
@@ -83,6 +84,7 @@ export function AdminStudentsPage() {
         </div>
       ) : (
         <div className={styles.tabPanel}>
+          <AdminAddStudentForm batches={batches} onAdded={refresh} />
           {addError && <p className={styles.tabHint} style={{ color: "#B63A3A", fontWeight: 700 }}>{addError}</p>}
           <AdminStudentsPanel
             students={students}
