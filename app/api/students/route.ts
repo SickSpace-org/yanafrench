@@ -4,12 +4,15 @@ import { studentFromRow, type StudentRow } from "@/lib/studentData";
 import { batchEnrollmentFromRow, type BatchEnrollmentRow } from "@/lib/batchEnrollmentData";
 import { courseEnrollmentFromRow, type CourseEnrollmentRow } from "@/lib/courseEnrollmentData";
 import { emiInstallmentFromRow, type EmiInstallmentRow } from "@/lib/emiData";
+import { addStudentToBatchAsAdmin, findStudentByEmail } from "@/lib/enrollment";
+import { provisionStudentAccount } from "@/lib/studentAccount";
+import { readPortalState } from "@/lib/portalStateServer";
 
 // GET: the roster of confirmed, paying students for Admin → Students,
 // newest first, each with every batch/course enrollment they hold — one
-// person can have several (see lib/enrollment.ts). Rows are only ever
-// written by lib/enrollment.ts's resolveStudentIdentity on a successfully
-// verified payment — no public POST here.
+// person can have several (see lib/enrollment.ts). Rows are written by
+// lib/enrollment.ts's resolveStudentIdentity on a successfully verified
+// payment, or by the admin-only POST below — never publicly.
 export async function GET() {
   try {
     await requireAdmin();
@@ -77,4 +80,74 @@ export async function GET() {
   }));
 
   return Response.json(result);
+}
+
+// POST: Admin → Students' "Add student" form — the admin creates a student
+// by hand (e.g. someone who paid in cash or by bank transfer), optionally
+// placing them straight into a batch and emailing the account setup link.
+// Same students row a verified payment would create; the batch placement is
+// the same payment-free override as app/api/batch-enrollments.
+export async function POST(req: Request) {
+  try {
+    await requireAdmin();
+  } catch (err) {
+    return authErrorResponse(err);
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return new Response("Supabase isn't configured.", { status: 501 });
+
+  const body = await req.json().catch(() => null);
+  const name = typeof body?.name === "string" ? body.name.trim() : "";
+  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+  const phone = typeof body?.phone === "string" ? body.phone.trim() : "";
+  const batchId = typeof body?.batchId === "string" ? body.batchId : "";
+  const sendSetupLink = body?.sendSetupLink !== false;
+  if (!name) return new Response("Name is required.", { status: 400 });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return new Response("Enter a valid email address.", { status: 400 });
+
+  const batch = batchId ? (await readPortalState()).batches.find((b) => b.id === batchId) : undefined;
+  if (batchId && !batch) return new Response("That batch doesn't exist.", { status: 404 });
+
+  if (await findStudentByEmail(supabase, email)) {
+    return new Response("A student with this email already exists.", { status: 409 });
+  }
+
+  const id = `student-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+  const { error } = await supabase.from("students").insert({
+    id,
+    name,
+    email,
+    phone,
+    enrolled_at: new Date().toISOString(),
+    user_id: null,
+    avatar_url: null,
+  });
+  if (error?.code === "23505") return new Response("A student with this email already exists.", { status: 409 });
+  if (error) {
+    console.error("Failed to create student", email, error);
+    return new Response("Failed to add student.", { status: 500 });
+  }
+
+  // From here the student exists, so anything that goes wrong is reported
+  // back as a partial result rather than an error — the admin can retry the
+  // batch or the setup link from the roster.
+  let batchAdded = false;
+  if (batch) {
+    const batchErr = await addStudentToBatchAsAdmin(supabase, id, batch);
+    if (batchErr) console.error("Failed to add new student", id, "to batch", batch.id, batchErr);
+    else batchAdded = true;
+  }
+
+  let emailSent = false;
+  if (sendSetupLink) {
+    const provisioned = await provisionStudentAccount(email);
+    if (provisioned) {
+      emailSent = provisioned.emailSent;
+      const { error: linkErr } = await supabase.from("students").update({ user_id: provisioned.userId }).eq("id", id);
+      if (linkErr) console.error("Failed to link user_id for student", id, linkErr);
+    }
+  }
+
+  return Response.json({ ok: true, id, batchAdded, emailSent });
 }

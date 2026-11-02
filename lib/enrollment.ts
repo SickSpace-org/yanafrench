@@ -68,6 +68,33 @@ export async function resolveStudentIdentity(
   return { studentId, isNewIdentity: !existing };
 }
 
+// Admin override: places a student into a batch by hand, no payment. The
+// row is an ordinary batch_enrollments row, so attendance, homework, class
+// links and the calendar pick it up exactly like a paid one. payment_id is
+// NOT NULL + unique, so it gets a synthetic "admin-…" id that never matches
+// a real payment (Total paid simply doesn't count it). Seats aren't touched
+// — this is an override, not a sale. Returns the Supabase error, if any
+// (code 23505 = already in that batch).
+export async function addStudentToBatchAsAdmin(
+  supabase: SupabaseClient,
+  studentId: string,
+  batch: { id: string; course: string; name: string }
+) {
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+  const { error } = await supabase.from("batch_enrollments").insert({
+    id: `enroll-${suffix}`,
+    student_id: studentId,
+    lead_id: "admin",
+    payment_id: `admin-${suffix}`,
+    course: batch.course,
+    batch_id: batch.id,
+    batch_name: batch.name,
+    status: "active",
+    enrolled_at: new Date().toISOString(),
+  });
+  return error;
+}
+
 // Pre-payment duplicate guard for app/api/payment/create-order — block
 // before a Razorpay order is even created, so the student never sees a
 // checkout window for a batch they're already enrolled in.
