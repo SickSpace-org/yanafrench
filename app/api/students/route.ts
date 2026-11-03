@@ -61,10 +61,7 @@ export async function GET() {
   const paidById = new Map<string, number>();
   for (const p of [...(batchPays ?? []), ...(coursePays ?? [])]) paidById.set(p.id as string, p.amount as number);
   function totalPaidPaise(studentId: string) {
-    const firsts = [...(batchesByStudent.get(studentId) ?? []), ...(coursesByStudent.get(studentId) ?? [])].reduce(
-      (sum, e) => sum + (paidById.get(e.payment_id) ?? 0),
-      0
-    );
+    const firsts = firstPayments(studentId).reduce((sum, f) => sum + f.amount, 0);
     const emis = (emiByStudent.get(studentId) ?? []).filter((i) => i.status === "paid").reduce((sum, i) => sum + i.amount, 0);
     return firsts + emis;
   }
@@ -74,6 +71,12 @@ export async function GET() {
     const rows = [...(batchesByStudent.get(studentId) ?? []), ...(coursesByStudent.get(studentId) ?? [])];
     const seen = new Set<string>();
     const out: { id: string; amount: number; label: string }[] = [];
+    // A payment the admin typed in by hand for a student with none (see app/api/payments POST).
+    const manualId = (students as (StudentRow & { payment_id?: string | null })[]).find((r) => r.id === studentId)?.payment_id;
+    if (manualId && paidById.has(manualId) && !rows.some((e) => e.payment_id === manualId)) {
+      seen.add(manualId);
+      out.push({ id: manualId, amount: paidById.get(manualId) as number, label: "Recorded by admin" });
+    }
     for (const e of rows) {
       if (seen.has(e.payment_id) || !paidById.has(e.payment_id)) continue;
       seen.add(e.payment_id);

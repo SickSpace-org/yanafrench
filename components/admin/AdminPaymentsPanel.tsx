@@ -82,6 +82,8 @@ export function AdminPaymentsPanel({ students, onChanged }: { students: Student[
 
   const editFirst = (id: string, rupees: number) =>
     run(() => send(`/api/payments/${id}`, { method: "PATCH", body: JSON.stringify({ rupees }) }));
+  const addFirst = (studentId: string, rupees: number) =>
+    run(() => send("/api/payments", { method: "POST", body: JSON.stringify({ studentId, rupees }) }));
   const editEmi = (id: string, rupees: number) =>
     run(() => send(`/api/emi/installments/${id}`, { method: "POST", body: JSON.stringify({ action: "amount", rupees }) }));
   const editDue = (id: string, dueDate: string) =>
@@ -93,7 +95,7 @@ export function AdminPaymentsPanel({ students, onChanged }: { students: Student[
   async function editTotal(s: Student, rupees: number) {
     const firsts = s.firstPayments ?? [];
     if (firsts.length === 0) {
-      setError(`${s.name} has no first payment to adjust.`);
+      await addFirst(s.id, rupees);
       return;
     }
     const target = Math.round(rupees * 100);
@@ -139,7 +141,10 @@ export function AdminPaymentsPanel({ students, onChanged }: { students: Student[
                   </td>
                   <td>
                     {firsts.length === 0 ? (
-                      <span className={styles.muted}>No payment recorded</span>
+                      <div>
+                        <EditableAmount paise={0} onSave={(r) => addFirst(s.id, r)} />
+                        <div className={styles.muted}>No amount recorded — click to enter</div>
+                      </div>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: ".4rem" }}>
                         {firsts.map((f) => (
