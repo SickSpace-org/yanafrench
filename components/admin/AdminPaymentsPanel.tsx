@@ -84,6 +84,8 @@ export function AdminPaymentsPanel({ students, onChanged }: { students: Student[
     run(() => send(`/api/payments/${id}`, { method: "PATCH", body: JSON.stringify({ rupees }) }));
   const editEmi = (id: string, rupees: number) =>
     run(() => send(`/api/emi/installments/${id}`, { method: "POST", body: JSON.stringify({ action: "amount", rupees }) }));
+  const editDue = (id: string, dueDate: string) =>
+    run(() => send(`/api/emi/installments/${id}`, { method: "POST", body: JSON.stringify({ action: "reschedule", dueDate }) }));
   const toggleEmi = (i: EmiInstallment) =>
     run(() => send(`/api/emi/installments/${i.id}`, { method: "POST", body: JSON.stringify({ action: i.status === "paid" ? "unpaid" : "paid" }) }));
 
@@ -158,7 +160,18 @@ export function AdminPaymentsPanel({ students, onChanged }: { students: Student[
                           <div key={i.id} style={{ display: "flex", alignItems: "center", gap: ".5rem", flexWrap: "wrap" }}>
                             <span className={styles.muted}>{i.installmentNo}/{i.installmentCount}</span>
                             <EditableAmount paise={i.amount} onSave={(r) => editEmi(i.id, r)} />
-                            <span className={styles.muted}>due {formatIndiaDate(i.dueDate)}</span>
+                            {i.status === "pending" ? (
+                              <input
+                                type="date"
+                                value={i.dueDate}
+                                aria-label="Due date"
+                                title="Change the due date"
+                                onChange={(e) => e.target.value && e.target.value !== i.dueDate && editDue(i.id, e.target.value)}
+                                style={{ padding: ".2rem .35rem", font: "inherit" }}
+                              />
+                            ) : (
+                              <span className={styles.muted}>due {formatIndiaDate(i.dueDate)}</span>
+                            )}
                             <button type="button" className={styles.action} onClick={() => toggleEmi(i)}>
                               {i.status === "paid" ? "Paid ✓ (undo)" : "Mark paid"}
                             </button>
