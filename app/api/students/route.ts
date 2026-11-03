@@ -28,8 +28,8 @@ export async function GET() {
     supabase.from("batch_enrollments").select("*"),
     supabase.from("course_enrollments").select("*"),
     supabase.from("emi_installments").select("*").order("due_date", { ascending: true }),
-    supabase.from("payments").select("id, amount").eq("status", "paid"),
-    supabase.from("course_payments").select("id, amount").eq("status", "paid"),
+    supabase.from("payments").select("id, amount, paid_at, created_at").eq("status", "paid"),
+    supabase.from("course_payments").select("id, amount, paid_at, created_at").eq("status", "paid"),
   ]);
   if (error) {
     console.error("Failed to list students", error);
@@ -69,6 +69,20 @@ export async function GET() {
     return firsts + emis;
   }
 
+  // Each student's first payments (one per enrollment) — Admin → Payments edits these.
+  function firstPayments(studentId: string) {
+    const rows = [...(batchesByStudent.get(studentId) ?? []), ...(coursesByStudent.get(studentId) ?? [])];
+    const seen = new Set<string>();
+    const out: { id: string; amount: number; label: string }[] = [];
+    for (const e of rows) {
+      if (seen.has(e.payment_id) || !paidById.has(e.payment_id)) continue;
+      seen.add(e.payment_id);
+      const label = "product_title" in e ? e.product_title : `${e.course} · ${e.batch_name}`;
+      out.push({ id: e.payment_id, amount: paidById.get(e.payment_id) as number, label });
+    }
+    return out;
+  }
+
   const result = (students as StudentRow[]).map((row) => ({
     ...studentFromRow(
       row,
@@ -77,6 +91,7 @@ export async function GET() {
     ),
     emiInstallments: (emiByStudent.get(row.id) ?? []).map(emiInstallmentFromRow),
     totalPaidPaise: totalPaidPaise(row.id),
+    firstPayments: firstPayments(row.id),
   }));
 
   return Response.json(result);

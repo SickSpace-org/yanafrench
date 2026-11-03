@@ -66,6 +66,21 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return Response.json({ ok: true });
   }
 
+  // POST { action: "amount", rupees } → change this installment's amount
+  // (pending or paid; a paid one's payment record follows).
+  if (body?.action === "amount") {
+    const rupees = Number((body as { rupees?: unknown }).rupees);
+    if (!Number.isFinite(rupees) || rupees < 0 || rupees > 10_000_000) return new Response("Enter a valid amount.", { status: 400 });
+    const amount = Math.round(rupees * 100);
+    const { error } = await supabase.from("emi_installments").update({ amount }).eq("id", id);
+    if (error) {
+      console.error("Failed to change EMI installment amount", id, error);
+      return new Response("Couldn't change the amount.", { status: 500 });
+    }
+    await supabase.from("emi_payments").update({ amount }).eq("installment_id", id).eq("status", "paid");
+    return Response.json({ ok: true });
+  }
+
   if (body?.action === "reschedule") {
     if (inst.status !== "pending") return new Response("Only a pending installment can be moved.", { status: 409 });
     const dueDate = typeof body.dueDate === "string" ? body.dueDate : "";

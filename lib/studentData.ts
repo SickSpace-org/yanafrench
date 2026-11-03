@@ -38,6 +38,8 @@ export type Student = {
   // Everything this student has paid (first payments + EMIs) — also only
   // attached by app/api/students.
   totalPaidPaise?: number;
+  // First payment per enrollment (paise) — editable in Admin → Payments.
+  firstPayments?: { id: string; amount: number; label: string }[];
 };
 
 // snake_case row shape as stored in the Supabase `students` table. The

@@ -1,22 +1,22 @@
 "use client";
 
 import { useAdminCollection } from "@/lib/useAdminCollection";
-import type { AdminPayment } from "@/lib/enrollmentRequestData";
+import type { Student } from "@/lib/studentData";
 import { AdminShell } from "../AdminShell";
 import { AdminPaymentsPanel } from "./AdminPaymentsPanel";
 import styles from "./AdminLessonsManager.module.css";
 
-// Every payment, batch and course, newest first (see app/api/payments) —
-// mostly ones confirmed by hand from Admin → Enrollments.
+// Every student from the Students tab (see app/api/students) with editable
+// payment amounts: first payment, EMIs and total paid.
 export function AdminPaymentsPage() {
-  const { items: payments, loaded, remove } = useAdminCollection<AdminPayment>("/api/payments");
+  const { items: students, loaded, refresh } = useAdminCollection<Student>("/api/students");
 
   return (
     <AdminShell>
       <div className={styles.head}>
         <small>ADMIN</small>
         <h1>Payments.</h1>
-        <p>Every payment you&rsquo;ve confirmed from Enrollments, newest first, plus older online payments.</p>
+        <p>Every student with what they&rsquo;ve paid and their EMIs. Click any amount to edit it.</p>
       </div>
 
       {!loaded ? (
@@ -25,7 +25,7 @@ export function AdminPaymentsPage() {
         </div>
       ) : (
         <div className={styles.tabPanel}>
-          <AdminPaymentsPanel payments={payments} onRemove={remove} />
+          <AdminPaymentsPanel students={students} onChanged={refresh} />
         </div>
       )}
     </AdminShell>
