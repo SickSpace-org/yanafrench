@@ -59,6 +59,44 @@ function EditableAmount({ paise, onSave }: { paise: number; onSave: (rupees: num
   );
 }
 
+// "+ Add EMI": amount + due date for one more installment.
+function AddEmi({ onAdd }: { onAdd: (rupees: number, dueDate: string) => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [rupees, setRupees] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [busy, setBusy] = useState(false);
+  if (!open) {
+    return (
+      <button type="button" className={styles.action} onClick={() => setOpen(true)}>+ Add EMI</button>
+    );
+  }
+  return (
+    <div style={{ display: "flex", gap: ".4rem", flexWrap: "wrap", alignItems: "center" }}>
+      <input type="number" min={1} placeholder="Amount ₹" value={rupees} onChange={(e) => setRupees(e.target.value)} aria-label="EMI amount in rupees" style={{ width: "7rem", padding: ".25rem .4rem", font: "inherit" }} />
+      <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} aria-label="EMI due date" style={{ padding: ".2rem .35rem", font: "inherit" }} />
+      <button
+        type="button"
+        className={styles.action}
+        disabled={busy || !rupees || !dueDate}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await onAdd(Number(rupees), dueDate);
+            setOpen(false);
+            setRupees("");
+            setDueDate("");
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        {busy ? "Adding…" : "Add"}
+      </button>
+      <button type="button" className={styles.action} onClick={() => setOpen(false)}>Cancel</button>
+    </div>
+  );
+}
+
 async function send(url: string, init: RequestInit) {
   const res = await fetch(url, { ...init, headers: { "Content-Type": "application/json" } });
   if (!res.ok) throw new Error((await res.text().catch(() => "")) || "Couldn't save.");
@@ -84,6 +122,8 @@ export function AdminPaymentsPanel({ students, onChanged }: { students: Student[
     run(() => send(`/api/payments/${id}`, { method: "PATCH", body: JSON.stringify({ rupees }) }));
   const addFirst = (studentId: string, rupees: number) =>
     run(() => send("/api/payments", { method: "POST", body: JSON.stringify({ studentId, rupees }) }));
+  const addEmi = (studentId: string, rupees: number, dueDate: string) =>
+    run(() => send("/api/emi/installments", { method: "POST", body: JSON.stringify({ studentId, rupees, dueDate }) }));
   const editEmi = (id: string, rupees: number) =>
     run(() => send(`/api/emi/installments/${id}`, { method: "POST", body: JSON.stringify({ action: "amount", rupees }) }));
   const editDue = (id: string, dueDate: string) =>
@@ -158,7 +198,10 @@ export function AdminPaymentsPanel({ students, onChanged }: { students: Student[
                   </td>
                   <td>
                     {emis.length === 0 ? (
-                      <span className={styles.muted}>No EMI</span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: ".3rem" }}>
+                        <span className={styles.muted}>No EMI recorded</span>
+                        <AddEmi onAdd={(r, d) => addEmi(s.id, r, d)} />
+                      </div>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: ".4rem" }}>
                         {emis.map((i) => (
@@ -183,6 +226,7 @@ export function AdminPaymentsPanel({ students, onChanged }: { students: Student[
                           </div>
                         ))}
                         {due > 0 && <div className={styles.muted}>{formatRupees(due)} still due</div>}
+                        <AddEmi onAdd={(r, d) => addEmi(s.id, r, d)} />
                       </div>
                     )}
                   </td>
